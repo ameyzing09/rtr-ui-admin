@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 :root {
   --background: #ffffff;
@@ -23,4 +23,76 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.maintenance-gear {
+  display: block;
+  filter: drop-shadow(0 0 22px rgba(14, 165, 233, 0.35));
+}
+
+.maintenance-gear--primary {
+  width: 80px;
+  height: 80px;
+  color: #22d3ee;
+  animation: maintenance-spin 12s linear infinite;
+}
+
+.maintenance-gear--secondary {
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  width: 48px;
+  height: 48px;
+  color: #38bdf8;
+  opacity: 0.95;
+  animation: maintenance-spin 8s linear infinite reverse;
+}
+
+.maintenance-tape {
+  position: relative;
+  border: 1px solid rgba(234, 179, 8, 0.35);
+  background: rgba(234, 179, 8, 0.08);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.maintenance-tape::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(135deg, rgba(234, 179, 8, 0.8) 0, rgba(234, 179, 8, 0.8) 18px, rgba(15, 23, 42, 0.95) 18px, rgba(15, 23, 42, 0.95) 36px);
+  background-size: 56px 56px;
+  animation: maintenance-stripes 3s linear infinite;
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.maintenance-pulse {
+  animation: maintenance-pulse 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@keyframes maintenance-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes maintenance-stripes {
+  to {
+    background-position: 56px 0;
+  }
+}
+
+@keyframes maintenance-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 1;
+  }
 }
