@@ -1,6 +1,7 @@
 ﻿import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { siteConfig } from "../config/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,10 +13,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "RTR Admin | Under Maintenance",
-  description: "RTR Admin is temporarily offline while we finish scheduled improvements.",
-};
+export const metadata: Metadata = siteConfig.maintenanceMode
+  ? {
+      title: `${siteConfig.name} | Under Maintenance`,
+      description: "RTR Admin is temporarily offline while we finish scheduled improvements.",
+    }
+  : {
+      title: `${siteConfig.name} Dashboard`,
+      description: "RTR Admin dashboard is currently available.",
+    };
 
 export default function RootLayout({
   children,
