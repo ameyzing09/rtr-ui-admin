@@ -1,8 +1,54 @@
 ﻿@import "tailwindcss";
+@import "../styles/themes.css";
 
 :root {
+  color-scheme: light;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #111827; /* gray-900 */
+
+  /* Extended theme tokens (light) */
+  --app-bg: #f9fafb; /* gray-50 */
+  --app-fg: #111827; /* gray-900 */
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --muted: #f3f4f6; /* gray-100 */
+  --muted-foreground: #6b7280; /* gray-500 */
+  --border: #e5e7eb; /* gray-200 */
+  --ring: #22d3ee; /* cyan-400 */
+  --primary: #06b6d4; /* cyan-500 */
+  --primary-foreground: #062a2f;
+  --secondary: #6366f1; /* indigo-500 */
+  --secondary-foreground: #111827;
+  --danger: #ef4444; /* red-500 */
+  --danger-foreground: #ffffff;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0a0a0a;
+  --foreground: #e5e7eb;
+
+  /* Extended theme tokens (dark) */
+  --app-bg: #0a0a0a;
+  --app-fg: #e5e7eb;
+  --card: #0f172a; /* slate-900 */
+  --card-foreground: #e5e7eb;
+  --muted: #111827; /* gray-900 */
+  --muted-foreground: #94a3b8; /* slate-400 */
+  --border: #1f2937; /* gray-800 */
+  --ring: #22d3ee; /* cyan-400 */
+  --primary: #22d3ee; /* cyan-400 */
+  --primary-foreground: #052a34;
+  --secondary: #6366f1;
+  --secondary-foreground: #0b1220;
+  --danger: #f87171; /* red-400 */
+  --danger-foreground: #0b1220;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #111827;
 }
 
 @theme inline {
@@ -12,16 +58,11 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--app-bg);
+  color: var(--app-fg);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -96,3 +137,7 @@ body {
     opacity: 1;
   }
 }
+
+
+
+
