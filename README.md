@@ -100,19 +100,4 @@ This project is optimized for deployment on Vercel, but can be deployed anywhere
 npm run build
 npm start
 ```
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
----
-
 Built with ❤️ using Next.js and TypeScript
