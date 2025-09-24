@@ -20,6 +20,10 @@
 # production
 /build
 
+# # documentation
+# *.md
+# !readme.md
+
 # misc
 .DS_Store
 *.pem
@@ -39,3 +43,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+node_modules
