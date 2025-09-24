@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { env } from '@/config/env';
 
-// API Response schemas
+// API Response base + schemas
+export const baseApiEnvelopeSchema = z.object({
+  success: z.boolean(),
+  message: z.string().optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
+});
+
 export const apiErrorSchema = z.object({
   message: z.string(),
   code: z.string().optional(),
@@ -9,15 +15,12 @@ export const apiErrorSchema = z.object({
 });
 
 export const apiResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
-  z.object({
+  baseApiEnvelopeSchema.extend({
     data: dataSchema,
-    message: z.string().optional(),
-    success: z.boolean(),
-    meta: z.record(z.string(), z.unknown()).optional(),
   });
 
 export const paginatedResponseSchema = <T extends z.ZodType>(itemSchema: T) =>
-  z.object({
+  baseApiEnvelopeSchema.extend({
     data: z.array(itemSchema),
     pagination: z.object({
       page: z.number(),
@@ -25,27 +28,23 @@ export const paginatedResponseSchema = <T extends z.ZodType>(itemSchema: T) =>
       total: z.number(),
       totalPages: z.number(),
     }),
-    success: z.boolean(),
   });
 
 // Types
 export type ApiError = z.infer<typeof apiErrorSchema>;
-export type ApiResponse<T> = {
-  data: T;
-  message?: string;
-  success: boolean;
-  meta?: Record<string, unknown>;
+export type BaseApiEnvelope = z.infer<typeof baseApiEnvelopeSchema>;
+export type ApiResponse<T> = BaseApiEnvelope & { data: T };
+
+export type Pagination = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 };
 
-export type PaginatedResponse<T> = {
+export type PaginatedResponse<T> = BaseApiEnvelope & {
   data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  success: boolean;
+  pagination: Pagination;
 };
 
 // Custom error class

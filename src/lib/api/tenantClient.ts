@@ -126,7 +126,8 @@ export class TenantClient {
     try {
       const response = await fetcher.get(`/tenants/check-slug/${slug}`) as { available: boolean };
       return response.available;
-    } catch {
+    } catch(error) {
+      console.error('Error checking slug availability:', error);
       return false;
     }
   }

@@ -29,7 +29,8 @@ export default function StatCard({
       case 'minimal':
         return 'bg-[var(--card)] border border-[var(--border)] hover:opacity-95';
       case 'highlighted':
-        return 'bg-[var(--card)] border border-[var(--border)] hover:opacity-95';
+        // Emphasized look with brand-accented border and deeper shadow
+        return 'relative overflow-hidden bg-[var(--card)] border border-[var(--ring)] shadow-lg';
       default:
         return 'bg-[var(--card)] border border-[var(--border)] hover:shadow-md';
     }
@@ -40,15 +41,15 @@ export default function StatCard({
       case 'minimal':
         return 'bg-gray-50 text-gray-600';
       case 'highlighted':
-        return 'bg-blue-100 text-blue-600';
+        return 'bg-[var(--muted)] text-[var(--ring)]';
       default:
         return 'bg-blue-50 text-blue-600';
     }
   };
 
   const getTrendStyles = () => {
-    if (trend === 'neutral') return 'text-gray-500';
-    return trend === 'up' ? 'text-green-600' : 'text-red-600';
+    if (trend === 'neutral') return 'text-[var(--muted-foreground)]';
+    return trend === 'up' ? 'text-[var(--primary)]' : 'text-[var(--danger)]';
   };
 
   return (
@@ -75,7 +76,7 @@ export default function StatCard({
             {TrendIcon && <TrendIcon className="w-4 h-4" />}
             {change}
           </div>
-          <span className="text-sm text-gray-500">{description}</span>
+          <span className="text-sm text-[var(--muted-foreground)]">{description}</span>
         </div>
       )}
     </div>
