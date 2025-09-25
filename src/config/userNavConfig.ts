@@ -10,7 +10,7 @@ export type UserNavConfig = {
   navbar: UserNavLink[];
 };
 
-export function getUserNavConfig(user?: { role?: string; name?: string }): UserNavConfig {
+export function getUserNavConfig(_user?: { role?: string; name?: string }): UserNavConfig {
   // You can tailor by role later. For now, provide a sensible default set
   const links: UserNavLink[] = [
     { id: 'overview', label: 'Overview', href: '/dashboard', icon: 'dashboard', match: 'exact' },

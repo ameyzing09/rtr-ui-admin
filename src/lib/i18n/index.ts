@@ -55,23 +55,29 @@ export const LOCALES: Locale[] = [
 
 export const DEFAULT_LOCALE = 'en';
 
-// Placeholder translation function
-export function t(key: string, params?: Record<string, unknown>): string {
-  // This is a placeholder that returns the key itself
-  // In a real implementation, this would:
-  // 1. Look up the translation for the current locale
-  // 2. Interpolate parameters
-  // 3. Handle pluralization
-  // 4. Fall back to default locale if translation is missing
+// Import translations
+import { enTranslations } from './en';
+import type { TranslationKey } from './keys';
+
+// Current translations (only English for now)
+const translations = {
+  en: enTranslations,
+};
+
+// Translation function
+export function t(key: TranslationKey, params?: Record<string, unknown>): string {
+  // For now, always use English
+  // In a real implementation, this would check the current locale
+  const translation = translations.en[key] || key;
   
   if (params) {
-    // Simple parameter replacement for demonstration
-    return key.replace(/\{\{(\w+)\}\}/g, (match, param) => 
+    // Simple parameter replacement
+    return translation.replace(/\{\{(\w+)\}\}/g, (match, param) => 
       params[param]?.toString() || match
     );
   }
   
-  return key;
+  return translation;
 }
 
 // Placeholder hooks for future implementation

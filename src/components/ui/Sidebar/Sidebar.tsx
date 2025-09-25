@@ -432,8 +432,8 @@ function NavigationSection({
             onSectionToggle?.(section.id, next);
             if (next) {
               // Navigate to first link when expanding
-              const firstLink = section.items.find((it: NavigationItem) => it.type === 'link' && it.href);
-              if (firstLink?.href) {
+              const firstLink = section.items.find((it: NavigationItem) => it.type === 'link');
+              if (firstLink) {
                 router.push(firstLink.href);
               }
             }
