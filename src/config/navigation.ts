@@ -1,107 +1,61 @@
-import { 
-  LayoutDashboard, 
-  Users, 
-  BarChart3, 
-  Settings, 
-  FileText,
+﻿import type { LucideIcon } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
   CreditCard,
+  Zap,
+  Activity,
+  Layers,
   Shield,
-  Bell
+  Bell,
+  HelpCircle,
 } from 'lucide-react';
 import type { NavItem } from '@/components/layout/Navbar';
 import type { SideGroup } from '@/components/layout/Sidebar';
+import { platformNavConfig, type NavIconKey } from './platformNavConfig';
+import { getUserNavConfig } from './userNavConfig';
 
-// Define navigation items for the top navbar
-export const navItems: NavItem[] = [
-  {
-    label: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    match: 'exact',
-  },
-  {
-    label: 'Analytics',
-    href: '/dashboard/analytics',
-    icon: BarChart3,
-    match: 'startsWith',
-  },
-  {
-    label: 'Users',
-    href: '/dashboard/users',
-    icon: Users,
-    match: 'startsWith',
-  },
-  {
-    label: 'Settings',
-    href: '/dashboard/settings',
-    icon: Settings,
-    match: 'startsWith',
-  },
-];
+const platformIconMap: Record<NavIconKey, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  tenants: Layers,
+  users: Users,
+  billing: CreditCard,
+  integrations: Zap,
+  health: Activity,
+  settings: Settings,
+  catalog: Layers,
+  security: Shield,
+  zap: Zap,
+  layers: Layers,
+  activity: Activity,
+  credit: CreditCard,
+};
 
-// Define sidebar groups with more detailed navigation
-export const sidebarGroups: SideGroup[] = [
-  {
-    title: 'Overview',
-    items: [
-      {
-        label: 'Dashboard',
-        href: '/dashboard',
-        icon: LayoutDashboard,
-        match: 'exact',
-      },
-      {
-        label: 'Analytics',
-        href: '/dashboard/analytics',
-        icon: BarChart3,
-        match: 'startsWith',
-      },
-    ],
-  },
-  {
-    title: 'Management',
-    items: [
-      {
-        label: 'Users',
-        href: '/dashboard/users',
-        icon: Users,
-        match: 'startsWith',
-      },
-      {
-        label: 'Content',
-        href: '/dashboard/content',
-        icon: FileText,
-        match: 'startsWith',
-      },
-      {
-        label: 'Billing',
-        href: '/dashboard/billing',
-        icon: CreditCard,
-        match: 'startsWith',
-      },
-    ],
-  },
-  {
-    title: 'System',
-    items: [
-      {
-        label: 'Security',
-        href: '/dashboard/security',
-        icon: Shield,
-        match: 'startsWith',
-      },
-      {
-        label: 'Notifications',
-        href: '/dashboard/notifications',
-        icon: Bell,
-        match: 'startsWith',
-      },
-      {
-        label: 'Settings',
-        href: '/dashboard/settings',
-        icon: Settings,
-        match: 'startsWith',
-      },
-    ],
-  },
-];
+const userIconMap = {
+  dashboard: LayoutDashboard,
+  notifications: Bell,
+  settings: Settings,
+  help: HelpCircle,
+} as const;
+
+type UserIconKey = keyof typeof userIconMap;
+
+// Navbar: user-focused options only
+export const navItems: NavItem[] = getUserNavConfig().navbar.map((item) => ({
+  label: item.label,
+  href: item.href,
+  icon: item.icon ? userIconMap[item.icon as UserIconKey] : undefined,
+  match: item.match || (item.href === '/dashboard' ? 'exact' : 'startsWith'),
+}));
+
+// Sidebar: platform/global options
+export const sidebarGroups: SideGroup[] = platformNavConfig.sidebarSections.map((section) => ({
+  title: section.title,
+  items: section.items.map((item) => ({
+    label: item.label,
+    href: item.href,
+    icon: item.icon ? platformIconMap[item.icon] : undefined,
+    match: item.href === '/dashboard' ? 'exact' : 'startsWith',
+  })),
+}));

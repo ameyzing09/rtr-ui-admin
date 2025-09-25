@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import Navbar from './Navbar';
@@ -49,11 +49,11 @@ export default function DashboardShell({
       />
 
       {/* Main Content Area */}
-      <div className="flex">
+      <div className="flex w-full overflow-hidden">
         {/* Generic Sidebar - Wrapped in ClientOnly to prevent hydration issues */}
         <ClientOnly
           fallback={
-            <div className="w-64 bg-[var(--card)] border-r border-[var(--border)] h-screen">
+            <div className="hidden lg:block w-64 bg-[var(--card)] border-r border-[var(--border)] h-screen">
               <div className="p-4">
                 <div className="h-8 bg-[var(--muted)] rounded animate-pulse mb-4"></div>
                 <div className="space-y-2">
@@ -69,7 +69,7 @@ export default function DashboardShell({
         </ClientOnly>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto">
           <div className="container mx-auto px-4 py-6 lg:px-6 lg:py-8">
             {children}
           </div>

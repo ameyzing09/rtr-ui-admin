@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Search, X } from 'lucide-react';
+import { ChevronLeft, Search, X, ChevronDown } from 'lucide-react';
 import NavigationItemComponent from './NavigationItem';
-import type { SidebarProps, NavigationItem, NavigationSection } from './types';
+import type { SidebarProps, NavigationItem, NavigationSection, NavigationLink } from './types';
 import Image from 'next/image';
 
 export default function Sidebar({
@@ -34,6 +34,22 @@ export default function Sidebar({
   const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredSections, setFilteredSections] = useState(sections);
+  const [openState, setOpenState] = useState<Record<string, boolean>>({});
+
+  const PERSIST_KEY = 'rtr:sidebar:open';
+
+  // Load persisted section open state
+  useEffect(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(PERSIST_KEY) : null;
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, boolean>;
+        setOpenState(parsed);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Determine if sidebar is collapsed
   const isCollapsed = controlledCollapsed !== undefined 
@@ -261,10 +277,28 @@ export default function Sidebar({
           {filteredSections.map((section) => (
             <NavigationSection
               key={section.id}
-              section={section}
+              section={{
+                ...section,
+                defaultOpen:
+                  openState[section.id] !== undefined
+                    ? openState[section.id]
+                    : section.defaultOpen ?? true,
+              }}
               isCollapsed={isCollapsed}
               onItemClick={onItemClick}
-              onSectionToggle={onSectionToggle}
+              onSectionToggle={(id, isOpen) => {
+                // persist open state per section
+                setOpenState((prev) => {
+                  const next = { ...prev, [id]: isOpen };
+                  try {
+                    window.localStorage.setItem(PERSIST_KEY, JSON.stringify(next));
+                  } catch {
+                    // ignore
+                  }
+                  return next;
+                });
+                onSectionToggle?.(id, isOpen);
+              }}
             />
           ))}
 
@@ -363,34 +397,73 @@ interface NavigationSectionProps {
   onSectionToggle?: (sectionId: string, isOpen: boolean) => void;
 }
 
+import { useRouter } from 'next/navigation';
+
+function isLink(item: NavigationItem): item is NavigationLink { return item.type === 'link'; }
+
 function NavigationSection({
   section,
   isCollapsed,
   onItemClick,
+  onSectionToggle,
 }: NavigationSectionProps) {
+  const router = useRouter();
+  const [open, setOpen] = useState(section.defaultOpen ?? true);
+
+  const sectionHasActive = section.items.some((it) => isLink(it) && !!it.isActive);
+
+  // Keep section open if one of its children is active
+  useEffect(() => {
+    if (sectionHasActive) setOpen(true);
+  }, [sectionHasActive]);
   // Don't render if not visible
   if (section.isVisible === false) return null;
 
   return (
     <div className={`mb-6 ${section.className || ''}`}>
-      {/* Section Title */}
+      {/* Collapsible Section Header */}
       {section.title && !isCollapsed && (
-        <h2 className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          {section.title}
-        </h2>
+        <button
+          type="button"
+          className="w-full px-3 py-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-600 hover:text-gray-800"
+          onClick={() => {
+            const next = !open;
+            setOpen(next);
+            onSectionToggle?.(section.id, next);
+            if (next) {
+              // Navigate to first link when expanding
+              const firstLink = section.items.find((it: NavigationItem) => it.type === 'link' && it.href);
+              if (firstLink?.href) {
+                router.push(firstLink.href);
+              }
+            }
+          }}
+          aria-expanded={open}
+        >
+          {section.icon && (
+            <section.icon className="w-4 h-4 text-[var(--muted-foreground)]" />
+          )}
+          <span className="flex-1 text-left">{section.title}</span>
+          <ChevronDown className={`w-4 h-4 transition-transform ${open ? '' : '-rotate-90'}`} />
+        </button>
       )}
 
       {/* Section Items */}
       <div className="space-y-1">
-        {section.items.map((item) => (
-          <NavigationItemComponent
-            key={item.id}
-            item={item}
-            isCollapsed={isCollapsed}
-            onItemClick={onItemClick}
-          />
-        ))}
+        {(open || isCollapsed) &&
+          section.items.map((item) => (
+            <NavigationItemComponent
+              key={item.id}
+              item={item}
+              isCollapsed={isCollapsed}
+              onItemClick={onItemClick}
+            />
+          ))}
       </div>
     </div>
   );
 }
+
+
+
+

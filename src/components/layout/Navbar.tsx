@@ -82,10 +82,10 @@ export default function Navbar({
     <>
       <nav className="sticky top-0 z-50 w-full">
         {/* Desktop Navbar - Centered Glass Pill */}
-        <div className="hidden md:flex justify-center p-4">
+        <div className="hidden lg:flex justify-center p-4">
           <div className="glass-pill px-6 py-3 flex items-center justify-between max-w-6xl w-full">
             {/* Left: Tenant Logo/Brand */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
               {tenantLogo ? (
                 <Image
                   src={tenantLogo}
@@ -128,7 +128,7 @@ export default function Navbar({
             </div>
 
             {/* Right: Theme Toggle + Environment Badge + User Menu */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <ThemeToggle variant="pill" />
               {/* Environment Badge */}
               {environment && (
@@ -167,7 +167,7 @@ export default function Navbar({
                     <Link
                       href="/settings"
                       className="
-                        flex items-center gap-3 px-4 py-2 text-sm text-gray-700
+                        flex items-center gap-2 px-4 py-2 text-sm text-gray-700
                         hover:bg-gray-50 transition-smooth
                       "
                       onClick={() => setIsUserMenuOpen(false)}
@@ -178,7 +178,7 @@ export default function Navbar({
                     <Link
                       href="/help"
                       className="
-                        flex items-center gap-3 px-4 py-2 text-sm text-gray-700
+                        flex items-center gap-2 px-4 py-2 text-sm text-gray-700
                         hover:bg-gray-50 transition-smooth
                       "
                       onClick={() => setIsUserMenuOpen(false)}
@@ -189,7 +189,7 @@ export default function Navbar({
                     <hr className="my-1 border-gray-200" />
                     <button
                       className="
-                        w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600
+                        w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600
                         hover:bg-red-50 transition-smooth text-left
                       "
                       onClick={() => {
@@ -209,10 +209,10 @@ export default function Navbar({
         </div>
 
         {/* Mobile Navbar - Standard Top Bar */}
-        <div className="md:hidden bg-[var(--card)] backdrop-blur-md border-b border-[var(--border)]">
+        <div className="lg:hidden bg-[var(--card)]/95 supports-[backdrop-filter]:bg-[var(--card)]/70 backdrop-blur-md border-b border-[var(--border)]">
           <div className="flex items-center justify-between px-4 py-3">
             {/* Left: Brand */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {tenantLogo ? (
                 <Image
                   src={tenantLogo}
@@ -230,8 +230,8 @@ export default function Navbar({
             </div>
 
             {/* Right: Theme Toggle + Environment Badge + Hamburger */}
-            <div className="flex items-center gap-3">
-              <ThemeToggle variant="pill" className="md:hidden" />
+            <div className="flex items-center gap-2">
+              <ThemeToggle variant="pill" className="lg:hidden" />
               {environment && (
                 <span
                   className={`
@@ -273,6 +273,7 @@ export default function Navbar({
     </>
   );
 }
+
 
 
 
