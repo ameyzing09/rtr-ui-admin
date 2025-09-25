@@ -433,7 +433,7 @@ function NavigationSection({
             if (next) {
               // Navigate to first link when expanding
               const firstLink = section.items.find((it: NavigationItem) => it.type === 'link');
-              if (firstLink && firstLink.type === 'link') {
+              if (firstLink) {
                 router.push(firstLink.href);
               }
             }
