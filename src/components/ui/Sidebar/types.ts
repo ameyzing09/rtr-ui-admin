@@ -76,6 +76,8 @@ export type NavigationItem =
 export interface NavigationSection {
   id: string;
   title?: string;
+  icon?: LucideIcon;
+  defaultOpen?: boolean;
   items: NavigationItem[];
   isVisible?: boolean;
   permissions?: string[];
