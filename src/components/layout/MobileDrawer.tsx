@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useClientPathnameWithFallback } from '@/hooks/useClientPathname';
 import { Settings, HelpCircle, X, User } from 'lucide-react';
@@ -11,9 +11,10 @@ export interface MobileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   navItems: NavItem[];
+  onLogout?: () => Promise<void>;
 }
 
-export default function MobileDrawer({ isOpen, onClose, navItems }: MobileDrawerProps) {
+export default function MobileDrawer({ isOpen, onClose, navItems, onLogout }: MobileDrawerProps) {
   const drawerRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLButtonElement>(null);
   const pathname = useClientPathnameWithFallback('/');
@@ -82,6 +83,19 @@ export default function MobileDrawer({ isOpen, onClose, navItems }: MobileDrawer
     }
     return pathname.startsWith(item.href);
   };
+  const handleLogout = useCallback(async () => {
+    onClose();
+    if (!onLogout) {
+      return;
+    }
+    try {
+      await onLogout();
+    } catch (cause) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('Failed to logout', cause);
+      }
+    }
+  }, [onClose, onLogout]);
 
   if (!isOpen) return null;
 
@@ -187,20 +201,20 @@ export default function MobileDrawer({ isOpen, onClose, navItems }: MobileDrawer
             Help & Support
           </Link>
           
-          <button
-            onClick={() => {
-              onClose();
-              // TODO: Implement logout logic
-              console.log('Logout clicked');
-            }}
-            className="
-              w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
-              text-red-600 hover:bg-red-50 transition-smooth focus-ring text-left
-            "
-          >
-            <X className="w-5 h-5" />
-            Sign Out
-          </button>
+          {onLogout && (
+            <button
+              onClick={() => {
+                void handleLogout();
+              }}
+              className="
+                w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium
+                text-red-600 hover:bg-red-50 transition-smooth focus-ring text-left
+              "
+            >
+              <X className="w-5 h-5" />
+              Sign Out
+            </button>
+          )}
         </div>
       </div>
     </>

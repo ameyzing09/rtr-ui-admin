@@ -1,4 +1,4 @@
-import type { Permission } from '@/lib/auth/permissions';
+import type { Permission } from '@/lib/auth/types';
 
 export type NavIconKey =
   | 'dashboard'

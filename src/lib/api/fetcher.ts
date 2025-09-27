@@ -220,6 +220,14 @@ class Fetcher {
     delete this.defaultHeaders.Authorization;
   }
 
+  setTenantId(tenantId: string) {
+    this.defaultHeaders['X-Tenant-ID'] = tenantId;
+  }
+
+  removeTenantId() {
+    delete this.defaultHeaders['X-Tenant-ID'];
+  }
+
   // Update headers
   updateHeaders(headers: Record<string, string>) {
     this.defaultHeaders = { ...this.defaultHeaders, ...headers };
@@ -230,8 +238,12 @@ class Fetcher {
 export const fetcher = new Fetcher();
 
 // Create authenticated fetcher with token
-export function createAuthenticatedFetcher(token: string): Fetcher {
+export function createAuthenticatedFetcher(token: string, tenantId?: string): Fetcher {
   const authFetcher = new Fetcher();
   authFetcher.setAuthToken(token);
+  if (tenantId) {
+    authFetcher.setTenantId(tenantId);
+  }
   return authFetcher;
 }
+

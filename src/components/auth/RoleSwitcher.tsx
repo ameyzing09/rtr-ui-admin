@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { useAuth } from './AuthProvider';
 
@@ -7,29 +7,40 @@ interface RoleSwitcherProps {
 }
 
 export function RoleSwitcher({ className }: RoleSwitcherProps) {
-  const { role, setRole, availableRoles } = useAuth();
+  const { role, availableRoles } = useAuth();
+  if (!role) {
+    return null;
+  }
+
   const classes = ['flex items-center gap-2 text-xs font-medium text-gray-500', className]
     .filter(Boolean)
     .join(' ');
 
+  if (availableRoles.length > 1) {
+    return (
+      <label className={classes}>
+        Role
+        <select
+          value={role}
+          disabled
+          className="rounded-full border border-[var(--border)] bg-white/70 px-3 py-1 text-sm font-medium text-gray-700 shadow-sm"
+        >
+          {availableRoles.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
   return (
-    <label className={classes}>
+    <div className={classes}>
       Role
-      <select
-        value={role}
-        onChange={(event) => setRole(event.target.value as typeof role)}
-        className="rounded-full border border-[var(--border)] bg-white/70 px-3 py-1 text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1"
-      >
-        {availableRoles.map((availableRole) => (
-          <option key={availableRole} value={availableRole}>
-            {availableRole}
-          </option>
-        ))}
-      </select>
-      {/* //no select just role details */}
-      {/* <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
+      <span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-semibold text-blue-800">
         {role}
-      </span> */}
-    </label>
+      </span>
+    </div>
   );
 }
