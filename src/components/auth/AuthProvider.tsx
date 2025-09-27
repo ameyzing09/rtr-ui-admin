@@ -1,44 +1,149 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import type { ReactNode } from 'react';
-import { getMockLoginResponse } from '@/lib/auth/mockAuth';
+import { authClient } from '@/lib/api/authClient';
+import { fetcher } from '@/lib/api/fetcher';
 import { rolePermissions, type Permission } from '@/lib/auth/permissions';
-import type { LoginResponse, UserRole } from '@/lib/auth/types';
+import type {
+  AuthSession,
+  AuthUser,
+  LoginCredentials,
+  StoredAuthSession,
+  UserRole,
+} from '@/lib/auth/types';
 
 interface AuthContextValue {
-  login: LoginResponse;
-  role: UserRole;
+  user: AuthUser | null;
+  session: AuthSession | null;
+  role: UserRole | null;
   permissions: Permission[];
-  setRole: (role: UserRole) => void;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  error: string | null;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => Promise<void>;
   availableRoles: UserRole[];
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const AVAILABLE_ROLES: UserRole[] = ['SUPERADMIN', 'ADMIN'];
+const STORAGE_KEY = 'rtr-admin-session';
 
-interface AuthProviderProps {
-  children: ReactNode;
-  defaultRole?: UserRole;
-}
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-export function AuthProvider({ children, defaultRole = 'SUPERADMIN' }: AuthProviderProps) {
-  const [role, setRole] = useState<UserRole>(defaultRole);
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
 
-  const login = useMemo(() => getMockLoginResponse(role), [role]);
-  const permissions = useMemo(() => rolePermissions[role], [role]);
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      setIsLoading(false);
+      return;
+    }
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      login,
-      role,
-      permissions,
-      setRole,
-      availableRoles: AVAILABLE_ROLES,
-    }),
-    [login, permissions, role]
-  );
+    try {
+      const parsed = JSON.parse(stored) as StoredAuthSession;
+      const expiresAt = new Date(parsed.expiresAt);
+
+      if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+        window.localStorage.removeItem(STORAGE_KEY);
+        setIsLoading(false);
+        return;
+      }
+
+      const normalized: AuthSession = {
+        token: parsed.token,
+        expiresAt,
+        user: parsed.user,
+      };
+
+      setSession(normalized);
+      fetcher.setAuthToken(normalized.token);
+      fetcher.setTenantId(normalized.user.tenantId);
+    } catch {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const login = useCallback(async (credentials: LoginCredentials) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const nextSession = await authClient.login(credentials);
+      setSession(nextSession);
+      fetcher.setAuthToken(nextSession.token);
+      fetcher.setTenantId(nextSession.user.tenantId);
+
+      if (typeof window !== 'undefined') {
+        if (credentials.rememberMe) {
+          const persist: StoredAuthSession = {
+            token: nextSession.token,
+            expiresAt: nextSession.expiresAt.toISOString(),
+            user: nextSession.user,
+          };
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persist));
+        } else {
+          window.localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    } catch (cause) {
+      let message = 'Unable to sign in. Please check your credentials.';
+      if (cause instanceof Error && cause.message) {
+        message = cause.message;
+      }
+      setError(message);
+      throw cause;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    setSession(null);
+    setError(null);
+    fetcher.removeAuthToken();
+    fetcher.removeTenantId();
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
+
+  const role = session?.user.role ?? null;
+  const permissions = useMemo<Permission[]>(() => {
+    if (!role) {
+      return [];
+    }
+    return rolePermissions[role] ?? [];
+  }, [role]);
+
+  const value = useMemo<AuthContextValue>(() => ({
+    user: session?.user ?? null,
+    session,
+    role,
+    permissions,
+    isAuthenticated: Boolean(session),
+    isLoading,
+    error,
+    login,
+    logout,
+    availableRoles: role ? [role] : [],
+  }), [session, role, permissions, isLoading, error, login, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -50,4 +155,5 @@ export function useAuth() {
   }
   return context;
 }
+
 

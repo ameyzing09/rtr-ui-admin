@@ -1,12 +1,13 @@
-﻿'use client';
+'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useClientPathnameWithFallback } from '@/hooks/useClientPathname';
 import { Menu, X, Settings, HelpCircle, User } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme';
 import MobileDrawer from './MobileDrawer';
 import Image from 'next/image';
+import { useAuth } from '../auth';
 
 export type NavItem = {
   label: string;
@@ -34,6 +35,19 @@ export default function Navbar({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const pathname = useClientPathnameWithFallback('/');
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const { logout } = useAuth();
+
+  const handleSignOut = useCallback(async () => {
+    setIsUserMenuOpen(false);
+    setIsMobileMenuOpen(false);
+    try {
+      await logout();
+    } catch (cause) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('Failed to logout', cause);
+      }
+    }
+  }, [logout]);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -193,9 +207,7 @@ export default function Navbar({
                         hover:bg-red-50 transition-smooth text-left
                       "
                       onClick={() => {
-                        setIsUserMenuOpen(false);
-                        // TODO: Implement logout logic
-                        console.log('Logout clicked');
+                        void handleSignOut();
                       }}
                     >
                       <X className="w-4 h-4" />
@@ -269,10 +281,12 @@ export default function Navbar({
         isOpen={isMobileMenuOpen}
         onClose={() => handleMobileMenuToggle()}
         navItems={navItems}
+        onLogout={handleSignOut}
       />
     </>
   );
 }
+
 
 
 

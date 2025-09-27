@@ -25,7 +25,8 @@ export default function Input({
   id,
   ...props
 }: InputProps) {
-  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  const generatedId = React.useId();
+  const inputId = id ?? generatedId;
   const hasError = error || isInvalid;
 
   const baseInputStyles = `
@@ -103,3 +104,4 @@ export default function Input({
     </div>
   );
 }
+

@@ -38,7 +38,7 @@ const envSchema = z.object({
   NEXT_PUBLIC_USE_MOCK_DATA: z.string().default('false').transform(val => val === 'true'),
   
   // API Configuration
-  NEXT_PUBLIC_API_BASE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_API_BASE_URL: z.string().url().default('http://localhost:8082'),
   API_SECRET_KEY: z.string().optional(),
   
   // Authentication
@@ -103,3 +103,4 @@ export function logEnvInfo() {
     console.log(`- Analytics: ${isAnalyticsEnabled}`);
   }
 }
+
