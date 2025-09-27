@@ -1,4 +1,4 @@
-﻿import type { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +15,8 @@ import type { NavItem } from '@/components/layout/Navbar';
 import type { SideGroup } from '@/components/layout/Sidebar';
 import { platformNavConfig, type NavIconKey } from './platformNavConfig';
 import { getUserNavConfig } from './userNavConfig';
+import type { Permission } from '@/lib/auth/permissions';
+import type { UserRole } from '@/lib/auth/types';
 
 const platformIconMap: Record<NavIconKey, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -41,15 +43,24 @@ const userIconMap = {
 
 type UserIconKey = keyof typeof userIconMap;
 
-// Navbar: user-focused options only
-export const navItems: NavItem[] = getUserNavConfig().navbar.map((item) => ({
-  label: item.label,
-  href: item.href,
-  icon: item.icon ? userIconMap[item.icon as UserIconKey] : undefined,
-  match: item.match || (item.href === '/dashboard' ? 'exact' : 'startsWith'),
-}));
+interface BuildNavArgs {
+  role?: UserRole;
+  permissions?: Permission[];
+}
 
-// Sidebar: platform/global options
+export function buildNavbarItems({ role, permissions = [] }: BuildNavArgs = {}): NavItem[] {
+  const config = getUserNavConfig({ role, permissions });
+
+  return config.navbar
+    .filter((item) => !item.permissions || item.permissions.some((permission) => permissions.includes(permission)))
+    .map((item) => ({
+      label: item.label,
+      href: item.href,
+      icon: item.icon ? userIconMap[item.icon as UserIconKey] : undefined,
+      match: item.match || (item.href === '/dashboard' ? 'exact' : 'startsWith'),
+    }));
+}
+
 export const sidebarGroups: SideGroup[] = platformNavConfig.sidebarSections.map((section) => ({
   title: section.title,
   items: section.items.map((item) => ({

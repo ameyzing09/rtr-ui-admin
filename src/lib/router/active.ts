@@ -169,3 +169,4 @@ export function isSameSection(path1: string, path2: string): boolean {
   
   return section1 !== null && section1 === section2;
 }
+

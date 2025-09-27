@@ -5,7 +5,6 @@ import Navbar from './Navbar';
 import { GenericSidebar } from '@/components/ui';
 import { navItems } from '@/config/navigation';
 import { createDashboardSidebarConfig } from '@/config/dashboardSidebar';
-import { DEFAULT_VALUES } from '@/config/constants';
 import ClientOnly from '@/components/ClientOnly';
 import { useClientPathnameWithFallback } from '@/hooks/useClientPathname';
 
@@ -18,7 +17,7 @@ interface DashboardShellProps {
 
 export default function DashboardShell({
   children,
-  tenantName = DEFAULT_VALUES.TENANT_NAME,
+  tenantName = 'Acme Corp',
   tenantLogo,
   environment,
 }: DashboardShellProps) {
@@ -28,9 +27,9 @@ export default function DashboardShell({
   const sidebarConfig = createDashboardSidebarConfig({
     tenantName,
     tenantLogo,
-    userName: DEFAULT_VALUES.USER_NAME,
-    userEmail: DEFAULT_VALUES.USER_EMAIL,
-    userRole: DEFAULT_VALUES.USER_ROLE,
+    userName: 'John Doe',
+    userEmail: 'john.doe@example.com',
+    userRole: 'Administrator',
     currentPath: pathname,
     onLogout: () => {
       // TODO: Implement actual logout logic
