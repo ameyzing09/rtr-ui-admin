@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useClientPathnameWithFallback } from '@/hooks/useClientPathname';
-import { DEFAULT_VALUES, ARIA_LABELS } from '@/config/constants';
 import { Menu, X, Settings, HelpCircle, User } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme';
 import MobileDrawer from './MobileDrawer';
@@ -26,7 +25,7 @@ export interface NavbarProps {
 
 export default function Navbar({
   navItems,
-  tenantName = DEFAULT_VALUES.TENANT_NAME,
+  tenantName = 'Your SaaS',
   tenantLogo,
   environment,
   onMobileMenuToggle,
@@ -252,7 +251,7 @@ export default function Navbar({
                 "
                 aria-expanded={isMobileMenuOpen}
                 aria-controls="mobile-menu"
-                aria-label={ARIA_LABELS.TOGGLE_NAVIGATION_MENU}
+                aria-label="Toggle navigation menu"
               >
                 {isMobileMenuOpen ? (
                   <X className="w-6 h-6" />

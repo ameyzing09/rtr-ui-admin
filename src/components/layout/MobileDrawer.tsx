@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useClientPathnameWithFallback } from '@/hooks/useClientPathname';
 import { Settings, HelpCircle, X, User } from 'lucide-react';
+import { RoleSwitcher } from '@/components/auth';
 import type { NavItem } from './Navbar';
 
 export interface MobileDrawerProps {
@@ -155,7 +156,8 @@ export default function MobileDrawer({ isOpen, onClose, navItems }: MobileDrawer
         </div>
 
         {/* Bottom Section - User Actions */}
-        <div className="border-t border-gray-200 p-4 space-y-1">
+        <div className="border-t border-gray-200 p-4 space-y-3">
+          <RoleSwitcher />
           <div className="flex items-center gap-3 px-4 py-2 text-sm text-gray-600">
             <User className="w-5 h-5" />
             <span>Account</span>

@@ -3,10 +3,10 @@
 import React from 'react';
 import Navbar from './Navbar';
 import { GenericSidebar } from '@/components/ui';
-import { navItems } from '@/config/navigation';
+import { buildNavbarItems } from '@/config/navigation';
 import { createDashboardSidebarConfig } from '@/config/dashboardSidebar';
-import { DEFAULT_VALUES } from '@/config/constants';
 import ClientOnly from '@/components/ClientOnly';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { useClientPathnameWithFallback } from '@/hooks/useClientPathname';
 
 interface DashboardShellProps {
@@ -18,32 +18,34 @@ interface DashboardShellProps {
 
 export default function DashboardShell({
   children,
-  tenantName = DEFAULT_VALUES.TENANT_NAME,
+  tenantName = 'Acme Corp',
   tenantLogo,
   environment,
 }: DashboardShellProps) {
   const pathname = useClientPathnameWithFallback('/dashboard');
+  const { login, role, permissions } = useAuth();
 
-  // TODO: Replace with actual user data from your auth system
+  const navbarItems = React.useMemo(() => buildNavbarItems({ role, permissions }), [role, permissions]);
+
   const sidebarConfig = createDashboardSidebarConfig({
     tenantName,
     tenantLogo,
-    userName: DEFAULT_VALUES.USER_NAME,
-    userEmail: DEFAULT_VALUES.USER_EMAIL,
-    userRole: DEFAULT_VALUES.USER_ROLE,
+    userName: login.user.name,
+    userEmail: login.user.email,
+    userRole: role,
     currentPath: pathname,
     onLogout: () => {
       // TODO: Implement actual logout logic
       console.log('Logout clicked');
     },
-    userPermissions: ['admin', 'user', 'developer'], // TODO: Get from auth system
+    userPermissions: permissions,
   });
 
   return (
     <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-fg)]">
       {/* Top Navigation */}
       <Navbar
-        navItems={navItems}
+        navItems={navbarItems}
         tenantName={tenantName}
         tenantLogo={tenantLogo}
         environment={environment}

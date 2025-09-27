@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -9,10 +9,12 @@ import {
   Shield,
   HelpCircle,
   LogOut,
+  Database,
+  Zap,
+  Globe,
   Package,
   Layers,
   Activity,
-  Zap,
 } from 'lucide-react';
 
 import type { NavigationSection, SidebarProps } from '@/components/ui/Sidebar';
@@ -69,7 +71,7 @@ export function createDashboardSidebarConfig(config: {
   const sections: NavigationSection[] = platformNavConfig.sidebarSections.map((section) => ({
     id: section.id,
     title: section.title,
-    items: section.items.map((item) => {
+    items: section.items.map((item, idx) => {
       const parts = item.href.split('/').filter(Boolean);
       const exact = parts.length <= 2;
       return createNavigationLink({ id: item.id, label: item.label, href: item.href, icon: (sectionIconMap[section.id] ? undefined : (item.icon ? iconMap[item.icon] : undefined)), exactMatch: exact });
