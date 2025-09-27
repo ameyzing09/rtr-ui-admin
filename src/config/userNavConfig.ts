@@ -14,13 +14,59 @@ export type UserNavConfig = {
   navbar: UserNavLink[];
 };
 
-export function getUserNavConfig(_user?: { role?: UserRole; permissions?: Permission[] }): UserNavConfig {
-  const links: UserNavLink[] = [
-    { id: 'overview', label: 'Overview', href: '/dashboard', icon: 'dashboard', match: 'exact', permissions: ['platform:overview:view'] },
-    { id: 'notifications', label: 'Notifications', href: '/dashboard/notifications', icon: 'notifications', permissions: ['platform:ops:view'] },
-    { id: 'settings', label: 'Settings', href: '/dashboard/settings', icon: 'settings', permissions: ['platform:settings:manage'] },
+type UserConfigInput = {
+  role?: UserRole;
+  permissions?: Permission[];
+};
+
+export function getUserNavConfig(user?: UserConfigInput): UserNavConfig {
+  const baseLinks: UserNavLink[] = [
+    {
+      id: 'overview',
+      label: 'Overview',
+      href: '/dashboard',
+      icon: 'dashboard',
+      match: 'exact',
+      permissions: ['platform:overview:view'],
+    },
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      href: '/dashboard/notifications',
+      icon: 'notifications',
+      permissions: ['platform:ops:view'],
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      href: '/dashboard/settings',
+      icon: 'settings',
+      permissions: ['platform:settings:manage'],
+    },
     { id: 'help', label: 'Help', href: '/help', icon: 'help' },
   ];
 
-  return { navbar: links };
+  const superAdminExtras: UserNavLink[] = user?.role === 'SUPERADMIN'
+    ? [
+        {
+          id: 'control-center',
+          label: 'Control Center',
+          href: '/dashboard/control-center',
+          icon: 'settings',
+          permissions: ['platform:overview:view', 'platform:ops:view'],
+        },
+      ]
+    : [];
+
+  const combined = [...superAdminExtras, ...baseLinks];
+  const allowedPermissions = new Set(user?.permissions ?? []);
+
+  const filtered = combined.filter((link) => {
+    if (!link.permissions || link.permissions.length === 0) {
+      return true;
+    }
+    return link.permissions.some((permission) => allowedPermissions.has(permission));
+  });
+
+  return { navbar: filtered };
 }
