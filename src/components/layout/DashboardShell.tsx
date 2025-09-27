@@ -9,6 +9,7 @@ import { createDashboardSidebarConfig } from '@/config/dashboardSidebar';
 import ClientOnly from '@/components/ClientOnly';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useClientPathnameWithFallback } from '@/hooks/useClientPathname';
+import { DEFAULT_VALUES } from '@/config/constants';
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -60,8 +61,8 @@ export default function DashboardShell({
       createDashboardSidebarConfig({
         tenantName: branding.name,
         tenantLogo: branding.logo,
-        userName: user?.name ?? 'Signed-in user',
-        userEmail: user?.email ?? 'user@tenant.com',
+         userName: user?.name ?? DEFAULT_VALUES.USER_NAME,
+         userEmail: user?.email ?? DEFAULT_VALUES.USER_EMAIL,
         userRole: role ?? undefined,
         currentPath: pathname,
         onLogout: () => {

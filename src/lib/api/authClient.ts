@@ -7,6 +7,7 @@ import type {
   LoginAudience,
   Permission,
 } from '@/lib/auth/types';
+import { rolePermissions } from '@/lib/auth/permissions';
 
 const apiUserSchema = z.object({
   ID: z.string(),
@@ -81,13 +82,12 @@ export const authHelpers = {
     if (!permission) {
       return true;
     }
-    if (user.role === 'SUPERADMIN') {
-      return true;
-    }
-    if (user.role === 'ADMIN') {
-      return permission.startsWith('platform:');
-    }
-    return false;
+    
+    // Get the user's role permissions
+    const userPermissions = rolePermissions[user.role] || [];
+    
+    // Check if the user has the specific permission
+    return userPermissions.includes(permission);
   },
 
   hasRole(user: AuthUser, role: AuthUser['role']): boolean {

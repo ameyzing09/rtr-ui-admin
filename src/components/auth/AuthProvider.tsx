@@ -11,11 +11,12 @@ import {
 import type { ReactNode } from 'react';
 import { authClient } from '@/lib/api/authClient';
 import { fetcher } from '@/lib/api/fetcher';
-import { rolePermissions, type Permission } from '@/lib/auth/permissions';
+import { rolePermissions } from '@/lib/auth/permissions';
 import type {
   AuthSession,
   AuthUser,
   LoginCredentials,
+  Permission,
   StoredAuthSession,
   UserRole,
 } from '@/lib/auth/types';

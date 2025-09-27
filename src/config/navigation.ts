@@ -15,7 +15,7 @@ import type { NavItem } from '@/components/layout/Navbar';
 import type { SideGroup } from '@/components/layout/Sidebar';
 import { platformNavConfig, type NavIconKey } from './platformNavConfig';
 import { getUserNavConfig } from './userNavConfig';
-import type { Permission } from '@/lib/auth/permissions';
+import type { Permission } from '@/lib/auth/types';
 import type { UserRole } from '@/lib/auth/types';
 
 const platformIconMap: Record<NavIconKey, LucideIcon> = {

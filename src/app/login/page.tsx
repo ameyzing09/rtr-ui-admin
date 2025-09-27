@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, ArrowLeft } from 'lucide-react';
 import Input from '@/components/atoms/Input';
 import Button from '@/components/atoms/Button';
 import type { LoginAudience } from '@/lib/auth/types';
@@ -75,9 +75,10 @@ export default function LoginPage() {
 
       <section className="relative z-10 w-full max-w-lg">
         <div className="mb-6 flex items-center justify-between text-sm text-slate-400">
-          <Link href="/" className="transition hover:text-cyan-200">
-            ? Back to landing
-          </Link>
+            <Link href="/" className="flex items-center gap-2 transition hover:text-cyan-200">
+            <ArrowLeft className="h-4 w-4" />
+            Back to landing
+            </Link>
           <span className="rounded-full border border-cyan-400/40 bg-cyan-500/10 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-cyan-200/90">
             {siteConfig.name}
           </span>

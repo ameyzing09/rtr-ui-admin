@@ -28,4 +28,3 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
   INTERVIEWER: ['platform:overview:view'],
   CANDIDATE: [],
 };
-export type { Permission };
