@@ -2,21 +2,7 @@
  * Feature Flags Configuration
  * 
  * This file centralizes all feature flags and provides typed getters
- * that read from envi  [FEATURE_FLAG_KEYS.TENANT_IMPERSONATION]: {
-    envKey: 'NEXT_PUBLIC_ENABLE_TENANT_IMPERSONATION',
-    defaultValue: false,
-    description: 'Enable tenant impersonation for super admins',
-  },
-  [FEATURE_FLAG_KEYS.TENANT_ONBOARDING_QUEUE]: {
-    envKey: 'NEXT_PUBLIC_ENABLE_TENANT_ONBOARDING_QUEUE',
-    defaultValue: false,
-    description: 'Enable tenant onboarding queue monitoring and status tracking',
-  },
-  [FEATURE_FLAG_KEYS.AUDIT_LOGGING]: {
-    envKey: 'NEXT_PUBLIC_ENABLE_AUDIT_LOGS',
-    defaultValue: true,
-    description: 'Enable audit logging',
-  },riables with sensible defaults.
+ * that read from environment variables with sensible defaults.
  */
 
 import { env } from './env';
@@ -152,6 +138,11 @@ const FEATURE_FLAGS_CONFIG = {
     envKey: 'NEXT_PUBLIC_ENABLE_IMPERSONATION',
     defaultValue: false,
     description: 'Enable tenant impersonation for admins',
+  },
+  [FEATURE_FLAG_KEYS.TENANT_ONBOARDING_QUEUE]: {
+    envKey: 'NEXT_PUBLIC_ENABLE_TENANT_ONBOARDING_QUEUE',
+    defaultValue: false,
+    description: 'Enable tenant onboarding queue monitoring and status tracking',
   },
   [FEATURE_FLAG_KEYS.AUDIT_LOGGING]: {
     envKey: 'NEXT_PUBLIC_ENABLE_AUDIT_LOGS',
