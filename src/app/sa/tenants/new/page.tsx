@@ -189,21 +189,6 @@ export default function CreateTenantPage() {
               </div>
               
               <div className="flex justify-between items-center">
-                <span className="font-medium text-[var(--app-fg)]">Admin User ID:</span>
-                <div className="flex items-center gap-2">
-                  <code className="bg-[var(--card)] px-2 py-1 rounded text-sm">
-                    {createdTenant.admin_user_id}
-                  </code>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    icon={Copy}
-                    onClick={() => copyToClipboard(createdTenant.admin_user_id)}
-                  />
-                </div>
-              </div>
-              
-              <div className="flex justify-between items-center">
                 <span className="font-medium text-[var(--app-fg)]">Temporary Password:</span>
                 <div className="flex items-center gap-2">
                   <code className="bg-[var(--card)] px-2 py-1 rounded text-sm font-mono">

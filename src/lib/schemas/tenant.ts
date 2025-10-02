@@ -45,7 +45,6 @@ export const createTenantResponseSchema = z.object({
     domain: z.string(),
     slug: z.string().optional(),
   }),
-  admin_user_id: z.string(),
   temp_password: z.string(),
   status: tenantStatusSchema,
 });
