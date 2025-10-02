@@ -2,7 +2,21 @@
  * Feature Flags Configuration
  * 
  * This file centralizes all feature flags and provides typed getters
- * that read from environment variables with sensible defaults.
+ * that read from envi  [FEATURE_FLAG_KEYS.TENANT_IMPERSONATION]: {
+    envKey: 'NEXT_PUBLIC_ENABLE_TENANT_IMPERSONATION',
+    defaultValue: false,
+    description: 'Enable tenant impersonation for super admins',
+  },
+  [FEATURE_FLAG_KEYS.TENANT_ONBOARDING_QUEUE]: {
+    envKey: 'NEXT_PUBLIC_ENABLE_TENANT_ONBOARDING_QUEUE',
+    defaultValue: false,
+    description: 'Enable tenant onboarding queue monitoring and status tracking',
+  },
+  [FEATURE_FLAG_KEYS.AUDIT_LOGGING]: {
+    envKey: 'NEXT_PUBLIC_ENABLE_AUDIT_LOGS',
+    defaultValue: true,
+    description: 'Enable audit logging',
+  },riables with sensible defaults.
  */
 
 import { env } from './env';
@@ -32,6 +46,7 @@ export const FEATURE_FLAG_KEYS = {
   
   // Platform features
   TENANT_IMPERSONATION: 'TENANT_IMPERSONATION',
+  TENANT_ONBOARDING_QUEUE: 'TENANT_ONBOARDING_QUEUE',
   AUDIT_LOGGING: 'AUDIT_LOGGING',
   WEBHOOKS: 'WEBHOOKS',
   REAL_TIME_NOTIFICATIONS: 'REAL_TIME_NOTIFICATIONS',
@@ -281,6 +296,7 @@ export const FeatureFlags = {
   
   // Platform features
   isTenantImpersonationEnabled: () => getFeatureFlag(FEATURE_FLAG_KEYS.TENANT_IMPERSONATION),
+  isTenantOnboardingQueueEnabled: () => getFeatureFlag(FEATURE_FLAG_KEYS.TENANT_ONBOARDING_QUEUE),
   isAuditLoggingEnabled: () => getFeatureFlag(FEATURE_FLAG_KEYS.AUDIT_LOGGING),
   isWebhooksEnabled: () => getFeatureFlag(FEATURE_FLAG_KEYS.WEBHOOKS),
   isRealTimeNotificationsEnabled: () => getFeatureFlag(FEATURE_FLAG_KEYS.REAL_TIME_NOTIFICATIONS),

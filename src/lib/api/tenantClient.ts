@@ -1,218 +1,206 @@
-// zod is used for schema validation in imports
-import { fetcher, apiResponseSchema, paginatedResponseSchema } from './fetcher';
+import { env } from '@/config/env';
 import { 
-  tenantSchema,
-  createTenantSchema,
-  tenantSettingsSchema,
-  type Tenant,
-  type CreateTenantData,
-  type TenantSettings
-} from '@/features/tenant/types';
+  createTenantRequestSchema, 
+  createTenantResponseSchema,
+  tenantListResponseSchema,
+  tenantStatusResponseSchema,
+  type CreateTenantRequest,
+  type CreateTenantResponse,
+  type TenantListResponse,
+  type TenantStatusResponse,
+  type TenantListParams
+} from '@/lib/schemas/tenant';
 
-// Tenant API response schemas
-const tenantResponseSchema = apiResponseSchema(tenantSchema);
-const tenantsResponseSchema = paginatedResponseSchema(tenantSchema);
-const tenantSettingsResponseSchema = apiResponseSchema(tenantSettingsSchema);
+const API_BASE_URL = env.NEXT_PUBLIC_API_BASE_URL;
 
-// Tenant client class
-export class TenantClient {
-  // Get all tenants (admin only)
-  async getTenants(page = 1, limit = 20): Promise<{
-    data: Tenant[];
-    pagination: { page: number; limit: number; total: number; totalPages: number };
-  }> {
-    const response = await fetcher.get(
-      `/tenants?page=${page}&limit=${limit}`,
-      tenantsResponseSchema
-    );
-    
-    return {
-      data: response.data,
-      pagination: response.pagination,
-    };
-  }
-
-  // Get tenant by ID
-  async getTenant(id: string): Promise<Tenant> {
-    const response = await fetcher.get(`/tenants/${id}`, tenantResponseSchema);
-    return response.data;
-  }
-
-  // Get tenant by slug
-  async getTenantBySlug(slug: string): Promise<Tenant> {
-    const response = await fetcher.get(`/tenants/slug/${slug}`, tenantResponseSchema);
-    return response.data;
-  }
-
-  // Get current tenant
-  async getCurrentTenant(): Promise<Tenant> {
-    const response = await fetcher.get('/tenants/current', tenantResponseSchema);
-    return response.data;
-  }
-
-  // Create new tenant
-  async createTenant(data: CreateTenantData): Promise<Tenant> {
-    // Validate input
-    const validatedData = createTenantSchema.parse(data);
-    
-    const response = await fetcher.post(
-      '/tenants',
-      validatedData,
-      tenantResponseSchema
-    );
-    
-    return response.data;
-  }
-
-  // Update tenant
-  async updateTenant(id: string, data: Partial<Tenant>): Promise<Tenant> {
-    const response = await fetcher.patch(
-      `/tenants/${id}`,
-      data,
-      tenantResponseSchema
-    );
-    
-    return response.data;
-  }
-
-  // Delete tenant
-  async deleteTenant(id: string): Promise<void> {
-    await fetcher.delete(`/tenants/${id}`);
-  }
-
-  // Get tenant settings
-  async getTenantSettings(tenantId: string): Promise<TenantSettings> {
-    const response = await fetcher.get(
-      `/tenants/${tenantId}/settings`,
-      tenantSettingsResponseSchema
-    );
-    
-    return response.data;
-  }
-
-  // Update tenant settings
-  async updateTenantSettings(
-    tenantId: string,
-    settings: Partial<TenantSettings>
-  ): Promise<TenantSettings> {
-    const response = await fetcher.patch(
-      `/tenants/${tenantId}/settings`,
-      settings,
-      tenantSettingsResponseSchema
-    );
-    
-    return response.data;
-  }
-
-  // Upload tenant logo
-  async uploadLogo(tenantId: string, file: File): Promise<{ url: string }> {
-    const formData = new FormData();
-    formData.append('logo', file);
-    
-    const response = await fetch(`/api/tenants/${tenantId}/logo`, {
-      method: 'POST',
-      body: formData,
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to upload logo');
-    }
-    
-    return response.json();
-  }
-
-  // Check if slug is available
-  async checkSlugAvailability(slug: string): Promise<boolean> {
-    try {
-      const response = await fetcher.get(`/tenants/check-slug/${slug}`) as { available: boolean };
-      return response.available;
-    } catch(error) {
-      console.error('Error checking slug availability:', error);
-      return false;
-    }
-  }
-
-  // Get tenant statistics
-  async getTenantStats(tenantId: string): Promise<{
-    userCount: number;
-    activeUsers: number;
-    storageUsed: number;
-    apiCalls: number;
-  }> {
-    const response = await fetcher.get(`/tenants/${tenantId}/stats`) as { 
-      data: { userCount: number; activeUsers: number; storageUsed: number; apiCalls: number } 
-    };
-    return response.data;
-  }
-
-  // Switch tenant context (for users with access to multiple tenants)
-  async switchTenant(tenantId: string): Promise<Tenant> {
-    const response = await fetcher.post(
-      '/tenants/switch',
-      { tenantId },
-      tenantResponseSchema
-    );
-    
-    return response.data;
+class TenantApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string
+  ) {
+    super(message);
+    this.name = 'TenantApiError';
   }
 }
 
-// Default tenant client instance
-export const tenantClient = new TenantClient();
+// Helper to generate UUID for idempotency key
+function generateIdempotencyKey(): string {
+  return crypto.randomUUID();
+}
 
-// Tenant helpers
-export const tenantHelpers = {
-  // Generate slug from name
-  generateSlug(name: string): string {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
-  },
-
-  // Validate slug format
-  isValidSlug(slug: string): boolean {
-    return /^[a-z0-9-]+$/.test(slug) && slug.length >= 2;
-  },
-
-  // Get tenant display name
-  getDisplayName(tenant: Tenant): string {
-    return tenant.name || tenant.slug;
-  },
-
-  // Get tenant avatar URL
-  getAvatarUrl(tenant: Tenant): string {
-    return tenant.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${tenant.name}`;
-  },
-
-  // Check if tenant is active
-  isActive(tenant: Tenant): boolean {
-    return tenant.isActive;
-  },
-
-  // Get plan display name
-  getPlanDisplayName(plan: string): string {
-    const plans = {
-      free: 'Free',
-      pro: 'Professional',
-      enterprise: 'Enterprise',
-    };
-    
-    return plans[plan as keyof typeof plans] || plan;
-  },
-
-  // Format storage usage
-  formatStorageUsage(bytes: number): string {
-    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-    let size = bytes;
-    let unitIndex = 0;
-    
-    while (size >= 1024 && unitIndex < units.length - 1) {
-      size /= 1024;
-      unitIndex++;
+// Helper to get auth token from localStorage or session
+function getAuthToken(): string | null {
+  console.log('In getAuthToken()');
+  if (typeof window !== 'undefined') {
+    // Try localStorage first (for persistent sessions)
+    console.log('In localStorage check');
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('authToken');
+    if (token) {
+      console.log('🔑 Found auth token in localStorage');
+      return token;
     }
     
-    return `${size.toFixed(1)} ${units[unitIndex]}`;
-  },
+    // Try sessionStorage as fallback
+    const sessionToken = sessionStorage.getItem('auth_token') || sessionStorage.getItem('authToken');
+    if (sessionToken) {
+      console.log('🔑 Found auth token in sessionStorage');
+      return sessionToken;
+    }
+    
+    console.warn('⚠️ No auth token found. User may need to log in.');
+  }
+  return null;
+}
+
+async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {},
+  schema?: unknown
+): Promise<T> {
+  // Ensure endpoint starts with /
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${cleanEndpoint}`;
+  const token = getAuthToken();
+
+  console.log(`Making API request to: ${url}`);
+  console.log(`Using API base URL: ${API_BASE_URL}`);
+  console.log(`Auth token present: ${!!token}`);
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(options.headers as Record<string, string>),
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  console.log(`Response status: ${response.status} for ${url}`);
+
+  if (!response.ok) {
+    let errorMessage: string;
+    let errorCode: string | undefined;
+    
+    try {
+      const errorData = await response.json();
+      console.log('Error response data:', errorData);
+      
+      // Use backend error message - supports both formats
+      // Tenant format: { "error": "message" }
+      // Control-plane format: { "code": "ERR_CODE", "message": "message" }
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      } else if (errorData.message) {
+        errorMessage = errorData.message;
+        errorCode = errorData.code;
+      } else {
+        errorMessage = JSON.stringify(errorData);
+      }
+    } catch {
+      // If response is not JSON, use status text
+      errorMessage = response.statusText || `HTTP ${response.status}`;
+      console.log('Could not parse error response as JSON');
+    }
+    
+    console.error(`❌ API Error [${response.status}]:`, errorMessage);
+    throw new TenantApiError(errorMessage, response.status, errorCode);
+  }
+
+  const data = await response.json();
+  console.log('Raw API response data:', data);
+  
+  if (schema && typeof schema === 'object' && schema !== null && 'safeParse' in schema) {
+    const parsed = (schema as { safeParse: (data: unknown) => { success: boolean; data: T; error?: unknown } }).safeParse(data);
+    if (!parsed.success) {
+      console.error('API response validation failed:', parsed.error);
+      console.error('Raw data:', data);
+      // Let the error bubble up with validation details instead of generic message
+      const errorDetails = JSON.stringify(parsed.error);
+      throw new TenantApiError(`Response validation failed: ${errorDetails}`, 500);
+    }
+    return parsed.data;
+  }
+
+  return data;
+}
+
+export async function createTenant(
+  request: CreateTenantRequest
+): Promise<CreateTenantResponse> {
+  // Validate request data
+  const validatedRequest = createTenantRequestSchema.parse(request);
+  
+  // According to API docs: POST /tenant/create with Idempotency-Key header
+  return apiRequest<CreateTenantResponse>(
+    '/tenant/create',
+    {
+      method: 'POST',
+      body: JSON.stringify(validatedRequest),
+      headers: {
+        'Idempotency-Key': generateIdempotencyKey(),
+      },
+    },
+    createTenantResponseSchema
+  );
+}
+
+
+
+export async function listTenants(
+  params?: TenantListParams
+): Promise<TenantListResponse> {
+  const searchParams = new URLSearchParams();
+  
+  if (params?.limit) {
+    searchParams.set('limit', params.limit.toString());
+  }
+  if (params?.status) {
+    searchParams.set('status', params.status);
+  }
+  if (params?.plan) {
+    searchParams.set('plan', params.plan);
+  }
+  if (params?.search) {
+    searchParams.set('search', params.search);
+  }
+
+  const queryString = searchParams.toString();
+  
+  // According to API docs: GET /admin/tenants (control-plane route)
+  const endpoint = `/admin/tenants${queryString ? `?${queryString}` : ''}`;
+  
+  return await apiRequest<TenantListResponse>(
+    endpoint,
+    { method: 'GET' },
+    tenantListResponseSchema
+  );
+}
+
+
+
+export async function getTenantStatus(
+  tenantId: string
+): Promise<TenantStatusResponse> {
+  // According to API docs: GET /tenant/:id/status
+  return await apiRequest<TenantStatusResponse>(
+    `/tenant/${encodeURIComponent(tenantId)}/status`,
+    { method: 'GET' },
+    tenantStatusResponseSchema
+  );
+}
+
+// Export error class for handling
+export { TenantApiError };
+
+// Export convenience client object
+export const tenantClient = {
+  createTenant,
+  listTenants,
+  getTenantStatus,
 };

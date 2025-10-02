@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useClientPathnameWithFallback } from '@/hooks/useClientPathname';
 import { Menu, X, Settings, HelpCircle, User } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme';
@@ -35,6 +36,7 @@ export default function Navbar({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const pathname = useClientPathnameWithFallback('/');
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const { logout } = useAuth();
 
   const handleSignOut = useCallback(async () => {
@@ -42,12 +44,14 @@ export default function Navbar({
     setIsMobileMenuOpen(false);
     try {
       await logout();
+      // Redirect to login page after logout
+      router.push('/login');
     } catch (cause) {
       if (process.env.NODE_ENV !== 'production') {
         console.warn('Failed to logout', cause);
       }
     }
-  }, [logout]);
+  }, [logout, router]);
 
   // Close user menu when clicking outside
   useEffect(() => {

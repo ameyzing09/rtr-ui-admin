@@ -10,7 +10,6 @@ describe('Environment Configuration', () => {
 
   beforeEach(() => {
     jest.resetModules();
-    process.env = { ...originalEnv };
   });
 
   afterAll(() => {
@@ -18,10 +17,13 @@ describe('Environment Configuration', () => {
   });
 
   it('should load with default values', () => {
-    // Clear environment variables
-    delete process.env.NODE_ENV;
-    delete process.env.NEXT_PUBLIC_APP_NAME;
+    // Mock process.env with empty values
+    const mockEnv = {};
+    jest.doMock('process', () => ({
+      env: mockEnv,
+    }));
     
+    jest.resetModules();
     const { env } = require('@/config/env');
     
     expect(env.NODE_ENV).toBe('development');
@@ -30,9 +32,16 @@ describe('Environment Configuration', () => {
   });
 
   it('should parse boolean environment variables correctly', () => {
-    process.env.NEXT_PUBLIC_MAINTENANCE_MODE = 'true';
-    process.env.NEXT_PUBLIC_MULTI_TENANT_MODE = 'true';
+    // Mock process.env with boolean environment variables
+    const mockEnv = {
+      NEXT_PUBLIC_MAINTENANCE_MODE: 'true',
+      NEXT_PUBLIC_MULTI_TENANT_MODE: 'true',
+    };
+    jest.doMock('process', () => ({
+      env: mockEnv,
+    }));
     
+    jest.resetModules();
     const { env } = require('@/config/env');
     
     expect(env.NEXT_PUBLIC_MAINTENANCE_MODE).toBe(true);
@@ -40,17 +49,29 @@ describe('Environment Configuration', () => {
   });
 
   it('should validate URL format for API URLs', () => {
-    process.env.NEXT_PUBLIC_API_BASE_URL = 'not-a-url';
+    // Mock process.env with invalid URL
+    const mockEnv = {
+      NEXT_PUBLIC_API_BASE_URL: 'not-a-url',
+    };
+    jest.doMock('process', () => ({
+      env: mockEnv,
+    }));
     
     // This should throw an error due to invalid URL format
     expect(() => {
+      jest.resetModules();
       require('@/config/env');
     }).toThrow();
   });
 
   it('should provide helper functions', () => {
-    process.env.NODE_ENV = 'development';
+    // Mock process.env with development environment
+    const mockEnv = { NODE_ENV: 'development' };
+    jest.doMock('process', () => ({
+      env: mockEnv,
+    }));
     
+    jest.resetModules();
     const { isDevelopment, isProduction } = require('@/config/env');
     
     expect(isDevelopment).toBe(true);

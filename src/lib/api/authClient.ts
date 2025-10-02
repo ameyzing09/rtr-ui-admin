@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { fetcher } from './fetcher';
+import { env } from '@/config/env';
 import type {
   AuthSession,
   AuthUser,
@@ -46,9 +47,18 @@ function mapSession(payload: LoginApiResponse): AuthSession {
 }
 
 export class AuthClient {
+  private baseUrl: string;
+
+  constructor() {
+    this.baseUrl = env.NEXT_PUBLIC_API_BASE_URL;
+  }
+
   async login(credentials: LoginCredentials): Promise<AuthSession> {
     const { audience = 'tenant', email, password } = credentials;
+    console.log('AuthClient.login called with:', credentials);
     const endpoint = audience === 'platform' ? '/admin/login' : '/login';
+
+    console.log(`Attempting login to ${this.baseUrl}${endpoint} for ${email} (audience: ${audience})`);
 
     const response = await fetcher.post(
       endpoint,
@@ -59,19 +69,43 @@ export class AuthClient {
       loginResponseSchema,
     );
 
+    console.log('Login successful, processing response');
+
+    // Store the token for future API calls
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('auth_token', response.Token);
+      localStorage.setItem('authToken', response.Token); // Backup key
+    }
+
     return mapSession(response);
   }
 
   async logout(options: { audience: LoginAudience; tenantId?: string }): Promise<void> {
     const endpoint = options.audience === 'platform' ? '/admin/logout' : '/logout';
 
-    if (options.audience === 'platform') {
-      fetcher.removeTenantId();
-    } else if (options.tenantId) {
-      fetcher.setTenantId(options.tenantId);
-    }
+    console.log(`Attempting logout to ${this.baseUrl}${endpoint}`);
 
-    await fetcher.post(endpoint);
+    try {
+      if (options.audience === 'platform') {
+        fetcher.removeTenantId();
+      } else if (options.tenantId) {
+        fetcher.setTenantId(options.tenantId);
+      }
+
+      await fetcher.post(endpoint);
+      console.log('Logout successful');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Even if logout fails on server, we should clear local state
+    } finally {
+      // Always clear tokens from local storage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('authToken');
+        sessionStorage.removeItem('auth_token');
+        sessionStorage.removeItem('authToken');
+      }
+    }
   }
 }
 
