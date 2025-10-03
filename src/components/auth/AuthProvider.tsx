@@ -115,15 +115,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    setSession(null);
-    setError(null);
-    fetcher.removeAuthToken();
-    fetcher.removeTenantId();
+    try {
+      // Only call logout API if we have a valid session
+      if (session?.user) {
+        // Determine audience based on current role
+        const audience = session.user.role === 'SUPERADMIN' ? 'platform' : 'tenant';
+        const tenantId = session.user.tenantId;
+        
+        // Call backend logout API
+        await authClient.logout({ audience, tenantId });
+      }
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+      // Continue with local cleanup even if API call fails
+    } finally {
+      // Always clear local state
+      setSession(null);
+      setError(null);
+      fetcher.removeAuthToken();
+      fetcher.removeTenantId();
 
-    if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(STORAGE_KEY);
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(STORAGE_KEY);
+      }
     }
-  }, []);
+  }, [session]);
 
   const role = session?.user.role ?? null;
   const permissions = useMemo<Permission[]>(() => {

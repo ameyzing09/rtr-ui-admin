@@ -21,6 +21,7 @@ export type NavLinkConfig = {
   href: string;
   icon?: NavIconKey;
   permissions?: Permission[];
+  requiredFlags?: string[];
 };
 
 export type NavSectionConfig = {
@@ -57,9 +58,9 @@ export const platformNavConfig = {
       title: 'Tenants',
       permissions: ['platform:tenants:manage'],
       items: [
-        { id: 'tenants-all', label: 'All Tenants', href: '/dashboard/tenants', icon: 'layers', permissions: ['platform:tenants:manage'] },
-        { id: 'tenants-onboarding', label: 'Onboarding Queue', href: '/dashboard/tenants/onboarding', permissions: ['platform:tenants:manage'] },
-        { id: 'tenants-create', label: 'Create Tenant', href: '/dashboard/tenants/create', permissions: ['platform:tenants:manage'] },
+        { id: 'tenants-all', label: 'All Tenants', href: '/sa/tenants', icon: 'layers', permissions: ['platform:tenants:manage'] },
+        { id: 'tenants-onboarding', label: 'Onboarding Queue', href: '/sa/tenants/onboarding', permissions: ['platform:tenants:manage'], requiredFlags: ['TENANT_ONBOARDING_QUEUE'] },
+        { id: 'tenants-create', label: 'Create Tenant', href: '/sa/tenants/new', permissions: ['platform:tenants:manage'] },
         { id: 'tenants-impersonate', label: 'Impersonate', href: '/dashboard/tenants/impersonate', permissions: ['platform:tenants:manage'] },
       ],
     },

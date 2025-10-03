@@ -32,6 +32,7 @@ export const FEATURE_FLAG_KEYS = {
   
   // Platform features
   TENANT_IMPERSONATION: 'TENANT_IMPERSONATION',
+  TENANT_ONBOARDING_QUEUE: 'TENANT_ONBOARDING_QUEUE',
   AUDIT_LOGGING: 'AUDIT_LOGGING',
   WEBHOOKS: 'WEBHOOKS',
   REAL_TIME_NOTIFICATIONS: 'REAL_TIME_NOTIFICATIONS',
@@ -137,6 +138,11 @@ const FEATURE_FLAGS_CONFIG = {
     envKey: 'NEXT_PUBLIC_ENABLE_IMPERSONATION',
     defaultValue: false,
     description: 'Enable tenant impersonation for admins',
+  },
+  [FEATURE_FLAG_KEYS.TENANT_ONBOARDING_QUEUE]: {
+    envKey: 'NEXT_PUBLIC_ENABLE_TENANT_ONBOARDING_QUEUE',
+    defaultValue: false,
+    description: 'Enable tenant onboarding queue monitoring and status tracking',
   },
   [FEATURE_FLAG_KEYS.AUDIT_LOGGING]: {
     envKey: 'NEXT_PUBLIC_ENABLE_AUDIT_LOGS',
@@ -281,6 +287,7 @@ export const FeatureFlags = {
   
   // Platform features
   isTenantImpersonationEnabled: () => getFeatureFlag(FEATURE_FLAG_KEYS.TENANT_IMPERSONATION),
+  isTenantOnboardingQueueEnabled: () => getFeatureFlag(FEATURE_FLAG_KEYS.TENANT_ONBOARDING_QUEUE),
   isAuditLoggingEnabled: () => getFeatureFlag(FEATURE_FLAG_KEYS.AUDIT_LOGGING),
   isWebhooksEnabled: () => getFeatureFlag(FEATURE_FLAG_KEYS.WEBHOOKS),
   isRealTimeNotificationsEnabled: () => getFeatureFlag(FEATURE_FLAG_KEYS.REAL_TIME_NOTIFICATIONS),

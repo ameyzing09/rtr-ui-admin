@@ -4,12 +4,14 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import Navbar from './Navbar';
 import { GenericSidebar } from '@/components/ui';
-import { buildNavbarItems } from '@/config/navigation';
+
 import { createDashboardSidebarConfig } from '@/config/dashboardSidebar';
 import ClientOnly from '@/components/ClientOnly';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useClientPathnameWithFallback } from '@/hooks/useClientPathname';
+import { useNavigation } from '@/hooks/useNavigation';
 import { DEFAULT_VALUES } from '@/config/constants';
+import type { UserRole } from '@/config/navigationConfig';
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -40,13 +42,43 @@ export default function DashboardShell({
     }
   }, [isAuthenticated, isLoading, router]);
 
-  const navbarItems = React.useMemo(
-    () => buildNavbarItems({ role: role ?? undefined, permissions }),
-    [permissions, role],
+  // Map auth role to navigation role
+  const navigationRole: UserRole = React.useMemo(() => {
+    switch (role) {
+      case 'SUPERADMIN':
+        return 'superadmin';
+      case 'ADMIN':
+        return 'admin';
+      case 'HR':
+        return 'hr';
+      case 'INTERVIEWER':
+        return 'interviewer';
+      case 'CANDIDATE':
+        return 'candidate';
+      default:
+        return 'candidate';
+    }
+  }, [role]);
+
+  // Get navigation items from unified config
+  const { navbar: rawNavbarItems } = useNavigation({
+    userRole: navigationRole,
+    userPermissions: permissions,
+  });
+
+  // Convert navbar items to legacy format for existing Navbar component
+  const navbarItems = React.useMemo(() => 
+    rawNavbarItems.map(item => ({
+      label: item.label,
+      href: item.href,
+      icon: undefined, // Navbar doesn't use icons currently
+      match: 'startsWith' as const,
+    })),
+    [rawNavbarItems]
   );
 
   const branding = React.useMemo(() => {
-    if (role === 'SUPERADMIN') {
+    if (navigationRole === 'superadmin') {
       return PLATFORM_BRANDING;
     }
     return {
@@ -54,7 +86,7 @@ export default function DashboardShell({
       logo: tenantLogo,
       environment,
     };
-  }, [environment, role, tenantLogo, tenantName]);
+  }, [environment, navigationRole, tenantLogo, tenantName]);
 
   const sidebarConfig = React.useMemo(
     () =>

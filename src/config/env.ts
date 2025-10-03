@@ -39,6 +39,7 @@ const envSchema = z.object({
   
   // API Configuration
   NEXT_PUBLIC_API_BASE_URL: z.string().url().default('http://localhost:8082'),
+  AUTH_API_BASE: z.string().url().optional(),
   API_SECRET_KEY: z.string().optional(),
   
   // Authentication
