@@ -24,9 +24,19 @@ class TenantApiError extends Error {
   }
 }
 
-// Helper to generate UUID for idempotency key
+// Helper to generate UUID for idempotency key with fallback for older environments
 function generateIdempotencyKey(): string {
-  return crypto.randomUUID();
+  // Check if crypto.randomUUID is available (modern browsers and Node.js 14.17.0+)
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  
+  // Fallback implementation for older environments
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 // Helper to get auth token from localStorage or session
@@ -53,10 +63,31 @@ function getAuthToken(): string | null {
   return null;
 }
 
+// Type guard for Zod-like schema objects
+interface SafeParseResult<T> {
+  success: boolean;
+  data?: T;
+  error?: unknown;
+}
+
+interface SchemaWithSafeParse {
+  safeParse(data: unknown): SafeParseResult<unknown>;
+}
+
+// Type guard function to check if an object has a safeParse method
+function hasValidSafeParse(schema: unknown): schema is SchemaWithSafeParse {
+  return (
+    typeof schema === 'object' &&
+    schema !== null &&
+    'safeParse' in schema &&
+    typeof (schema as Record<string, unknown>).safeParse === 'function'
+  );
+}
+
 async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {},
-  schema?: unknown
+  schema?: SchemaWithSafeParse
 ): Promise<T> {
   // Ensure endpoint starts with /
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
@@ -115,8 +146,8 @@ async function apiRequest<T>(
   const data = await response.json();
   console.log('Raw API response data:', data);
   
-  if (schema && typeof schema === 'object' && schema !== null && 'safeParse' in schema) {
-    const parsed = (schema as { safeParse: (data: unknown) => { success: boolean; data: T; error?: unknown } }).safeParse(data);
+  if (schema && hasValidSafeParse(schema)) {
+    const parsed = schema.safeParse(data);
     if (!parsed.success) {
       console.error('API response validation failed:', parsed.error);
       console.error('Raw data:', data);
@@ -124,7 +155,7 @@ async function apiRequest<T>(
       const errorDetails = JSON.stringify(parsed.error);
       throw new TenantApiError(`Response validation failed: ${errorDetails}`, 500);
     }
-    return parsed.data;
+    return parsed.data as T;
   }
 
   return data;

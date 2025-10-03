@@ -48,7 +48,22 @@ export function ToastProvider({ children, maxToasts = 5 }: ToastProviderProps) {
   }, []);
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    // Generate a robust UUID with fallback for older environments
+    const generateId = (): string => {
+      // Check if crypto.randomUUID is available (modern browsers and Node.js 14.17.0+)
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      
+      // Fallback implementation for older environments
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    };
+
+    const id = generateId();
     const newToast: Toast = {
       ...toast,
       id,

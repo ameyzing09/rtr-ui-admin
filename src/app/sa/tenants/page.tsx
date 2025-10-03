@@ -8,7 +8,6 @@ import Input from '@/components/atoms/Input';
 import Select from '@/components/ui/Select';
 import Skeleton from '@/components/ui/Skeleton';
 
-
 import { listTenantsAction } from '@/lib/actions/tenant';
 import { 
   type TenantListItem, 
@@ -41,7 +40,7 @@ export default function AllTenantsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [planFilter, setPlanFilter] = useState<string>('');
 
-    const loadTenants = useCallback(async () => {
+  const loadTenants = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null); // Clear any previous errors
     setTenants([]); // Clear existing tenants to prevent stale data
@@ -132,9 +131,6 @@ export default function AllTenantsPage() {
       minute: '2-digit',
     }).format(date);
   };
-
-  // Debounced search
-
 
   return (
     <div className="p-8">

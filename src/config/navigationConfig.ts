@@ -23,7 +23,6 @@ import {
   Flag,
   Ticket,
   Megaphone,
-  Globe,
   Palette,
   Languages,
   Key,
@@ -37,14 +36,9 @@ export type UserRole = 'superadmin' | 'admin' | 'hr' | 'interviewer' | 'candidat
 
 export type NavIconKey =
   | 'dashboard'
-  | 'tenants'
   | 'users'
-  | 'billing'
-  | 'integrations'
-  | 'health'
   | 'settings'
   | 'catalog'
-  | 'security'
   | 'zap'
   | 'layers'
   | 'activity'
@@ -55,7 +49,6 @@ export type NavIconKey =
   | 'shield'
   | 'chart'
   | 'database'
-  | 'home'
   | 'search'
   | 'command'
   | 'file'
@@ -66,7 +59,6 @@ export type NavIconKey =
   | 'flag'
   | 'ticket'
   | 'megaphone'
-  | 'globe'
   | 'palette'
   | 'languages'
   | 'key'
@@ -74,14 +66,9 @@ export type NavIconKey =
 
 const iconMap: Record<NavIconKey, LucideIcon> = {
   dashboard: Home,
-  tenants: Building,
   users: Users,
-  billing: CreditCard,
-  integrations: Zap,
-  health: Activity,
   settings: Settings,
   catalog: FileText,
-  security: Shield,
   zap: Zap,
   layers: Layers,
   activity: Activity,
@@ -92,7 +79,6 @@ const iconMap: Record<NavIconKey, LucideIcon> = {
   shield: Shield,
   chart: BarChart3,
   database: Database,
-  home: Home,
   search: Search,
   command: Command,
   file: FileText,
@@ -103,7 +89,6 @@ const iconMap: Record<NavIconKey, LucideIcon> = {
   flag: Flag,
   ticket: Ticket,
   megaphone: Megaphone,
-  globe: Globe,
   palette: Palette,
   languages: Languages,
   key: Key,

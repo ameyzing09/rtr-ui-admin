@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Copy, CheckCircle, Building, User, Package, FileCheck } from 'lucide-react';
+import { ZodError } from 'zod';
 
 import { Wizard, WizardStep } from '@/components/wizard';
 import Button from '@/components/atoms/Button';
@@ -49,6 +50,25 @@ const STEPS = [
     icon: FileCheck,
   },
 ];
+
+/**
+ * Formats Zod validation errors into a simple key-value object
+ * @param error - The error to format (should be a ZodError)
+ * @returns Object with field names as keys and error messages as values
+ */
+const formatZodErrors = (error: unknown): Record<string, string> => {
+  if (error instanceof ZodError) {
+    const errors: Record<string, string> = {};
+    error.errors.forEach((err) => {
+      const fieldName = err.path[0] as string;
+      if (fieldName) {
+        errors[fieldName] = err.message;
+      }
+    });
+    return errors;
+  }
+  return {};
+};
 
 export default function CreateTenantPage() {
   const router = useRouter();
@@ -97,12 +117,7 @@ export default function CreateTenantPage() {
       }
       return true;
     } catch (err: unknown) {
-      const errors: Record<string, string> = {};
-      if (err && typeof err === 'object' && 'errors' in err && Array.isArray((err as { errors: unknown[] }).errors)) {
-        (err as { errors: { path: string[]; message: string }[] }).errors.forEach((error) => {
-          errors[error.path[0]] = error.message;
-        });
-      }
+      const errors = formatZodErrors(err);
       setStepErrors(prev => ({ ...prev, [stepId]: errors }));
       return false;
     }

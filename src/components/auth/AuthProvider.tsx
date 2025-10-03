@@ -116,12 +116,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      // Determine audience based on current role
-      const audience = session?.user.role === 'SUPERADMIN' ? 'platform' : 'tenant';
-      const tenantId = session?.user.tenantId;
-      
-      // Call backend logout API
-      await authClient.logout({ audience, tenantId });
+      // Only call logout API if we have a valid session
+      if (session?.user) {
+        // Determine audience based on current role
+        const audience = session.user.role === 'SUPERADMIN' ? 'platform' : 'tenant';
+        const tenantId = session.user.tenantId;
+        
+        // Call backend logout API
+        await authClient.logout({ audience, tenantId });
+      }
     } catch (error) {
       console.error('Logout API call failed:', error);
       // Continue with local cleanup even if API call fails
