@@ -12,7 +12,7 @@ import type { ReactNode } from 'react';
 import { authClient } from '@/lib/api/authClient';
 import { fetcher } from '@/lib/api/fetcher';
 import { rolePermissions } from '@/lib/auth/permissions';
-import { getTenantId, getTenantHeaders, isLocal } from '@/config/env';
+import { getTenantHeaders } from '@/config/env';
 import type {
   AuthSession,
   AuthUser,
