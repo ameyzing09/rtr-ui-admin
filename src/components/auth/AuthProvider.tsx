@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 import { authClient } from '@/lib/api/authClient';
 import { fetcher } from '@/lib/api/fetcher';
 import { rolePermissions } from '@/lib/auth/permissions';
+import { getTenantId, getTenantHeaders, isLocal } from '@/config/env';
 import type {
   AuthSession,
   AuthUser,
@@ -44,40 +45,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
+    const initializeAuth = async () => {
+      if (typeof window === 'undefined') {
+        return;
+      }
 
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (!stored) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(stored) as StoredAuthSession;
-      const expiresAt = new Date(parsed.expiresAt);
-
-      if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
-        window.localStorage.removeItem(STORAGE_KEY);
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (!stored) {
         setIsLoading(false);
         return;
       }
 
-      const normalized: AuthSession = {
-        token: parsed.token,
-        expiresAt,
-        user: parsed.user,
-      };
+      try {
+        const parsed = JSON.parse(stored) as StoredAuthSession;
+        const expiresAt = new Date(parsed.expiresAt);
 
-      setSession(normalized);
-      fetcher.setAuthToken(normalized.token);
-      fetcher.setTenantId(normalized.user.tenantId);
-    } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } finally {
-      setIsLoading(false);
-    }
+        if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
+          window.localStorage.removeItem(STORAGE_KEY);
+          setIsLoading(false);
+          return;
+        }
+
+        const normalized: AuthSession = {
+          token: parsed.token,
+          expiresAt,
+          user: parsed.user,
+        };
+
+        setSession(normalized);
+        fetcher.setAuthToken(normalized.token);
+        
+        // In local environment, use environment tenant headers if available, otherwise use user's tenant ID
+        const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
+        
+        if (isLocalEnv) {
+          const tenantHeaders = await getTenantHeaders();
+          if (Object.keys(tenantHeaders).length > 0) {
+            // Use environment tenant headers
+            if (tenantHeaders['X-Tenant-ID']) {
+              fetcher.setTenantId(tenantHeaders['X-Tenant-ID']);
+            }
+            if (tenantHeaders['X-Tenant-Ts']) {
+              fetcher.setTenantTs(tenantHeaders['X-Tenant-Ts']);
+            }
+            if (tenantHeaders['X-Tenant-Sig']) {
+              fetcher.setTenantSig(tenantHeaders['X-Tenant-Sig']);
+            }
+          } else {
+            // Fall back to user's tenant ID
+            fetcher.setTenantId(normalized.user.tenantId);
+          }
+        } else {
+          // Use user's tenant ID
+          fetcher.setTenantId(normalized.user.tenantId);
+        }
+      } catch {
+        window.localStorage.removeItem(STORAGE_KEY);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initializeAuth();
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
@@ -88,7 +117,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const nextSession = await authClient.login(credentials);
       setSession(nextSession);
       fetcher.setAuthToken(nextSession.token);
-      fetcher.setTenantId(nextSession.user.tenantId);
+      
+      // In local environment, use environment tenant headers if available, otherwise use user's tenant ID
+      const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
+      
+      if (isLocalEnv) {
+        const tenantHeaders = await getTenantHeaders();
+        if (Object.keys(tenantHeaders).length > 0) {
+          // Use environment tenant headers
+          if (tenantHeaders['X-Tenant-ID']) {
+            fetcher.setTenantId(tenantHeaders['X-Tenant-ID']);
+          }
+          if (tenantHeaders['X-Tenant-Ts']) {
+            fetcher.setTenantTs(tenantHeaders['X-Tenant-Ts']);
+          }
+          if (tenantHeaders['X-Tenant-Sig']) {
+            fetcher.setTenantSig(tenantHeaders['X-Tenant-Sig']);
+          }
+        } else {
+          // Fall back to user's tenant ID
+          fetcher.setTenantId(nextSession.user.tenantId);
+        }
+      } else {
+        // Use user's tenant ID
+        fetcher.setTenantId(nextSession.user.tenantId);
+      }
 
       if (typeof window !== 'undefined') {
         if (credentials.rememberMe) {
@@ -120,7 +173,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         // Determine audience based on current role
         const audience = session.user.role === 'SUPERADMIN' ? 'platform' : 'tenant';
-        const tenantId = session.user.tenantId;
+        
+        // In local environment, use environment tenant headers if available, otherwise use user's tenant ID
+        const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
+        
+        let tenantId: string;
+        if (isLocalEnv) {
+          const tenantHeaders = await getTenantHeaders();
+          if (tenantHeaders['X-Tenant-ID']) {
+            tenantId = tenantHeaders['X-Tenant-ID'];
+          } else {
+            tenantId = session.user.tenantId;
+          }
+        } else {
+          tenantId = session.user.tenantId;
+        }
         
         // Call backend logout API
         await authClient.logout({ audience, tenantId });

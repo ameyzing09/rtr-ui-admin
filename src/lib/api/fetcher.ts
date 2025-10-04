@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { env } from '@/config/env';
+import { env, getTenantHeaders, isLocal } from '@/config/env';
 
 // API Response base + schemas
 export const baseApiEnvelopeSchema = z.object({
@@ -81,6 +81,12 @@ class Fetcher {
       ...config.defaultHeaders,
     };
     this.timeout = config.timeout || 10000; // 10 seconds
+    
+    // In local environment, automatically set tenant headers from environment if available
+    if (isLocal) {
+      // Note: We can't use async/await in constructor, so we'll set headers in the request method
+      // This is a placeholder for now
+    }
   }
 
   private async request<T>(
@@ -90,14 +96,35 @@ class Fetcher {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
+    // Generate fresh tenant headers for each request in local environment
+    const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
+    console.log('Environment check - isLocalEnv:', isLocalEnv);
+    console.log('Environment check - NODE_ENV:', process.env.NODE_ENV);
+    console.log('Environment check - NEXT_PUBLIC_LOCAL_MODE:', process.env.NEXT_PUBLIC_LOCAL_MODE);
+    console.log('Environment check - NEXT_PUBLIC_TENANT_ID:', process.env.NEXT_PUBLIC_TENANT_ID);
+    
+    let requestHeaders = { ...this.defaultHeaders };
+    
+    if (isLocalEnv) {
+      const tenantHeaders = await getTenantHeaders();
+      console.log('getTenantHeaders result:', tenantHeaders);
+      Object.entries(tenantHeaders).forEach(([key, value]) => {
+        if (value) {
+          requestHeaders[key] = value;
+          console.log(`Set ${key} to:`, value);
+        }
+      });
+    }
+    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-
+    console.log('requestHeaders', requestHeaders);
+    console.log()
     try {
       const response = await fetch(url, {
         ...options,
         headers: {
-          ...this.defaultHeaders,
+          ...requestHeaders,
           ...options.headers,
         },
         signal: controller.signal,
@@ -224,8 +251,36 @@ class Fetcher {
     this.defaultHeaders['X-Tenant-ID'] = tenantId;
   }
 
+  setTenantTs(tenantTs: string) {
+    this.defaultHeaders['X-Tenant-Ts'] = tenantTs;
+  }
+
+  setTenantSig(tenantSig: string) {
+    this.defaultHeaders['X-Tenant-Sig'] = tenantSig;
+  }
+
+  setTenantHeaders(tenantId: string, tenantTs?: string, tenantSig?: string) {
+    this.setTenantId(tenantId);
+    if (tenantTs) this.setTenantTs(tenantTs);
+    if (tenantSig) this.setTenantSig(tenantSig);
+  }
+
   removeTenantId() {
     delete this.defaultHeaders['X-Tenant-ID'];
+  }
+
+  removeTenantTs() {
+    delete this.defaultHeaders['X-Tenant-Ts'];
+  }
+
+  removeTenantSig() {
+    delete this.defaultHeaders['X-Tenant-Sig'];
+  }
+
+  removeAllTenantHeaders() {
+    delete this.defaultHeaders['X-Tenant-ID'];
+    delete this.defaultHeaders['X-Tenant-Ts'];
+    delete this.defaultHeaders['X-Tenant-Sig'];
   }
 
   // Update headers
@@ -238,12 +293,32 @@ class Fetcher {
 export const fetcher = new Fetcher();
 
 // Create authenticated fetcher with token
-export function createAuthenticatedFetcher(token: string, tenantId?: string): Fetcher {
+export async function createAuthenticatedFetcher(token: string, tenantId?: string): Promise<Fetcher> {
   const authFetcher = new Fetcher();
   authFetcher.setAuthToken(token);
+  
+  // Use provided tenantId, or fall back to environment tenant headers in local mode
+  const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
+  
   if (tenantId) {
+    // Use provided tenant ID
     authFetcher.setTenantId(tenantId);
+  } else if (isLocalEnv) {
+    // Use environment tenant headers
+    const tenantHeaders = await getTenantHeaders();
+    Object.entries(tenantHeaders).forEach(([key, value]) => {
+      if (value) {
+        if (key === 'X-Tenant-ID') {
+          authFetcher.setTenantId(value);
+        } else if (key === 'X-Tenant-Ts') {
+          authFetcher.setTenantTs(value);
+        } else if (key === 'X-Tenant-Sig') {
+          authFetcher.setTenantSig(value);
+        }
+      }
+    });
   }
+  
   return authFetcher;
 }
 
