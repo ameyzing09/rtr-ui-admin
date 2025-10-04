@@ -76,7 +76,7 @@ describe('Environment Configuration', () => {
   });
 
   it('should provide helper functions', async () => {
-    mockEnvVar('NODE_ENV', 'development');
+    mockEnvVar('NODE_ENV', 'local');
     mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:8082');
     
     jest.resetModules();
@@ -137,6 +137,58 @@ describe('Environment Configuration', () => {
     expect(env.NEXT_PUBLIC_APP_URL).toBeUndefined();
     expect(env.AUTH_API_BASE).toBeUndefined();
     expect(env.API_SECRET_KEY).toBeUndefined();
+  });
+
+  it('should handle NEXT_PUBLIC_TENANT_ID in local environment', async () => {
+    mockEnvVar('NODE_ENV', 'local');
+    mockEnvVar('NEXT_PUBLIC_TENANT_ID', 'test-tenant-123');
+    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:8082');
+    
+    jest.resetModules();
+    const { env, isLocal, getTenantId } = await import('@/config/env');
+    
+    expect(env.NEXT_PUBLIC_TENANT_ID).toBe('test-tenant-123');
+    expect(isLocal).toBe(true);
+    expect(getTenantId()).toBe('test-tenant-123');
+  });
+
+  it('should return undefined for tenant ID in production environment', async () => {
+    mockEnvVar('NODE_ENV', 'production');
+    mockEnvVar('NEXT_PUBLIC_TENANT_ID', 'test-tenant-123');
+    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'https://api.example.com');
+    
+    jest.resetModules();
+    const { env, isLocal, getTenantId } = await import('@/config/env');
+    
+    expect(env.NEXT_PUBLIC_TENANT_ID).toBe('test-tenant-123');
+    expect(isLocal).toBe(false);
+    expect(getTenantId()).toBeUndefined();
+  });
+
+  it('should return undefined when NEXT_PUBLIC_TENANT_ID is not set in local environment', async () => {
+    mockEnvVar('NODE_ENV', 'local');
+    mockEnvVar('NEXT_PUBLIC_TENANT_ID', undefined);
+    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:8082');
+    
+    jest.resetModules();
+    const { env, isLocal, getTenantId } = await import('@/config/env');
+    
+    expect(env.NEXT_PUBLIC_TENANT_ID).toBeUndefined();
+    expect(isLocal).toBe(true);
+    expect(getTenantId()).toBeUndefined();
+  });
+
+  it('should handle NEXT_PUBLIC_TENANT_ID in development environment', async () => {
+    mockEnvVar('NODE_ENV', 'development');
+    mockEnvVar('NEXT_PUBLIC_TENANT_ID', 'dev-tenant-456');
+    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:8082');
+    
+    jest.resetModules();
+    const { env, isLocal, getTenantId } = await import('@/config/env');
+    
+    expect(env.NEXT_PUBLIC_TENANT_ID).toBe('dev-tenant-456');
+    expect(isLocal).toBe(true);
+    expect(getTenantId()).toBe('dev-tenant-456');
   });
 });
 

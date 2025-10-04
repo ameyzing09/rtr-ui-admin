@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Environment variable schema
 const envSchema = z.object({
   // App Configuration
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['local', 'development', 'production', 'test']).default('development'),
   NEXT_PUBLIC_APP_NAME: z.string().default('RTR Admin'),
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   
@@ -57,7 +57,11 @@ const envSchema = z.object({
   
   // Tenant Configuration
   NEXT_PUBLIC_DEFAULT_TENANT: z.string().default('default'),
+  NEXT_PUBLIC_TENANT_ID: z.string().optional(),
+  NEXT_PUBLIC_TENANT_DOMAIN: z.string().optional(),
+  NEXT_PUBLIC_TENANT_SECRET: z.string().optional(),
   NEXT_PUBLIC_MULTI_TENANT_MODE: z.string().default('false').transform(val => val === 'true'),
+  NEXT_PUBLIC_LOCAL_MODE: z.string().default('false').transform(val => val === 'true'),
   
   // Monitoring
   SENTRY_DSN: z.string().optional(),
@@ -84,9 +88,121 @@ export const env = createEnv();
 export type Environment = z.infer<typeof envSchema>;
 
 // Helper functions
-export const isDevelopment = env.NODE_ENV === 'development';
+export const isDevelopment = env.NODE_ENV === 'local';
 export const isProduction = env.NODE_ENV === 'production';
 export const isTest = env.NODE_ENV === 'test';
+
+// Check if we're in local environment (using custom flag or development mode)
+export const isLocal = env.NEXT_PUBLIC_LOCAL_MODE || env.NODE_ENV === 'development';
+
+// Get tenant ID based on environment
+export function getTenantId(): string | undefined {
+  // In local environment, use NEXT_PUBLIC_TENANT_ID if available
+  // Use process.env directly to ensure we get the browser environment variables
+  const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
+  const tenantId = process.env.NEXT_PUBLIC_TENANT_ID;
+  
+  if (isLocalEnv && tenantId) {
+    return tenantId;
+  }
+  
+  // In production, tenant ID should come from user session/auth
+  return undefined;
+}
+
+// Generate current UTC Unix timestamp in minutes (as expected by backend middleware)
+function generateTenantTimestamp(): string {
+  const timestamp = Math.floor(Date.now() / 1000 / 60); // Convert to Unix timestamp in minutes
+  return timestamp.toString();
+}
+
+// Generate HMAC-SHA256 signature
+async function generateTenantSignature(tenantId: string, domain: string, timestamp: string, secret: string): Promise<string> {
+  // Verify secret has no stray spaces/newlines
+  const hasSpaces = secret.includes(' ');
+  const hasNewlines = secret.includes('\n') || secret.includes('\r');
+  const hasTabs = secret.includes('\t');
+  if (hasSpaces || hasNewlines || hasTabs) {
+    console.warn('⚠️ Secret contains whitespace characters!');
+  }
+  
+  // Build payload string exactly as middleware expects
+  const message = domain ? `${tenantId}.${domain}.${timestamp}` : `${tenantId}..${timestamp}`;
+  
+  // Import crypto dynamically to avoid SSR issues
+  const crypto = await import('crypto');
+  
+  // Try different approaches for the secret
+  let hmac;
+  try {
+    // First try: use secret as-is (string)
+    hmac = crypto.createHmac('sha256', secret);
+  } catch {
+    try {
+      // Second try: decode secret as base64
+      const decodedSecret = Buffer.from(secret, 'base64');
+      hmac = crypto.createHmac('sha256', decodedSecret);
+    } catch {
+      hmac = crypto.createHmac('sha256', secret);
+    }
+  }
+  
+  hmac.update(message);
+  const signature = hmac.digest('base64');
+  
+  // Convert base64 to base64url format (RawURLEncoding equivalent)
+  const base64urlSignature = signature.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  
+  // Validate the signature format
+  const isValid = validateBase64urlSignature(base64urlSignature);
+  if (!isValid) {
+    console.error('❌ Invalid base64url signature format!');
+  }
+  
+  return base64urlSignature;
+}
+
+// Validate base64url signature format
+function validateBase64urlSignature(signature: string): boolean {
+  const hasInvalidChars = /[+\/=]/.test(signature);
+  const isValidLength = signature.length > 0;
+  return !hasInvalidChars && isValidLength;
+}
+
+
+// Get tenant headers for local environment
+export async function getTenantHeaders(): Promise<{ 'X-Tenant-ID'?: string; 'X-Tenant-Ts'?: string; 'X-Tenant-Sig'?: string }> {
+  const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
+  
+  if (isLocalEnv) {
+    const tenantId = process.env.NEXT_PUBLIC_TENANT_ID;
+    const domain = process.env.NEXT_PUBLIC_TENANT_DOMAIN;
+    const secret = process.env.NEXT_PUBLIC_TENANT_SECRET;
+    
+    if (!tenantId || !secret) {
+      console.warn('Missing tenant configuration for local mode:', {
+        tenantId: !!tenantId,
+        domain: domain || '(empty/undefined - this is OK)',
+        secret: !!secret
+      });
+      return {};
+    }
+    
+    const timestamp = generateTenantTimestamp();
+    const domainToUse = domain || '';
+    const signature = await generateTenantSignature(tenantId, domainToUse, timestamp, secret);
+    
+    const headers = {
+      'X-Tenant-ID': tenantId,
+      'X-Tenant-Ts': timestamp,
+      'X-Tenant-Sig': signature
+    };
+    
+    return headers;
+  }
+  
+  return {};
+}
 
 // Feature flags
 export const isMaintenanceMode = env.NEXT_PUBLIC_MAINTENANCE_MODE;
