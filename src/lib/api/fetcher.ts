@@ -98,28 +98,20 @@ class Fetcher {
     
     // Generate fresh tenant headers for each request in local environment
     const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
-    console.log('Environment check - isLocalEnv:', isLocalEnv);
-    console.log('Environment check - NODE_ENV:', process.env.NODE_ENV);
-    console.log('Environment check - NEXT_PUBLIC_LOCAL_MODE:', process.env.NEXT_PUBLIC_LOCAL_MODE);
-    console.log('Environment check - NEXT_PUBLIC_TENANT_ID:', process.env.NEXT_PUBLIC_TENANT_ID);
     
     let requestHeaders = { ...this.defaultHeaders };
     
     if (isLocalEnv) {
       const tenantHeaders = await getTenantHeaders();
-      console.log('getTenantHeaders result:', tenantHeaders);
       Object.entries(tenantHeaders).forEach(([key, value]) => {
         if (value) {
           requestHeaders[key] = value;
-          console.log(`Set ${key} to:`, value);
         }
       });
     }
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
-    console.log('requestHeaders', requestHeaders);
-    console.log()
     try {
       const response = await fetch(url, {
         ...options,
@@ -293,31 +285,16 @@ class Fetcher {
 export const fetcher = new Fetcher();
 
 // Create authenticated fetcher with token
-export async function createAuthenticatedFetcher(token: string, tenantId?: string): Promise<Fetcher> {
+export function createAuthenticatedFetcher(token: string, tenantId?: string): Fetcher {
   const authFetcher = new Fetcher();
   authFetcher.setAuthToken(token);
   
-  // Use provided tenantId, or fall back to environment tenant headers in local mode
-  const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
-  
+  // Use provided tenantId if available
   if (tenantId) {
-    // Use provided tenant ID
     authFetcher.setTenantId(tenantId);
-  } else if (isLocalEnv) {
-    // Use environment tenant headers
-    const tenantHeaders = await getTenantHeaders();
-    Object.entries(tenantHeaders).forEach(([key, value]) => {
-      if (value) {
-        if (key === 'X-Tenant-ID') {
-          authFetcher.setTenantId(value);
-        } else if (key === 'X-Tenant-Ts') {
-          authFetcher.setTenantTs(value);
-        } else if (key === 'X-Tenant-Sig') {
-          authFetcher.setTenantSig(value);
-        }
-      }
-    });
   }
+  // Note: Environment tenant headers will be automatically added in the request method
+  // when isLocalEnv is true, so we don't need to set them here
   
   return authFetcher;
 }
