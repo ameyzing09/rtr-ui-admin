@@ -180,16 +180,16 @@ export class ErrorMapper {
   static logError(error: AppError, context?: string): void {
     if (process.env.NODE_ENV === 'development') {
       console.group(`🚨 ${context || 'Application Error'}`);
-      console.error('Code:', error.code);
-      console.error('HTTP Status:', error.httpStatus);
-      console.error('Retryable:', error.retryable);
-      console.error('Correlation ID:', error.correlationId);
-      console.error('Details:', error.details);
-      console.error('User Message:', error.userMessage);
+      console.log('Code:', error.code);
+      console.log('HTTP Status:', error.httpStatus);
+      console.log('Retryable:', error.retryable);
+      console.log('Correlation ID:', error.correlationId);
+      console.log('Details:', error.details);
+      console.log('User Message:', error.userMessage);
       console.groupEnd();
     } else {
       // In production, log minimal info
-      console.error(`Error [${error.code}]:`, {
+      console.log(`Error [${error.code}]:`, {
         correlationId: error.correlationId,
         httpStatus: error.httpStatus,
         context
