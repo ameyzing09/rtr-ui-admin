@@ -23,6 +23,7 @@ import {
   markActiveSections,
 } from '@/components/ui/Sidebar/helpers';
 import { platformNavConfig, type NavIconKey } from './platformNavConfig';
+import { superadminNavConfig, getSuperadminIcon } from './superadminNavConfig';
 
 const iconMap: Record<NavIconKey, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -108,6 +109,81 @@ export function createDashboardSidebarConfig(config: {
         name: config.userName,
         email: config.userEmail,
         role: config.userRole || 'User',
+      },
+      items: [
+        createNavigationLink({
+          id: 'help',
+          label: 'Help & Support',
+          href: '/help',
+          icon: HelpCircle,
+          description: 'Get help and support',
+        }),
+      ],
+      actions: [
+        createNavigationButton({
+          id: 'logout',
+          label: 'Sign Out',
+          icon: LogOut,
+          onClick: config.onLogout,
+          variant: 'danger',
+          description: 'Sign out of your account',
+        }),
+      ],
+    },
+
+    enableSearch: true,
+    searchPlaceholder: 'Search navigation...',
+    variant: 'default',
+    isCollapsible: true,
+    defaultCollapsed: false,
+
+    onItemClick: (item) => {
+      console.log('Navigation item clicked:', item);
+    },
+
+    onSectionToggle: (sectionId, isOpen) => {
+      console.log('Section toggled:', sectionId, isOpen);
+    },
+  };
+}
+
+export function createSuperadminSidebarConfig(config: {
+  userName: string;
+  userEmail: string;
+  currentPath: string;
+  onLogout: () => void;
+}): SidebarProps {
+  const sections: NavigationSection[] = superadminNavConfig.sidebarSections.map((section) => ({
+    id: section.id,
+    title: section.title,
+    items: section.items.map((item) => {
+      const parts = item.href.split('/').filter(Boolean);
+      const exact = parts.length <= 2;
+      return createNavigationLink({ 
+        id: item.id, 
+        label: item.label, 
+        href: item.href, 
+        icon: item.icon ? getSuperadminIcon(item.icon) : undefined, 
+        exactMatch: exact,
+        description: item.description,
+      });
+    }),
+  }));
+
+  return {
+    sections: markActiveSections(sections, config.currentPath),
+
+    header: {
+      title: 'RTR Admin Portal',
+      subtitle: 'Super Admin',
+      logo: undefined, // TODO: Add platform logo if needed
+    },
+
+    footer: {
+      user: {
+        name: config.userName,
+        email: config.userEmail,
+        role: 'Super Admin',
       },
       items: [
         createNavigationLink({

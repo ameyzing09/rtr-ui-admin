@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Navbar from './Navbar';
 import { GenericSidebar } from '@/components/ui';
 
-import { createDashboardSidebarConfig } from '@/config/dashboardSidebar';
+import { createDashboardSidebarConfig, createSuperadminSidebarConfig } from '@/config/dashboardSidebar';
 import ClientOnly from '@/components/ClientOnly';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useClientPathnameWithFallback } from '@/hooks/useClientPathname';
@@ -88,22 +88,31 @@ export default function DashboardShell({
     };
   }, [environment, navigationRole, tenantLogo, tenantName]);
 
-  const sidebarConfig = React.useMemo(
-    () =>
-      createDashboardSidebarConfig({
-        tenantName: branding.name,
-        tenantLogo: branding.logo,
-         userName: user?.name ?? DEFAULT_VALUES.USER_NAME,
-         userEmail: user?.email ?? DEFAULT_VALUES.USER_EMAIL,
-        userRole: role ?? undefined,
+  const sidebarConfig = React.useMemo(() => {
+    if (navigationRole === 'superadmin') {
+      return createSuperadminSidebarConfig({
+        userName: user?.name ?? DEFAULT_VALUES.USER_NAME,
+        userEmail: user?.email ?? DEFAULT_VALUES.USER_EMAIL,
         currentPath: pathname,
         onLogout: () => {
           void logout();
         },
-        userPermissions: permissions,
-      }),
-    [branding.name, branding.logo, logout, pathname, permissions, role, user],
-  );
+      });
+    }
+
+    return createDashboardSidebarConfig({
+      tenantName: branding.name,
+      tenantLogo: branding.logo,
+      userName: user?.name ?? DEFAULT_VALUES.USER_NAME,
+      userEmail: user?.email ?? DEFAULT_VALUES.USER_EMAIL,
+      userRole: role ?? undefined,
+      currentPath: pathname,
+      onLogout: () => {
+        void logout();
+      },
+      userPermissions: permissions,
+    });
+  }, [branding.name, branding.logo, logout, navigationRole, pathname, permissions, role, user]);
 
   if (isLoading) {
     return (
