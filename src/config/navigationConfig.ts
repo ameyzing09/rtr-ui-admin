@@ -244,7 +244,7 @@ export const unifiedNavConfig = {
         {
           id: 'create-tenant',
           label: 'Create Tenant',
-          href: '/sa/tenants/new',
+          href: '/sa/tenants/create',
           icon: 'plus',
           description: 'Add new tenant',
           roles: ['superadmin'],

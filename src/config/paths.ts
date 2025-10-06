@@ -13,6 +13,7 @@ export const BASE_PATHS = {
   HELP: '/help',
   DEMO: '/demo',
   COMPONENTS_PREVIEW: '/components-preview',
+  SUPERADMIN: '/sa',
 } as const;
 
 // Dashboard routes
@@ -85,6 +86,28 @@ export const DASHBOARD_PATHS = {
 // Demo paths
 export const DEMO_PATHS = {
   TENANT_DASHBOARD: '/demo/tenant/dashboard',
+} as const;
+
+// Superadmin paths
+export const SUPERADMIN_PATHS = {
+  // Base
+  ROOT: '/sa',
+  LOGIN: '/sa/login',
+  
+  // Tenant Management
+  TENANTS: '/sa/tenants',
+  TENANTS_CREATE: '/sa/tenants/create',
+  TENANTS_ONBOARDING: '/sa/tenants/onboarding',
+  TENANT_DETAIL: '/sa/tenants/:id',
+  TENANT_EDIT: '/sa/tenants/:id/edit',
+  
+  // System Management
+  USERS: '/sa/users',
+  HEALTH: '/sa/health',
+  ANALYTICS: '/sa/analytics',
+  SETTINGS: '/sa/settings',
+  SECURITY: '/sa/security',
+  DATABASE: '/sa/database',
 } as const;
 
 // API endpoints

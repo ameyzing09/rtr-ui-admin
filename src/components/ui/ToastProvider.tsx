@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ToastDeduplicator } from '@/lib/errors/toastDeduplicator';
+import type { AppError } from '@/lib/errors/types';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
@@ -48,6 +50,20 @@ export function ToastProvider({ children, maxToasts = 5 }: ToastProviderProps) {
   }, []);
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
+    // De-duplication: Only show if not a duplicate (for error/info/warning)
+    if (toast.type === 'error' || toast.type === 'info' || toast.type === 'warning') {
+      // Use a signature based on title+description+type
+      const errorLike: AppError = {
+        code: toast.type.toUpperCase() as AppError['code'],
+        userMessage: { title: toast.title, message: toast.description || '' },
+        retryable: false,
+        details: { message: toast.description || '' }
+      } as AppError;
+      if (!ToastDeduplicator.shouldShowToast(errorLike)) {
+        return;
+      }
+    }
+
     // Generate a robust UUID with fallback for older environments
     const generateId = (): string => {
       // Check if crypto.randomUUID is available (modern browsers and Node.js 14.17.0+)

@@ -154,6 +154,60 @@ export type TenantStatusResponse = {
   timeline: TenantStatusTimelineItem[];
 };
 
+// Subscription status enums
+export const subscriptionStatusSchema = z.enum([
+  'INACTIVE',
+  'ACTIVE',
+  'SUSPENDED',
+  'CANCELLED',
+  'TRIAL',
+  'EXPIRED'
+]);
+export type SubscriptionStatus = z.infer<typeof subscriptionStatusSchema>;
+
+// Subscription schema
+export const subscriptionSchema = z.object({
+  id: z.string().optional(),
+  status: subscriptionStatusSchema,
+  plan: planSchema,
+  trial_ends_at: z.string().transform((val) => new Date(val)).nullable().optional(),
+  current_period_start: z.string().transform((val) => new Date(val)).nullable().optional(),
+  current_period_end: z.string().transform((val) => new Date(val)).nullable().optional(),
+  created_at: z.string().transform((val) => new Date(val)).optional(),
+  updated_at: z.string().transform((val) => new Date(val)).optional(),
+});
+export type Subscription = z.infer<typeof subscriptionSchema>;
+
+// Tenant detail schema (for individual tenant GET)
+export const tenantDetailSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  domain: z.string(),
+  slug: z.string().optional(),
+  status: tenantStatusSchema,
+  plan: planSchema,
+  admin_name: z.string().optional(),
+  admin_email: z.string().email().optional(),
+  created_by: z.string().optional(),
+  created_at: z.string().transform((val) => new Date(val)),
+  updated_at: z.string().transform((val) => new Date(val)),
+  failed_reason: z.string().nullable().optional(),
+  subscription: subscriptionSchema.optional(),
+});
+export type TenantDetail = z.infer<typeof tenantDetailSchema>;
+
+// Update tenant request schema
+export const updateTenantRequestSchema = z.object({
+  name: z.string().min(1, 'Company name is required').max(100, 'Company name must be less than 100 characters').optional(),
+  domain: z.string()
+    .min(1, 'Domain is required')
+    .regex(/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.?[a-zA-Z0-9-]*[a-zA-Z0-9]*$/, 'Invalid domain format')
+    .max(50, 'Domain must be less than 50 characters')
+    .optional(),
+  plan: planSchema.optional(),
+});
+export type UpdateTenantRequest = z.infer<typeof updateTenantRequestSchema>;
+
 // Form step schemas for wizard
 export const companyStepSchema = z.object({
   name: z.string().min(1, 'Company name is required').max(100),
@@ -175,8 +229,19 @@ export const planStepSchema = z.object({
 });
 export type PlanStep = z.infer<typeof planStepSchema>;
 
-// Combined form data
-export const tenantFormDataSchema = companyStepSchema.merge(ownerStepSchema).merge(planStepSchema);
+// New subscription step schema
+export const subscriptionStepSchema = z.object({
+  start_immediately: z.boolean().default(true),
+  trial_days: z.number().min(0).max(365).optional(),
+  notes: z.string().max(500).optional(),
+});
+export type SubscriptionStep = z.infer<typeof subscriptionStepSchema>;
+
+// Combined form data including subscription
+export const tenantFormDataSchema = companyStepSchema
+  .merge(ownerStepSchema)
+  .merge(planStepSchema)
+  .merge(subscriptionStepSchema);
 export type TenantFormData = z.infer<typeof tenantFormDataSchema>;
 
 // Query parameters for tenant list

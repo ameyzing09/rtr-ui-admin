@@ -73,7 +73,7 @@ export const superadminNavConfig = {
         {
           id: 'create-tenant',
           label: 'Create Tenant',
-          href: '/sa/tenants/new',
+          href: '/sa/tenants/create',
           icon: 'plus' as SuperadminNavIconKey,
           description: 'Add new tenant',
         },
