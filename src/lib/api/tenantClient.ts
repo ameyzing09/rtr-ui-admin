@@ -1,4 +1,5 @@
 import { env } from '@/config/env';
+import { generateUUID } from '@/lib/utils/uuid';
 import { 
   createTenantRequestSchema, 
   createTenantResponseSchema,
@@ -30,20 +31,6 @@ class TenantApiError extends Error {
   }
 }
 
-// Helper to generate UUID for idempotency key with fallback for older environments
-function generateIdempotencyKey(): string {
-  // Check if crypto.randomUUID is available (modern browsers and Node.js 14.17.0+)
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  
-  // Fallback implementation for older environments
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
 
 // Helper to get auth token from localStorage or session
 function getAuthToken(): string | null {
@@ -251,7 +238,7 @@ export async function createTenant(
       method: 'POST',
       body: JSON.stringify(validatedRequest),
       headers: {
-        'Idempotency-Key': generateIdempotencyKey(),
+        'Idempotency-Key': generateUUID(),
       },
     },
     createTenantResponseSchema
@@ -328,7 +315,7 @@ export async function updateTenant(
       method: 'PUT',
       body: JSON.stringify(validatedRequest),
       headers: {
-        'Idempotency-Key': generateIdempotencyKey(),
+        'Idempotency-Key': generateUUID(),
       },
     },
     tenantDetailSchema

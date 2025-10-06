@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ToastDeduplicator } from '@/lib/errors/toastDeduplicator';
+import { generateUUID } from '@/lib/utils/uuid';
 import type { AppError } from '@/lib/errors/types';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -52,34 +53,24 @@ export function ToastProvider({ children, maxToasts = 5 }: ToastProviderProps) {
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
     // De-duplication: Only show if not a duplicate (for error/info/warning)
     if (toast.type === 'error' || toast.type === 'info' || toast.type === 'warning') {
-      // Use a signature based on title+description+type
+      // Create a proper AppError object for deduplication
       const errorLike: AppError = {
-        code: toast.type.toUpperCase() as AppError['code'],
-        userMessage: { title: toast.title, message: toast.description || '' },
+        code: toast.type === 'error' ? 'UNKNOWN' : toast.type === 'warning' ? 'VALIDATION' : 'UNKNOWN',
+        userMessage: { 
+          title: toast.title, 
+          message: toast.description || '' 
+        },
         retryable: false,
-        details: { message: toast.description || '' }
-      } as AppError;
+        details: { 
+          message: toast.description || toast.title 
+        }
+      };
       if (!ToastDeduplicator.shouldShowToast(errorLike)) {
         return;
       }
     }
 
-    // Generate a robust UUID with fallback for older environments
-    const generateId = (): string => {
-      // Check if crypto.randomUUID is available (modern browsers and Node.js 14.17.0+)
-      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        return crypto.randomUUID();
-      }
-      
-      // Fallback implementation for older environments
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-      });
-    };
-
-    const id = generateId();
+    const id = generateUUID();
     const newToast: Toast = {
       ...toast,
       id,

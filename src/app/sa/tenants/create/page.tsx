@@ -173,6 +173,18 @@ export default function CreateTenantPage() {
     error: mutationError
   } = useApiMutation<CreateTenantResponse, TenantFormData>('/api/tenants', 'POST');
 
+  // Handle mutation errors from the hook
+  React.useEffect(() => {
+    if (mutationError) {
+      // Only show banner for non-validation errors
+      if (mutationError.code !== 'VALIDATION') {
+        setNonValidationError(mutationError);
+      } else {
+        showToastError('Failed to create tenant', mutationError.userMessage.message || 'An unexpected error occurred.');
+      }
+    }
+  }, [mutationError, showToastError]);
+
   const handleSubmit = async () => {
     // Validate all steps before submitting
     const allSteps = ['company', 'owner', 'plan', 'subscription'];
@@ -182,20 +194,13 @@ export default function CreateTenantPage() {
       return;
     }
     setNonValidationError(null);
-    try {
-      const result = await createTenant(formData as TenantFormData);
-      if (result) {
-        setCreatedTenant(result);
-        success('Tenant created successfully!', 'The tenant has been created and is being provisioned.');
-      }
-    } catch (err) {
-      // Only show banner for non-validation errors
-      if (mutationError && mutationError.code !== 'VALIDATION') {
-        setNonValidationError(mutationError);
-      } else {
-        showToastError('Failed to create tenant', mutationError?.userMessage.message || 'An unexpected error occurred.');
-      }
+    
+    const result = await createTenant(formData as TenantFormData);
+    if (result) {
+      setCreatedTenant(result);
+      success('Tenant created successfully!', 'The tenant has been created and is being provisioned.');
     }
+    // Error handling is done via useEffect watching mutationError
   };
 
   const copyToClipboard = (text: string) => {

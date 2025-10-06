@@ -211,17 +211,15 @@ export async function deleteTenantAction(
   } catch (error) {
     console.error('Delete tenant action failed:', error);
     
-    if (error instanceof TenantApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.status.toString()
-      };
-    }
+    const userError = createUserError(error);
+    const redirectPath = getErrorRedirectPath(error);
     
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: formatUserErrorMessage(error),
+      code: error instanceof TenantApiError ? error.code : undefined,
+      userError,
+      redirectPath: redirectPath || undefined
     };
   }
 }
@@ -242,17 +240,15 @@ export async function retryTenantAction(
   } catch (error) {
     console.error('Retry tenant action failed:', error);
     
-    if (error instanceof TenantApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.status.toString()
-      };
-    }
+    const userError = createUserError(error);
+    const redirectPath = getErrorRedirectPath(error);
     
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: formatUserErrorMessage(error),
+      code: error instanceof TenantApiError ? error.code : undefined,
+      userError,
+      redirectPath: redirectPath || undefined
     };
   }
 }
@@ -274,17 +270,15 @@ export async function getSubscriptionAction(
   } catch (error) {
     console.error('Get subscription action failed:', error);
     
-    if (error instanceof TenantApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.status.toString()
-      };
-    }
+    const userError = createUserError(error);
+    const redirectPath = getErrorRedirectPath(error);
     
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: formatUserErrorMessage(error),
+      code: error instanceof TenantApiError ? error.code : undefined,
+      userError,
+      redirectPath: redirectPath || undefined
     };
   }
 }
@@ -305,17 +299,15 @@ export async function activateSubscriptionAction(
   } catch (error) {
     console.error('Activate subscription action failed:', error);
     
-    if (error instanceof TenantApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.status.toString()
-      };
-    }
+    const userError = createUserError(error);
+    const redirectPath = getErrorRedirectPath(error);
     
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: formatUserErrorMessage(error),
+      code: error instanceof TenantApiError ? error.code : undefined,
+      userError,
+      redirectPath: redirectPath || undefined
     };
   }
 }
@@ -336,17 +328,15 @@ export async function suspendSubscriptionAction(
   } catch (error) {
     console.error('Suspend subscription action failed:', error);
     
-    if (error instanceof TenantApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.status.toString()
-      };
-    }
+    const userError = createUserError(error);
+    const redirectPath = getErrorRedirectPath(error);
     
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: formatUserErrorMessage(error),
+      code: error instanceof TenantApiError ? error.code : undefined,
+      userError,
+      redirectPath: redirectPath || undefined
     };
   }
 }
@@ -367,17 +357,15 @@ export async function resumeSubscriptionAction(
   } catch (error) {
     console.error('Resume subscription action failed:', error);
     
-    if (error instanceof TenantApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.status.toString()
-      };
-    }
+    const userError = createUserError(error);
+    const redirectPath = getErrorRedirectPath(error);
     
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: formatUserErrorMessage(error),
+      code: error instanceof TenantApiError ? error.code : undefined,
+      userError,
+      redirectPath: redirectPath || undefined
     };
   }
 }
@@ -398,17 +386,15 @@ export async function cancelSubscriptionAction(
   } catch (error) {
     console.error('Cancel subscription action failed:', error);
     
-    if (error instanceof TenantApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.status.toString()
-      };
-    }
+    const userError = createUserError(error);
+    const redirectPath = getErrorRedirectPath(error);
     
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: formatUserErrorMessage(error),
+      code: error instanceof TenantApiError ? error.code : undefined,
+      userError,
+      redirectPath: redirectPath || undefined
     };
   }
 }

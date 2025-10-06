@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation';
 
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import { useToastMessages } from '@/components/ui/ToastProvider';
+import DeleteTenantModal from '@/components/tenants/DeleteTenantModal';
 
 import { 
   type TenantListItem, 
@@ -44,26 +45,27 @@ function TenantRowActions({ tenant, onDelete, onStatusClick }: TenantRowActionPr
   const toast = useToastMessages();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showActions, setShowActions] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  const handleDelete = useCallback(async () => {
+  const handleDeleteClick = useCallback(() => {
+    setShowActions(false);
+    setShowDeleteModal(true);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async (tenantId: string) => {
     if (!onDelete) return;
-    
-    const confirmed = window.confirm(
-      `Are you sure you want to delete tenant "${tenant.name}"? This action cannot be undone.`
-    );
-    
-    if (!confirmed) return;
 
     setIsDeleting(true);
     try {
-      await onDelete(tenant.id);
+      await onDelete(tenantId);
       toast.success('Tenant deleted', 'The tenant has been successfully deleted.');
+      setShowDeleteModal(false);
     } catch (error) {
       toast.error('Failed to delete tenant', error instanceof Error ? error.message : 'Unknown error occurred');
     } finally {
       setIsDeleting(false);
     }
-  }, [onDelete, tenant.id, tenant.name, toast]);
+  }, [onDelete, toast]);
 
   const handleView = useCallback(() => {
     setShowActions(false);
@@ -175,7 +177,7 @@ function TenantRowActions({ tenant, onDelete, onStatusClick }: TenantRowActionPr
               <div className="border-t border-[var(--border)] my-2 mx-2" />
               
               <button
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 disabled={isDeleting}
                 className="
                   flex items-center gap-3 w-full px-4 py-2.5 text-sm 
@@ -186,12 +188,20 @@ function TenantRowActions({ tenant, onDelete, onStatusClick }: TenantRowActionPr
                 "
               >
                 <Trash2 className="w-4 h-4 text-red-500" />
-                <span className="font-medium">{isDeleting ? 'Deleting...' : 'Delete Tenant'}</span>
+                <span className="font-medium">Delete Tenant</span>
               </button>
             </motion.div>
           </>
         )}
       </AnimatePresence>
+
+      <DeleteTenantModal
+        tenant={tenant}
+        isOpen={showDeleteModal}
+        isDeleting={isDeleting}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   );
 }
