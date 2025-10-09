@@ -1,15 +1,40 @@
-import React from 'react';
-import { redirect } from 'next/navigation';
+'use client';
+
+import React, { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import DashboardShell from '@/components/layout/DashboardShell';
 
-// Mock auth check - replace with your actual auth logic
-function checkSuperadminAuth() {
-  // This is a server-side check
-  // In a real app, you'd check the session/token here
-  // For demo purposes, we'll assume auth is valid if we reach protected routes
-  // The actual auth check would happen in middleware or here
-  
-  return true; // Mock: always authenticated for demo
+/**
+ * Check if user has valid superadmin session
+ */
+function checkSuperadminAuth(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    // Check for stored session
+    const sessionData = localStorage.getItem('rtr-admin-session');
+    if (!sessionData) return false;
+
+    const session = JSON.parse(sessionData);
+
+    // Check if session has expired
+    const expiresAt = new Date(session.expiresAt);
+    if (expiresAt.getTime() <= Date.now()) {
+      // Session expired, clear it
+      localStorage.removeItem('rtr-admin-session');
+      return false;
+    }
+
+    // Check if user is superadmin
+    if (session.user?.role !== 'SUPERADMIN') {
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error checking superadmin auth:', error);
+    return false;
+  }
 }
 
 export default function SuperadminLayout({
@@ -17,11 +42,17 @@ export default function SuperadminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const isAuthenticated = checkSuperadminAuth();
+  const router = useRouter();
 
-  if (!isAuthenticated) {
-    redirect('/sa/login');
-  }
+  useEffect(() => {
+    const isAuthenticated = checkSuperadminAuth();
+
+    if (!isAuthenticated) {
+      // Store current path for redirect after login
+      sessionStorage.setItem('redirect_after_login', window.location.pathname);
+      router.push('/sa/login');
+    }
+  }, [router]);
 
   // Platform/Superadmin branding
   const platformData = {

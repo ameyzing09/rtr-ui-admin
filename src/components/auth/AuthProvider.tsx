@@ -123,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (isLocalEnv) {
         const tenantHeaders = await getTenantHeaders();
+        console.log('Using tenant headers:', tenantHeaders);
         if (Object.keys(tenantHeaders).length > 0) {
           // Use environment tenant headers
           if (tenantHeaders['X-Tenant-ID']) {

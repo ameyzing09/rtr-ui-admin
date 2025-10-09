@@ -47,9 +47,18 @@ export default function SuperadminLoginPage() {
       localStorage.setItem('user_role', session.user.role);
       localStorage.setItem('user_email', session.user.email);
       localStorage.setItem('user_name', session.user.name);
-      
+
       success('Welcome back!', `Successfully signed in as ${session.user.role}`);
-      router.push('/sa/tenants');
+
+      // Check if there's a redirect path stored
+      const redirectPath = sessionStorage.getItem('redirect_after_login');
+      if (redirectPath && redirectPath.startsWith('/sa')) {
+        // Clear the stored path
+        sessionStorage.removeItem('redirect_after_login');
+        router.push(redirectPath);
+      } else {
+        router.push('/sa/tenants');
+      }
     } catch (loginError: unknown) {
       console.error('Login failed:', loginError);
       const errorMessage = loginError instanceof Error 

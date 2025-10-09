@@ -99,7 +99,7 @@ class Fetcher {
     // Generate fresh tenant headers for each request in local environment
     const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
     
-    let requestHeaders = { ...this.defaultHeaders };
+    const requestHeaders = { ...this.defaultHeaders };
     
     if (isLocalEnv) {
       const tenantHeaders = await getTenantHeaders();
@@ -134,7 +134,7 @@ class Fetcher {
 
         const parsedError = apiErrorSchema.safeParse(errorData);
         const error = parsedError.success ? parsedError.data : { message: `HTTP ${response.status}` };
-        
+
         throw new ApiException(
           error.message || `HTTP ${response.status}`,
           'code' in error ? error.code : undefined,
@@ -143,7 +143,30 @@ class Fetcher {
         );
       }
 
-      const data = await response.json();
+      // Check if response has content before trying to parse JSON
+      const contentType = response.headers.get('content-type');
+      const contentLength = response.headers.get('content-length');
+
+      // If no content or content-length is 0, return empty object
+      if (contentLength === '0' || response.status === 204) {
+        return {} as T;
+      }
+
+      // Try to parse as JSON if content-type indicates JSON or we have content
+      let data: T;
+      try {
+        const text = await response.text();
+        if (!text || text.trim() === '') {
+          // Empty response body
+          data = {} as T;
+        } else {
+          data = JSON.parse(text);
+        }
+      } catch (parseError) {
+        // If JSON parsing fails, return empty object
+        console.warn('Failed to parse response as JSON, returning empty object');
+        data = {} as T;
+      }
 
       if (responseSchema) {
         const parsed = responseSchema.safeParse(data);
