@@ -41,10 +41,16 @@ export function useApiRequest<T = unknown>(
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<AppError | null>(null);
-  
+
   // Track the current request to handle cancellation
   const abortControllerRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(true);
+  const requestConfigRef = useRef(requestConfig);
+
+  // Update requestConfig ref when it changes
+  useEffect(() => {
+    requestConfigRef.current = requestConfig;
+  }, [requestConfig]);
 
   // Set mounted ref
   useEffect(() => {
@@ -70,7 +76,7 @@ export function useApiRequest<T = unknown>(
 
     try {
       const response = await HttpClient.get<T>(url, {
-        ...requestConfig,
+        ...requestConfigRef.current,
         // Note: We don't pass the signal here as HttpClient manages its own timeout
         // In a more advanced implementation, we could coordinate these
       });
@@ -94,7 +100,7 @@ export function useApiRequest<T = unknown>(
           const mappedError = ErrorMapper.mapError(fetchError, { url, method: 'GET' });
           setError(mappedError);
         }
-        
+
         setData(null);
       }
     } finally {
@@ -102,7 +108,7 @@ export function useApiRequest<T = unknown>(
         setLoading(false);
       }
     }
-  }, [url, requestConfig]);
+  }, [url]);
 
   const reset = useCallback(() => {
     setData(null);
@@ -127,16 +133,9 @@ export function useApiRequest<T = unknown>(
         abortControllerRef.current.abort();
       }
     };
-  }, [immediate, url, fetchData]);
-
-  // Cancel requests on unmount or URL change
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [url]);
+    // Use deps if provided, otherwise default to [url]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps ? [immediate, url, ...deps] : [immediate, url]);
 
   return {
     data,

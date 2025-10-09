@@ -47,8 +47,7 @@ export default function AllTenantsPage() {
       + (planFilter ? `&plan=${planFilter}` : '')
       + (searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''),
     {
-      immediate: true,
-      deps: [searchTerm, statusFilter, planFilter]
+      immediate: true
     }
   );
 
