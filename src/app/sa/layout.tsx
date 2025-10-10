@@ -73,7 +73,6 @@ export default function SuperadminLayout({
     environment: process.env.NODE_ENV === 'development' ? 'dev' as const : undefined,
   };
 
-  console.log('Platform Data:', platformData);
 
   return (
     <DashboardShell
