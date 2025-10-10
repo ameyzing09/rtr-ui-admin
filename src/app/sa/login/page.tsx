@@ -35,15 +35,24 @@ export default function SuperadminLoginPage() {
       // Import auth client dynamically to avoid SSR issues
       const { AuthClient } = await import('@/lib/api/authClient');
       const authClient = new AuthClient();
-      
+
       // Attempt real API login
       const session = await authClient.login({
         email: formData.email,
         password: formData.password,
         audience: 'platform' // Use platform audience for superadmin
       });
-      
-      // Store user info
+
+      // Store session with branding to localStorage
+      const persistedSession = {
+        token: session.token,
+        expiresAt: session.expiresAt.toISOString(),
+        user: session.user,
+        branding: session.branding,
+      };
+      localStorage.setItem('rtr-admin-session', JSON.stringify(persistedSession));
+
+      // Store user info for backward compatibility
       localStorage.setItem('user_role', session.user.role);
       localStorage.setItem('user_email', session.user.email);
       localStorage.setItem('user_name', session.user.name);
@@ -61,8 +70,8 @@ export default function SuperadminLoginPage() {
       }
     } catch (loginError: unknown) {
       console.error('Login failed:', loginError);
-      const errorMessage = loginError instanceof Error 
-        ? loginError.message 
+      const errorMessage = loginError instanceof Error
+        ? loginError.message
         : 'Please check your credentials and ensure the API server is running';
       error('Login failed', errorMessage);
     } finally {
