@@ -83,7 +83,6 @@ export class AuthClient {
     );
 
     console.log('Login successful, processing response');
-    console.log('PlatformBranding from backend:', response.PlatformBranding);
 
     // Store the token for future API calls
     if (typeof window !== 'undefined') {
