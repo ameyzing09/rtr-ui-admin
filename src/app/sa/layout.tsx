@@ -66,14 +66,11 @@ export default function SuperadminLayout({
 
   // Use branding from session, fallback to defaults
   const branding = sessionData?.branding;
-  console.log('Branding:', branding);
   const platformData = {
     name: branding?.navbar_title || branding?.name || 'RTR Admin Portal',
     logo: branding?.logo_url,
     environment: process.env.NODE_ENV === 'development' ? 'dev' as const : undefined,
   };
-
-  console.log('Platform Data:', platformData);
 
   return (
     <DashboardShell
