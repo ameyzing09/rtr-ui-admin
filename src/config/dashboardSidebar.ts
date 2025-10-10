@@ -148,8 +148,6 @@ export function createDashboardSidebarConfig(config: {
 }
 
 export function createSuperadminSidebarConfig(config: {
-  tenantName?: string;
-  tenantLogo?: string;
   userName: string;
   userEmail: string;
   currentPath: string;
@@ -176,14 +174,9 @@ export function createSuperadminSidebarConfig(config: {
     sections: markActiveSections(sections, config.currentPath),
 
     header: {
-      title: config.tenantName || 'RTR Admin Portal',
+      title: 'RTR Admin Portal',
       subtitle: 'Super Admin',
-      logo: config.tenantLogo
-        ? {
-            src: config.tenantLogo,
-            alt: `${config.tenantName} logo`,
-          }
-        : undefined,
+      logo: undefined, // TODO: Add platform logo if needed
     },
 
     footer: {
@@ -249,3 +242,10 @@ export function createSimpleSidebarConfig(currentPath: string): SidebarProps {
     width: 'w-48',
   };
 }
+
+
+
+
+
+
+

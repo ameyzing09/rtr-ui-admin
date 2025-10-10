@@ -7,7 +7,6 @@ import type {
   LoginCredentials,
   LoginAudience,
   Permission,
-  PlatformBranding,
 } from '@/lib/auth/types';
 import { rolePermissions } from '@/lib/auth/permissions';
 
@@ -20,21 +19,10 @@ const apiUserSchema = z.object({
   MustChangePassword: z.boolean().default(false),
 });
 
-const platformBrandingSchema = z.object({
-  name: z.string(),
-  logo_url: z.string().optional(),
-  primary_color: z.string().optional(),
-  accent_color: z.string().optional(),
-  navbar_title: z.string().optional(),
-  sidebar_title: z.string().optional(),
-  // Ignoring sidebar_links as frontend has its own navigation structure
-}).optional();
-
 const loginResponseSchema = z.object({
   Token: z.string(),
   ExpiresAt: z.string(),
   User: apiUserSchema,
-  PlatformBranding: platformBrandingSchema,
 });
 
 type LoginApiResponse = z.infer<typeof loginResponseSchema>;
@@ -55,7 +43,6 @@ function mapSession(payload: LoginApiResponse): AuthSession {
     token: payload.Token,
     expiresAt: new Date(payload.ExpiresAt),
     user: mapUser(payload.User),
-    branding: payload.PlatformBranding,
   };
 }
 
@@ -90,9 +77,7 @@ export class AuthClient {
       localStorage.setItem('authToken', response.Token); // Backup key
     }
 
-    const session = mapSession(response);
-    
-    return session;
+    return mapSession(response);
   }
 
   async logout(options: { audience: LoginAudience; tenantId?: string }): Promise<void> {

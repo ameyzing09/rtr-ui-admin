@@ -9,25 +9,14 @@ export interface AuthUser {
   mustChangePassword: boolean;
 }
 
-export interface PlatformBranding {
-  name: string;
-  logo_url?: string;
-  primary_color?: string;
-  accent_color?: string;
-  navbar_title?: string;
-  sidebar_title?: string;
-}
-
 export interface AuthSession {
   token: string;
   expiresAt: Date;
   user: AuthUser;
-  branding?: PlatformBranding;
 }
 
 export interface StoredAuthSession extends Omit<AuthSession, 'expiresAt'> {
   expiresAt: string;
-  branding?: PlatformBranding;
 }
 
 export type LoginAudience = 'tenant' | 'platform';
