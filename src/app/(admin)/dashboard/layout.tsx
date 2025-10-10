@@ -53,13 +53,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   // Use branding from session, fallback to defaults
   const branding = sessionData?.branding;
   console.log('Dashboard Layout - Session Data:', sessionData);
-  console.log('Dashboard Layout - Branding:', branding);
   const tenantData = {
     name: branding?.navbar_title || branding?.name || 'Acme Corp',
     logo: branding?.logo_url,
     environment: process.env.NODE_ENV === 'development' ? 'dev' as const : undefined,
   };
-  console.log('Dashboard Layout - Tenant Data:', tenantData);
 
   return (
     <DashboardShell

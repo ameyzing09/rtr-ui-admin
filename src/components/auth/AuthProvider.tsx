@@ -153,7 +153,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             user: nextSession.user,
             branding: nextSession.branding,
           };
-          console.log('Storing session with branding to localStorage:', persist.branding);
           window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persist));
         } else {
           window.localStorage.removeItem(STORAGE_KEY);
