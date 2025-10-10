@@ -20,6 +20,12 @@ interface DashboardShellProps {
   environment?: 'dev' | 'staging' | 'prod';
 }
 
+const PLATFORM_BRANDING = {
+  name: 'RTR Admin',
+  logo: undefined as string | undefined,
+  environment: process.env.NODE_ENV === 'development' ? 'dev' as const : undefined,
+};
+
 export default function DashboardShell({
   children,
   tenantName = 'Acme Corp',
@@ -71,18 +77,20 @@ export default function DashboardShell({
     [rawNavbarItems]
   );
 
-  // Always use the props passed from the layout (which includes dynamic branding from backend)
-  const branding = React.useMemo(() => ({
-    name: tenantName,
-    logo: tenantLogo,
-    environment,
-  }), [environment, tenantLogo, tenantName]);
+  const branding = React.useMemo(() => {
+    if (navigationRole === 'superadmin') {
+      return PLATFORM_BRANDING;
+    }
+    return {
+      name: tenantName,
+      logo: tenantLogo,
+      environment,
+    };
+  }, [environment, navigationRole, tenantLogo, tenantName]);
 
   const sidebarConfig = React.useMemo(() => {
     if (navigationRole === 'superadmin') {
       return createSuperadminSidebarConfig({
-        tenantName: branding.name,
-        tenantLogo: branding.logo,
         userName: user?.name ?? DEFAULT_VALUES.USER_NAME,
         userEmail: user?.email ?? DEFAULT_VALUES.USER_EMAIL,
         currentPath: pathname,
@@ -104,7 +112,7 @@ export default function DashboardShell({
       },
       userPermissions: permissions,
     });
-  }, [branding, logout, navigationRole, pathname, permissions, role, user]);
+  }, [branding.name, branding.logo, logout, navigationRole, pathname, permissions, role, user]);
 
   if (isLoading) {
     return (

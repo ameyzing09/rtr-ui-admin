@@ -108,8 +108,6 @@ export default function Navbar({
                 <Image
                   src={tenantLogo}
                   alt={`${tenantName} logo`}
-                  width={32}
-                  height={32}
                   className="h-8 w-8 rounded-md object-cover"
                 />
               ) : (
@@ -235,8 +233,6 @@ export default function Navbar({
                 <Image
                   src={tenantLogo}
                   alt={`${tenantName} logo`}
-                  width={32}
-                  height={32}
                   className="h-8 w-8 rounded-md object-cover"
                 />
               ) : (

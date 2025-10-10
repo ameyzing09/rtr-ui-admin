@@ -185,8 +185,6 @@ export default function Sidebar({
                         <Image
                           src={header.logo.src}
                           alt={header.logo.alt || 'Logo'}
-                          width={32}
-                          height={32}
                           className="h-8 w-8 rounded-md object-cover"
                         />
                       )}
@@ -325,10 +323,13 @@ export default function Sidebar({
                       <Image
                         src={footer.user.avatar}
                         alt={footer.user.name}
-                        width={32}
-                        height={32}
                         className='w-8 h-8 rounded-full object-cover'
-                      />
+                        />
+                      // <img
+                      //   src={footer.user.avatar}
+                      //   alt={footer.user.name}
+                      //   className="w-8 h-8 rounded-full object-cover"
+                      // />
                     ) : (
                       <span className="text-sm font-medium text-blue-600">
                         {footer.user.name.charAt(0).toUpperCase()}
