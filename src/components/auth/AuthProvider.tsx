@@ -70,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           token: parsed.token,
           expiresAt,
           user: parsed.user,
+          branding: parsed.branding,
         };
 
         setSession(normalized);
@@ -150,6 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             token: nextSession.token,
             expiresAt: nextSession.expiresAt.toISOString(),
             user: nextSession.user,
+            branding: nextSession.branding,
           };
           window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persist));
         } else {
