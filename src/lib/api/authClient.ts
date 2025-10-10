@@ -91,7 +91,7 @@ export class AuthClient {
     }
 
     const session = mapSession(response);
-    console.log('Mapped session with branding:', session.branding);
+    
     return session;
   }
 
