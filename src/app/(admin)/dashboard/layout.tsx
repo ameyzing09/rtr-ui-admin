@@ -59,7 +59,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     logo: branding?.logo_url,
     environment: process.env.NODE_ENV === 'development' ? 'dev' as const : undefined,
   };
-  console.log('Dashboard Layout - Tenant Data:', tenantData);
 
   return (
     <DashboardShell
