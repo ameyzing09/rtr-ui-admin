@@ -38,7 +38,7 @@ import {
   type TenantStatus,
   type SubscriptionStatus
 } from '@/domain/tenants/schemas';
-import { formatAbsoluteDate, formatLongDate, formatShortDate, formatRelativeTime } from '@/lib/utils/date';
+import { formatLongDate, formatShortDate, formatRelativeTime } from '@/lib/utils/date';
 
 interface TenantHeaderProps {
   tenant: TenantDetail;
