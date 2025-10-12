@@ -1,63 +1,34 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import DashboardShell from '@/components/layout/DashboardShell';
-import type { PlatformBranding } from '@/lib/auth/types';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-interface SessionData {
-  user?: { role: string };
-  expiresAt: string;
-  branding?: PlatformBranding;
-}
-
-/**
- * Get tenant session data including branding
- */
-function getTenantSession(): SessionData | null {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    const sessionData = localStorage.getItem('rtr-admin-session');
-    if (!sessionData) return null;
-
-    const session = JSON.parse(sessionData) as SessionData;
-
-    // Check if session has expired
-    const expiresAt = new Date(session.expiresAt);
-    if (expiresAt.getTime() <= Date.now()) {
-      localStorage.removeItem('rtr-admin-session');
-      return null;
-    }
-
-    return session;
-  } catch (error) {
-    console.error('Error getting tenant session:', error);
-    return null;
-  }
-}
-
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [sessionData, setSessionData] = useState<SessionData | null>(null);
+  const { session, isLoading } = useAuth();
 
-  useEffect(() => {
-    const session = getTenantSession();
-    if (session) {
-      setSessionData(session);
-    }
-  }, []);
-
-  // Use branding from session, fallback to defaults
-  const branding = sessionData?.branding;
-  console.log('Dashboard Layout - Session Data:', sessionData);
+  // Use branding from AuthProvider session
+  const branding = session?.branding;
   const tenantData = {
     name: branding?.navbar_title || branding?.name || 'Acme Corp',
     logo: branding?.logo_url,
     environment: process.env.NODE_ENV === 'development' ? 'dev' as const : undefined,
   };
+
+  // Show loading state while auth is initializing
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--app-bg)] text-[var(--app-fg)]">
+        <div className="glass-pill px-8 py-6 text-center shadow-lg">
+          <p className="text-sm text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <DashboardShell

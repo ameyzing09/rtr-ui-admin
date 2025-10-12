@@ -1,44 +1,36 @@
-import { 
-  createTenant as createTenantApi, 
-  listTenants as listTenantsApi, 
-  getTenantStatus as getTenantStatusApi,
-  getTenant as getTenantApi,
-  updateTenant as updateTenantApi,
-  deleteTenant as deleteTenantApi,
-  retryTenant as retryTenantApi,
-  getSubscription as getSubscriptionApi,
-  activateSubscription as activateSubscriptionApi,
-  suspendSubscription as suspendSubscriptionApi,
-  resumeSubscription as resumeSubscriptionApi,
-  cancelSubscription as cancelSubscriptionApi,
-  TenantApiError
-} from '@/lib/api/tenantClient';
-import { createUserError, formatUserErrorMessage, getErrorRedirectPath } from '@/lib/utils/errorHandling';
-import {
-  type CreateTenantRequest,
-  type CreateTenantResponse,
-  type TenantListResponse,
-  type TenantListParams,
-  type TenantStatusResponse,
-  type TenantDetail,
-  type UpdateTenantRequest,
-  type Subscription
-} from '@/lib/schemas/tenant';
+'use server';
 
-export type ActionResult<T> = 
+import { requireSuperadmin } from '@/lib/rbac/guard';
+import { tenantService, TenantApiError } from '@/domain/tenants/service';
+import type {
+  CreateTenantRequest,
+  CreateTenantResponse,
+  TenantListResponse,
+  TenantListParams,
+  TenantStatusResponse,
+  TenantDetail,
+  UpdateTenantRequest,
+  Subscription
+} from '@/domain/tenants/schemas';
+
+export type ActionResult<T> =
   | { success: true; data: T }
-  | { 
-      success: false; 
-      error: string; 
+  | {
+      success: false;
+      error: string;
       code?: string;
-      userError?: {
-        title: string;
-        message: string;
-        action?: string;
-        type: 'network' | 'server' | 'validation' | 'auth' | 'notfound' | 'unknown';
-      };
-      redirectPath?: string;
     };
+
+/**
+ * Format error for ActionResult
+ * Extracts error message and code from various error types
+ */
+function formatError(error: unknown): { error: string; code?: string } {
+  if (error instanceof TenantApiError) {
+    return { error: error.message, code: error.code };
+  }
+  return { error: error instanceof Error ? error.message : String(error) };
+}
 
 /**
  * Server action to create a new tenant
@@ -47,24 +39,18 @@ export async function createTenantAction(
   formData: CreateTenantRequest
 ): Promise<ActionResult<CreateTenantResponse>> {
   try {
-    const tenant = await createTenantApi(formData);
-    
+    const session = await requireSuperadmin();
+    const tenant = await tenantService.createTenant(session, session.token, formData);
+
     return {
       success: true,
       data: tenant
     };
   } catch (error) {
     console.error('Create tenant action failed:', error);
-    
-    const userError = createUserError(error);
-    const redirectPath = getErrorRedirectPath(error);
-    
     return {
       success: false,
-      error: formatUserErrorMessage(error),
-      code: error instanceof TenantApiError ? error.code : undefined,
-      userError,
-      redirectPath: redirectPath || undefined
+      ...formatError(error)
     };
   }
 }
@@ -77,7 +63,8 @@ export async function listTenantsAction(
 ): Promise<ActionResult<TenantListResponse>> {
   try {
     console.log('🔄 Attempting to list tenants with params:', params);
-    const tenants = await listTenantsApi(params);
+    const session = await requireSuperadmin();
+    const tenants = await tenantService.listTenants(session, session.token, params);
 
     console.log('✅ Successfully retrieved tenants:', { count: tenants.tenants?.length || 0 });
     return {
@@ -86,20 +73,9 @@ export async function listTenantsAction(
     };
   } catch (error) {
     console.error('❌ List tenants action failed:', error);
-    
-    // Always use the backend error message
-    if (error instanceof TenantApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.status.toString()
-      };
-    }
-    
-    // Return the actual error message from backend
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      ...formatError(error)
     };
   }
 }
@@ -111,27 +87,18 @@ export async function getTenantStatusAction(
   tenantId: string
 ): Promise<ActionResult<TenantStatusResponse>> {
   try {
-    const status = await getTenantStatusApi(tenantId);
-    
+    const session = await requireSuperadmin();
+    const status = await tenantService.getTenantStatus(session, session.token, tenantId);
+
     return {
       success: true,
       data: status
     };
   } catch (error) {
     console.error('Get tenant status action failed:', error);
-    
-    if (error instanceof TenantApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.status.toString()
-      };
-    }
-    
-    // Return the actual error message from backend
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      ...formatError(error)
     };
   }
 }
@@ -143,24 +110,18 @@ export async function getTenantAction(
   tenantId: string
 ): Promise<ActionResult<TenantDetail>> {
   try {
-    const tenant = await getTenantApi(tenantId);
-    
+    const session = await requireSuperadmin();
+    const tenant = await tenantService.getTenant(session, session.token, tenantId);
+
     return {
       success: true,
       data: tenant
     };
   } catch (error) {
     console.error('Get tenant action failed:', error);
-    
-    const userError = createUserError(error);
-    const redirectPath = getErrorRedirectPath(error);
-    
     return {
       success: false,
-      error: formatUserErrorMessage(error),
-      code: error instanceof TenantApiError ? error.code : undefined,
-      userError,
-      redirectPath: redirectPath || undefined
+      ...formatError(error)
     };
   }
 }
@@ -173,24 +134,18 @@ export async function updateTenantAction(
   request: UpdateTenantRequest
 ): Promise<ActionResult<TenantDetail>> {
   try {
-    const tenant = await updateTenantApi(tenantId, request);
-    
+    const session = await requireSuperadmin();
+    const tenant = await tenantService.updateTenant(session, session.token, tenantId, request);
+
     return {
       success: true,
       data: tenant
     };
   } catch (error) {
     console.error('Update tenant action failed:', error);
-    
-    const userError = createUserError(error);
-    const redirectPath = getErrorRedirectPath(error);
-    
     return {
       success: false,
-      error: formatUserErrorMessage(error),
-      code: error instanceof TenantApiError ? error.code : undefined,
-      userError,
-      redirectPath: redirectPath || undefined
+      ...formatError(error)
     };
   }
 }
@@ -202,24 +157,18 @@ export async function deleteTenantAction(
   tenantId: string
 ): Promise<ActionResult<{ success: boolean }>> {
   try {
-    const result = await deleteTenantApi(tenantId);
-    
+    const session = await requireSuperadmin();
+    const result = await tenantService.deleteTenant(session, session.token, tenantId);
+
     return {
       success: true,
       data: result
     };
   } catch (error) {
     console.error('Delete tenant action failed:', error);
-    
-    const userError = createUserError(error);
-    const redirectPath = getErrorRedirectPath(error);
-    
     return {
       success: false,
-      error: formatUserErrorMessage(error),
-      code: error instanceof TenantApiError ? error.code : undefined,
-      userError,
-      redirectPath: redirectPath || undefined
+      ...formatError(error)
     };
   }
 }
@@ -231,29 +180,26 @@ export async function retryTenantAction(
   tenantId: string
 ): Promise<ActionResult<{ success: boolean }>> {
   try {
-    const result = await retryTenantApi(tenantId);
-    
+    const session = await requireSuperadmin();
+    const result = await tenantService.retryTenant(session, session.token, tenantId);
+
     return {
       success: true,
       data: result
     };
   } catch (error) {
     console.error('Retry tenant action failed:', error);
-    
-    const userError = createUserError(error);
-    const redirectPath = getErrorRedirectPath(error);
-    
     return {
       success: false,
-      error: formatUserErrorMessage(error),
-      code: error instanceof TenantApiError ? error.code : undefined,
-      userError,
-      redirectPath: redirectPath || undefined
+      ...formatError(error)
     };
   }
 }
 
-// Subscription actions
+// ==========================================================================
+// Subscription Actions
+// ==========================================================================
+
 /**
  * Server action to get subscription details
  */
@@ -261,24 +207,18 @@ export async function getSubscriptionAction(
   tenantId: string
 ): Promise<ActionResult<Subscription>> {
   try {
-    const subscription = await getSubscriptionApi(tenantId);
-    
+    const session = await requireSuperadmin();
+    const subscription = await tenantService.getSubscription(session, session.token, tenantId);
+
     return {
       success: true,
       data: subscription
     };
   } catch (error) {
     console.error('Get subscription action failed:', error);
-    
-    const userError = createUserError(error);
-    const redirectPath = getErrorRedirectPath(error);
-    
     return {
       success: false,
-      error: formatUserErrorMessage(error),
-      code: error instanceof TenantApiError ? error.code : undefined,
-      userError,
-      redirectPath: redirectPath || undefined
+      ...formatError(error)
     };
   }
 }
@@ -290,24 +230,18 @@ export async function activateSubscriptionAction(
   tenantId: string
 ): Promise<ActionResult<Subscription>> {
   try {
-    const subscription = await activateSubscriptionApi(tenantId);
-    
+    const session = await requireSuperadmin();
+    const subscription = await tenantService.activateSubscription(session, session.token, tenantId);
+
     return {
       success: true,
       data: subscription
     };
   } catch (error) {
     console.error('Activate subscription action failed:', error);
-    
-    const userError = createUserError(error);
-    const redirectPath = getErrorRedirectPath(error);
-    
     return {
       success: false,
-      error: formatUserErrorMessage(error),
-      code: error instanceof TenantApiError ? error.code : undefined,
-      userError,
-      redirectPath: redirectPath || undefined
+      ...formatError(error)
     };
   }
 }
@@ -319,24 +253,18 @@ export async function suspendSubscriptionAction(
   tenantId: string
 ): Promise<ActionResult<Subscription>> {
   try {
-    const subscription = await suspendSubscriptionApi(tenantId);
-    
+    const session = await requireSuperadmin();
+    const subscription = await tenantService.suspendSubscription(session, session.token, tenantId);
+
     return {
       success: true,
       data: subscription
     };
   } catch (error) {
     console.error('Suspend subscription action failed:', error);
-    
-    const userError = createUserError(error);
-    const redirectPath = getErrorRedirectPath(error);
-    
     return {
       success: false,
-      error: formatUserErrorMessage(error),
-      code: error instanceof TenantApiError ? error.code : undefined,
-      userError,
-      redirectPath: redirectPath || undefined
+      ...formatError(error)
     };
   }
 }
@@ -348,24 +276,18 @@ export async function resumeSubscriptionAction(
   tenantId: string
 ): Promise<ActionResult<Subscription>> {
   try {
-    const subscription = await resumeSubscriptionApi(tenantId);
-    
+    const session = await requireSuperadmin();
+    const subscription = await tenantService.resumeSubscription(session, session.token, tenantId);
+
     return {
       success: true,
       data: subscription
     };
   } catch (error) {
     console.error('Resume subscription action failed:', error);
-    
-    const userError = createUserError(error);
-    const redirectPath = getErrorRedirectPath(error);
-    
     return {
       success: false,
-      error: formatUserErrorMessage(error),
-      code: error instanceof TenantApiError ? error.code : undefined,
-      userError,
-      redirectPath: redirectPath || undefined
+      ...formatError(error)
     };
   }
 }
@@ -377,24 +299,18 @@ export async function cancelSubscriptionAction(
   tenantId: string
 ): Promise<ActionResult<Subscription>> {
   try {
-    const subscription = await cancelSubscriptionApi(tenantId);
-    
+    const session = await requireSuperadmin();
+    const subscription = await tenantService.cancelSubscription(session, session.token, tenantId);
+
     return {
       success: true,
       data: subscription
     };
   } catch (error) {
     console.error('Cancel subscription action failed:', error);
-    
-    const userError = createUserError(error);
-    const redirectPath = getErrorRedirectPath(error);
-    
     return {
       success: false,
-      error: formatUserErrorMessage(error),
-      code: error instanceof TenantApiError ? error.code : undefined,
-      userError,
-      redirectPath: redirectPath || undefined
+      ...formatError(error)
     };
   }
 }

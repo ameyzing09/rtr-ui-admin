@@ -92,8 +92,8 @@ export const DEMO_PATHS = {
 export const SUPERADMIN_PATHS = {
   // Base
   ROOT: '/sa',
-  LOGIN: '/sa/login',
-  
+  LOGIN: '/login',  // Use unified login page with Platform tab
+
   // Tenant Management
   TENANTS: '/sa/tenants',
   TENANTS_CREATE: '/sa/tenants/create',

@@ -29,7 +29,8 @@ import {
   UserCheck,
 } from 'lucide-react';
 
-import type { Permission } from '@/lib/auth/types';
+import type { Permission } from '@/lib/rbac/permissions';
+import { PERMISSIONS } from '@/lib/rbac/permissions';
 
 // User roles in the system
 export type UserRole = 'superadmin' | 'admin' | 'hr' | 'interviewer' | 'candidate';
@@ -101,128 +102,111 @@ export type NavLinkConfig = {
   href: string;
   icon?: NavIconKey;
   description?: string;
-  permissions?: Permission[];
-  roles?: UserRole[];
+  permission?: Permission; // Single permission required for this item
   requiredFlags?: string[];
+  requiredRole?: UserRole; // Specific role required for this item (stricter than permission)
 };
 
 export type NavSectionConfig = {
   id: string;
   title: string;
-  permissions?: Permission[];
-  roles?: UserRole[];
+  permission?: Permission; // Single permission required for this section
+  requiredRole?: UserRole; // Specific role required for this section (stricter than permission)
   items: NavLinkConfig[];
 };
 
 export const unifiedNavConfig = {
   navbar: <NavLinkConfig[]>[
-    // Superadmin navbar items
-    { 
-      id: 'sa-overview', 
-      label: 'Overview', 
-      href: '/sa/dashboard', 
+    // Superadmin navbar items (only visible to SUPERADMIN role)
+    {
+      id: 'sa-overview',
+      label: 'Overview',
+      href: '/dashboard',
       icon: 'dashboard',
-      roles: ['superadmin'],
+      permission: PERMISSIONS.ANALYTICS_READ,
+      requiredRole: 'superadmin',
       description: 'System overview'
     },
-    { 
-      id: 'sa-tenants', 
-      label: 'Tenants', 
-      href: '/sa/tenants', 
-      icon: 'building',
-      roles: ['superadmin'],
-      description: 'Manage all tenants'
-    },
-    { 
-      id: 'sa-users', 
-      label: 'System Users', 
-      href: '/sa/users', 
+    {
+      id: 'sa-users',
+      label: 'System Users',
+      href: '/sa/users',
       icon: 'users',
-      roles: ['superadmin'],
+      permission: PERMISSIONS.SYS_USER_LIST,
+      requiredRole: 'superadmin',
       description: 'Manage system users'
     },
-    { 
-      id: 'sa-health', 
-      label: 'System Health', 
-      href: '/sa/health', 
+    {
+      id: 'sa-health',
+      label: 'System Health',
+      href: '/sa/health',
       icon: 'activity',
-      roles: ['superadmin'],
+      permission: PERMISSIONS.SYS_HEALTH_READ,
+      requiredRole: 'superadmin',
       description: 'Monitor system health'
     },
-    { 
-      id: 'sa-settings', 
-      label: 'Settings', 
-      href: '/sa/settings', 
+    {
+      id: 'sa-settings',
+      label: 'Settings',
+      href: '/sa/settings',
       icon: 'settings',
-      roles: ['superadmin'],
+      permission: PERMISSIONS.SETTINGS_GLOBAL,
+      requiredRole: 'superadmin',
       description: 'System configuration'
     },
     
-    // Platform admin navbar items
-    { 
-      id: 'overview', 
-      label: 'Overview', 
-      href: '/dashboard', 
-      icon: 'dashboard', 
-      permissions: ['platform:overview:view'],
-      roles: ['admin', 'hr', 'interviewer'],
+    // Tenant navbar items
+    {
+      id: 'overview',
+      label: 'Overview',
+      href: '/dashboard',
+      icon: 'dashboard',
+      permission: PERMISSIONS.ANALYTICS_READ,
     },
-    { 
-      id: 'tenants', 
-      label: 'Tenants', 
-      href: '/dashboard/tenants', 
-      icon: 'layers', 
-      permissions: ['platform:tenants:manage'],
-      roles: ['admin'],
+    {
+      id: 'jobs',
+      label: 'Jobs',
+      href: '/dashboard/jobs',
+      icon: 'file',
+      permission: PERMISSIONS.JOB_LIST,
     },
-    { 
-      id: 'users-access', 
-      label: 'Users & Access', 
-      href: '/dashboard/users', 
-      icon: 'users', 
-      permissions: ['platform:users:manage'],
-      roles: ['admin', 'hr'],
+    {
+      id: 'applications',
+      label: 'Applications',
+      href: '/dashboard/applications',
+      icon: 'users',
+      permission: PERMISSIONS.APPLICATION_LIST,
     },
-    { 
-      id: 'billing', 
-      label: 'Billing', 
-      href: '/dashboard/billing', 
-      icon: 'credit', 
-      permissions: ['platform:billing:manage'],
-      roles: ['admin'],
+    {
+      id: 'team',
+      label: 'Team',
+      href: '/dashboard/team',
+      icon: 'users',
+      permission: PERMISSIONS.MEMBER_LIST,
     },
-    { 
-      id: 'integrations', 
-      label: 'Integrations', 
-      href: '/dashboard/integrations', 
-      icon: 'zap', 
-      permissions: ['platform:integrations:manage'],
-      roles: ['admin'],
+    {
+      id: 'interviews',
+      label: 'Interviews',
+      href: '/dashboard/interviews',
+      icon: 'users',
+      permission: PERMISSIONS.INTERVIEW_LIST,
     },
-    { 
-      id: 'health', 
-      label: 'Health', 
-      href: '/dashboard/health', 
-      icon: 'activity', 
-      permissions: ['platform:health:view'],
-      roles: ['admin'],
-    },
-    { 
-      id: 'settings', 
-      label: 'Settings', 
-      href: '/dashboard/settings', 
-      icon: 'settings', 
-      permissions: ['platform:settings:manage'],
-      roles: ['admin'],
+    {
+      id: 'settings',
+      label: 'Settings',
+      href: '/dashboard/settings',
+      icon: 'settings',
+      permission: PERMISSIONS.SETTINGS_READ,
     },
   ],
 
   sidebarSections: <NavSectionConfig[]>[
-    // Superadmin sections
+    // Superadmin sections (only visible to SUPERADMIN role)
     {
       id: 'tenant-management',
       title: 'Tenant Management',
-      roles: ['superadmin'],
+      permission: PERMISSIONS.TENANT_LIST,
+      requiredRole: 'superadmin',
       items: [
         {
           id: 'all-tenants',
@@ -230,7 +214,8 @@ export const unifiedNavConfig = {
           href: '/sa/tenants',
           icon: 'building',
           description: 'View and manage all tenants',
-          roles: ['superadmin'],
+          permission: PERMISSIONS.TENANT_LIST,
+          requiredRole: 'superadmin',
         },
         {
           id: 'onboarding-queue',
@@ -238,7 +223,8 @@ export const unifiedNavConfig = {
           href: '/sa/tenants/onboarding',
           icon: 'clock',
           description: 'Monitor tenant provisioning',
-          roles: ['superadmin'],
+          permission: PERMISSIONS.TENANT_STATUS,
+          requiredRole: 'superadmin',
           requiredFlags: ['TENANT_ONBOARDING_QUEUE'],
         },
         {
@@ -247,14 +233,25 @@ export const unifiedNavConfig = {
           href: '/sa/tenants/create',
           icon: 'plus',
           description: 'Add new tenant',
-          roles: ['superadmin'],
+          permission: PERMISSIONS.TENANT_CREATE,
+          requiredRole: 'superadmin',
+        },
+        {
+          id: 'impersonate-tenant',
+          label: 'Impersonate Tenant',
+          href: '/sa/tenants/impersonate',
+          icon: 'usercheck',
+          description: 'Impersonate tenant user',
+          permission: PERMISSIONS.TENANT_IMPERSONATE,
+          requiredRole: 'superadmin',
         },
       ],
     },
     {
       id: 'system-management',
       title: 'System Management',
-      roles: ['superadmin'],
+      permission: PERMISSIONS.SYS_USER_LIST,
+      requiredRole: 'superadmin',
       items: [
         {
           id: 'system-users',
@@ -262,7 +259,8 @@ export const unifiedNavConfig = {
           href: '/sa/users',
           icon: 'users',
           description: 'Manage system administrators',
-          roles: ['superadmin'],
+          permission: PERMISSIONS.SYS_USER_LIST,
+          requiredRole: 'superadmin',
         },
         {
           id: 'system-health',
@@ -270,22 +268,25 @@ export const unifiedNavConfig = {
           href: '/sa/health',
           icon: 'activity',
           description: 'Monitor system status',
-          roles: ['superadmin'],
+          permission: PERMISSIONS.SYS_HEALTH_READ,
+          requiredRole: 'superadmin',
         },
         {
           id: 'analytics',
-          label: 'Analytics',
+          label: 'Analytics & Usage',
           href: '/sa/analytics',
           icon: 'chart',
           description: 'System-wide analytics',
-          roles: ['superadmin'],
+          permission: PERMISSIONS.ANALYTICS_READ,
+          requiredRole: 'superadmin',
         },
       ],
     },
     {
       id: 'configuration',
       title: 'Configuration',
-      roles: ['superadmin'],
+      permission: PERMISSIONS.SETTINGS_GLOBAL,
+      requiredRole: 'superadmin',
       items: [
         {
           id: 'global-settings',
@@ -293,7 +294,8 @@ export const unifiedNavConfig = {
           href: '/sa/settings',
           icon: 'settings',
           description: 'System configuration',
-          roles: ['superadmin'],
+          permission: PERMISSIONS.SETTINGS_GLOBAL,
+          requiredRole: 'superadmin',
         },
         {
           id: 'security',
@@ -301,7 +303,8 @@ export const unifiedNavConfig = {
           href: '/sa/security',
           icon: 'shield',
           description: 'Security policies',
-          roles: ['superadmin'],
+          permission: PERMISSIONS.SETTINGS_SECURITY,
+          requiredRole: 'superadmin',
         },
         {
           id: 'database',
@@ -309,41 +312,24 @@ export const unifiedNavConfig = {
           href: '/sa/database',
           icon: 'database',
           description: 'Database management',
-          roles: ['superadmin'],
+          permission: PERMISSIONS.SETTINGS_DB,
+          requiredRole: 'superadmin',
         },
       ],
     },
 
-    // Platform admin sections
+    // Tenant sections
     {
       id: 'overview',
       title: 'Overview',
-      permissions: ['platform:overview:view'],
-      roles: ['admin', 'hr', 'interviewer'],
+      permission: PERMISSIONS.ANALYTICS_READ,
       items: [
-        { 
-          id: 'overview-home', 
-          label: 'Overview', 
-          href: '/dashboard', 
-          icon: 'dashboard', 
-          permissions: ['platform:overview:view'],
-          roles: ['admin', 'hr', 'interviewer'],
-        },
-        { 
-          id: 'command-center', 
-          label: 'Command Center', 
-          href: '/dashboard/command-center', 
-          icon: 'command',
-          permissions: ['platform:overview:view'],
-          roles: ['admin', 'hr'],
-        },
-        { 
-          id: 'global-search', 
-          label: 'Global Search', 
-          href: '/dashboard/search', 
-          icon: 'search',
-          permissions: ['platform:overview:view'],
-          roles: ['admin', 'hr', 'interviewer'],
+        {
+          id: 'overview-home',
+          label: 'Dashboard',
+          href: '/dashboard',
+          icon: 'dashboard',
+          permission: PERMISSIONS.ANALYTICS_READ,
         },
       ],
     },
@@ -818,16 +804,46 @@ export function getNavItemsForRole(
 } {
   const filterItems = (items: NavLinkConfig[]): NavLinkConfig[] => {
     return items.filter(item => {
-      // Check role-based access
-      if (item.roles && !item.roles.includes(userRole)) {
+      // Context separation: superadmin vs tenant context
+      if (userRole === 'superadmin') {
+        // Superadmins should ONLY see items marked with requiredRole: 'superadmin'
+        // This prevents mixing superadmin and tenant navigation items
+        if (!item.requiredRole || item.requiredRole !== 'superadmin') {
+          return false;
+        }
+      } else {
+        // Non-superadmin users should NOT see superadmin-only items
+        if (item.requiredRole === 'superadmin') {
+          return false;
+        }
+      }
+
+      // Check requiredRole match (for other roles)
+      if (item.requiredRole && item.requiredRole !== userRole) {
         return false;
       }
-      
-      // Check permission-based access
-      if (item.permissions && item.permissions.length > 0) {
-        return item.permissions.some(permission => userPermissions.includes(permission));
+
+      // New permission-based check (single permission)
+      if (item.permission) {
+        return userPermissions.includes(item.permission);
       }
-      
+
+      // Legacy: Check role-based access (for backward compatibility)
+      if ((item as unknown as { roles?: UserRole[] }).roles) {
+        const roles = (item as unknown as { roles: UserRole[] }).roles;
+        if (!roles.includes(userRole)) {
+          return false;
+        }
+      }
+
+      // Legacy: Check permission-based access (array)
+      if ((item as unknown as { permissions?: Permission[] }).permissions) {
+        const permissions = (item as unknown as { permissions: Permission[] }).permissions;
+        if (permissions.length > 0) {
+          return permissions.some(permission => userPermissions.includes(permission));
+        }
+      }
+
       return true;
     });
   };
@@ -835,19 +851,48 @@ export function getNavItemsForRole(
   const filterSections = (sections: NavSectionConfig[]): NavSectionConfig[] => {
     return sections
       .filter(section => {
-        // Check role-based access for section
-        if (section.roles && !section.roles.includes(userRole)) {
+        // Context separation: superadmin vs tenant context
+        if (userRole === 'superadmin') {
+          // Superadmins should ONLY see sections marked with requiredRole: 'superadmin'
+          if (!section.requiredRole || section.requiredRole !== 'superadmin') {
+            return false;
+          }
+        } else {
+          // Non-superadmin users should NOT see superadmin-only sections
+          if (section.requiredRole === 'superadmin') {
+            return false;
+          }
+        }
+
+        // Check requiredRole match (for other roles)
+        if (section.requiredRole && section.requiredRole !== userRole) {
           return false;
         }
-        
-        // Check permission-based access for section
-        if (section.permissions && section.permissions.length > 0) {
-          const hasPermission = section.permissions.some(permission => 
-            userPermissions.includes(permission)
-          );
-          if (!hasPermission) return false;
+
+        // New permission-based check (single permission)
+        if (section.permission) {
+          return userPermissions.includes(section.permission);
         }
-        
+
+        // Legacy: Check role-based access for section
+        if ((section as unknown as { roles?: UserRole[] }).roles) {
+          const roles = (section as unknown as { roles: UserRole[] }).roles;
+          if (!roles.includes(userRole)) {
+            return false;
+          }
+        }
+
+        // Legacy: Check permission-based access for section
+        if ((section as unknown as { permissions?: Permission[] }).permissions) {
+          const permissions = (section as unknown as { permissions: Permission[] }).permissions;
+          if (permissions.length > 0) {
+            const hasPermission = permissions.some(permission =>
+              userPermissions.includes(permission)
+            );
+            if (!hasPermission) return false;
+          }
+        }
+
         return true;
       })
       .map(section => ({
