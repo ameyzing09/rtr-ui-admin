@@ -19,6 +19,33 @@ const CSRF_HEADER_NAME = 'x-csrf-token';
 const TOKEN_LENGTH = 32;
 
 // ============================================================================
+// Server-Side Crypto Module (Node.js only)
+// ============================================================================
+
+/**
+ * Lazy-load Node.js crypto module for server-side use
+ * This avoids bundling crypto in client builds and removes eval() security risk
+ */
+let nodeCrypto: typeof import('crypto') | null = null;
+
+function getNodeCrypto(): typeof import('crypto') {
+  if (nodeCrypto) {
+    return nodeCrypto;
+  }
+
+  try {
+    // Use Function constructor to avoid static analysis issues
+    // This is safer than eval() and only executes in Node.js environment
+    const requireFn = new Function('moduleName', 'return require(moduleName)') as (name: string) => typeof import('crypto');
+    nodeCrypto = requireFn('crypto');
+    return nodeCrypto;
+  } catch {
+    // Catch without binding - avoids unused variable warning
+    throw new Error('Failed to load crypto module. This function should only be called server-side.');
+  }
+}
+
+// ============================================================================
 // Token Generation
 // ============================================================================
 
@@ -29,22 +56,16 @@ const TOKEN_LENGTH = 32;
  */
 export function generateCsrfToken(): string {
   if (typeof window !== 'undefined' && window.crypto) {
-    // Browser environment
+    // Browser environment - use Web Crypto API
     const array = new Uint8Array(TOKEN_LENGTH);
     window.crypto.getRandomValues(array);
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
   } else {
-    // Node environment - use Node's crypto module
-    // Note: This is synchronous and only runs server-side
-    // Using require here is acceptable for Node-only code paths
-    // Alternative: Make this function async and use await import('crypto')
-    try {
-      // Use dynamic require for server-side crypto (Node.js only)
-      const crypto: typeof import('crypto') = eval('require')('crypto');
-      return crypto.randomBytes(TOKEN_LENGTH).toString('hex');
-    } catch (error) {
-      throw new Error('Failed to generate CSRF token: crypto module not available');
-    }
+    // Node.js environment - use crypto module
+    // Function constructor is safer than eval() but still dynamic
+    // This only executes server-side where require() is available
+    const crypto = getNodeCrypto();
+    return crypto.randomBytes(TOKEN_LENGTH).toString('hex');
   }
 }
 

@@ -6,6 +6,13 @@
 /**
  * Validate if a string could be a valid date format
  * Checks for ISO 8601 format or common date patterns
+ *
+ * NOTE: This performs format validation only (pattern matching).
+ * It does NOT validate date ranges (e.g., will match "2023-13-45").
+ * Invalid date ranges are caught by Date constructor in normalizeDate().
+ * This two-layer approach:
+ * 1. Fast regex rejects malformed strings (prevents Date constructor abuse)
+ * 2. Date constructor + isNaN() validates actual date values
  */
 function isValidDateString(dateStr: string): boolean {
   // Check for empty or whitespace-only strings
@@ -14,6 +21,7 @@ function isValidDateString(dateStr: string): boolean {
   }
 
   // ISO 8601 format: YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss
+  // Note: Matches format only, not value ranges (month 1-12, day 1-31, etc.)
   const iso8601Pattern = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
 
   // Common timestamp formats
@@ -33,7 +41,14 @@ function isValidDateString(dateStr: string): boolean {
 
 /**
  * Normalize date string to ensure proper parsing
- * Validates format before attempting to create Date object
+ *
+ * TWO-LAYER VALIDATION APPROACH:
+ * 1. isValidDateString() - Fast format check (prevents malformed strings)
+ * 2. Date constructor + isNaN() - Validates actual date values
+ *
+ * Example: "2023-13-45" passes regex but fails Date validation
+ * This is intentional - regex validation is for security/performance,
+ * Date validation is for correctness.
  */
 function normalizeDate(date: Date | string): Date {
   if (date instanceof Date) {
@@ -42,16 +57,17 @@ function normalizeDate(date: Date | string): Date {
 
   const dateStr = String(date).trim();
 
-  // Validate format before parsing
+  // Layer 1: Fast format validation (security/performance)
   if (!isValidDateString(dateStr)) {
     throw new Error(`Invalid date format: ${dateStr}`);
   }
 
+  // Layer 2: Date constructor validates actual ranges
   const parsed = new Date(dateStr);
 
-  // Additional check: ensure the parsed date is valid
+  // Check if date is valid (catches "2023-13-45", etc.)
   if (isNaN(parsed.getTime())) {
-    throw new Error(`Failed to parse date: ${dateStr}`);
+    throw new Error(`Invalid date value: ${dateStr}`);
   }
 
   return parsed;

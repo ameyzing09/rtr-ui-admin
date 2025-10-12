@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect, useCallback, useMemo } from 'react';
+import { useState, useTransition, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   listTenantsAction,
   createTenantAction,
@@ -30,46 +30,90 @@ import type { ActionResult } from '@/lib/actions/tenant';
 /**
  * Hook for listing tenants with filters
  */
+// export function useTenantList(params: TenantListParams = { limit: 50 }) {
+//   const [data, setData] = useState<TenantListResponse | null>(null);
+//   const [error, setError] = useState<string | null>(null);
+//   const [isPending, startTransition] = useTransition();
+
+//   // Create a stable serialized version of params to prevent infinite loops
+//   // useMemo ensures this only changes when param values actually change
+//   // Note: We explicitly extract primitive dependencies instead of using 'params'
+//   // to avoid infinite loop (params object reference changes on every render)
+//   const paramsKey = useMemo(
+//     () => JSON.stringify(params),
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
+//     [params.limit, params.status, params.plan, params.search]
+//   );
+
+//   const fetchTenants = useCallback(async () => {
+//     setError(null);
+//     startTransition(async () => {
+//       const result = await listTenantsAction(params);
+//       if (result.success) {
+//         setData(result.data);
+//       } else {
+//         setError(result.error);
+//       }
+//     });
+//   }, [paramsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+//   // Note: We use paramsKey instead of params to avoid infinite loops
+//   // params is used in the function body, but paramsKey tracks changes
+
+//   useEffect(() => {
+//     fetchTenants();
+//   }, [fetchTenants]);
+
+//   return {
+//     data,
+//     tenants: data?.tenants || [],
+//     error,
+//     loading: isPending,
+//     refetch: fetchTenants,
+//   };
+// }
 export function useTenantList(params: TenantListParams = { limit: 50 }) {
   const [data, setData] = useState<TenantListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // Create a stable serialized version of params to prevent infinite loops
-  // useMemo ensures this only changes when param values actually change
-  const paramsKey = useMemo(() => JSON.stringify(params), [
-    params.limit,
-    params.status,
-    params.plan,
-    params.search,
-  ]);
+  // Stable key; list each primitive so React can diff without stringifying big objects
+  const key = useMemo(
+    () => `${params.limit ?? 50}|${params.status ?? ''}|${params.plan ?? ''}|${params.search ?? ''}`,
+    [params.limit, params.status, params.plan, params.search]
+  );
 
-  const fetchTenants = useCallback(async () => {
+  // Prevent out-of-order updates (stale response wins)
+  const requestId = useRef(0);
+
+  const refetch = useCallback(() => {
+    const id = ++requestId.current;
     setError(null);
     startTransition(async () => {
-      const result = await listTenantsAction(params);
-      if (result.success) {
-        setData(result.data);
-      } else {
-        setError(result.error);
-      }
+      const res = await listTenantsAction(params); // OK: closure updates whenever `key` changes
+      if (id !== requestId.current) return;        // ignore stale response
+      if (res.success) setData(res.data);
+      else setError(res.error);
     });
-  }, [paramsKey]); // eslint-disable-line react-hooks/exhaustive-deps
-  // Note: We use paramsKey instead of params to avoid infinite loops
-  // params is used in the function body, but paramsKey tracks changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]); // depends on `key` so it updates only when params meaningfully change
+  // Note: ESLint warns about missing 'params' dependency, but including it would cause infinite loops
+  // since params object reference changes every render. The 'key' dependency is sufficient because:
+  // - key is derived from params primitives (limit, status, plan, search)
+  // - when any param value changes, key changes, triggering a new callback with fresh params closure
 
   useEffect(() => {
-    fetchTenants();
-  }, [fetchTenants]);
+    refetch();
+  }, [refetch]);
 
   return {
     data,
-    tenants: data?.tenants || [],
+    tenants: data?.tenants ?? [],
     error,
     loading: isPending,
-    refetch: fetchTenants,
+    refetch, // stable enough to pass to children
   };
 }
+
 
 /**
  * Hook for creating a tenant
