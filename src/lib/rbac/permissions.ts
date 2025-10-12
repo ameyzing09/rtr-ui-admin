@@ -257,6 +257,29 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 };
 
 // ============================================================================
+// Permission Classification
+// ============================================================================
+
+/**
+ * Platform-level settings permissions
+ * These are used by superadmins to manage platform-wide settings
+ */
+const PLATFORM_SETTINGS: Permission[] = [
+  PERMISSIONS.SETTINGS_GLOBAL,
+  PERMISSIONS.SETTINGS_SECURITY,
+  PERMISSIONS.SETTINGS_DB,
+];
+
+/**
+ * Tenant-level settings permissions
+ * These are used by tenant admins to manage their own tenant settings
+ */
+const TENANT_SETTINGS: Permission[] = [
+  TENANT_PERMISSIONS.SETTINGS_READ,
+  TENANT_PERMISSIONS.SETTINGS_UPDATE,
+];
+
+// ============================================================================
 // Permission Checking Functions
 // ============================================================================
 
@@ -311,10 +334,14 @@ export function getPermissionsForRole(role: string): Permission[] {
  * @returns true if it's a platform permission
  */
 export function isPlatformPermission(permission: Permission): boolean {
+  // Handle settings permissions explicitly
+  if (permission.startsWith('settings:')) {
+    return PLATFORM_SETTINGS.includes(permission);
+  }
+
   return permission.startsWith('tenant:') ||
          permission.startsWith('sys:') ||
-         permission === 'analytics:read' ||
-         permission.startsWith('settings:');
+         permission === 'analytics:read';
 }
 
 /**
@@ -324,12 +351,16 @@ export function isPlatformPermission(permission: Permission): boolean {
  * @returns true if it's a tenant permission
  */
 export function isTenantPermission(permission: Permission): boolean {
+  // Handle settings permissions explicitly
+  if (permission.startsWith('settings:')) {
+    return TENANT_SETTINGS.includes(permission);
+  }
+
   return permission.startsWith('job:') ||
          permission.startsWith('application:') ||
          permission.startsWith('pipeline:') ||
          permission.startsWith('member:') ||
          permission.startsWith('interview:') ||
          permission.startsWith('billing:') ||
-         permission.startsWith('integrations:') ||
-         (permission.startsWith('settings:') && permission !== 'settings:global' && permission !== 'settings:security' && permission !== 'settings:db');
+         permission.startsWith('integrations:');
 }

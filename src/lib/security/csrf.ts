@@ -195,8 +195,13 @@ export async function csrfFetch(url: string, options: RequestInit = {}): Promise
 export function validateApiRouteCsrf(req: Request): boolean {
   const method = req.method?.toUpperCase();
 
+  // Fail securely if method is undefined (malformed request)
+  if (!method) {
+    return false;
+  }
+
   // Only validate for state-changing methods
-  if (!method || !['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
     return true;
   }
 

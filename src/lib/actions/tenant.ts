@@ -1,7 +1,7 @@
 'use server';
 
 import { requireSuperadmin } from '@/lib/rbac/guard';
-import { tenantService } from '@/domain/tenants/service';
+import { tenantService, TenantApiError } from '@/domain/tenants/service';
 import type {
   CreateTenantRequest,
   CreateTenantResponse,
@@ -22,13 +22,14 @@ export type ActionResult<T> =
     };
 
 /**
- * Helper to safely extract status code from error
+ * Format error for ActionResult
+ * Extracts error message and code from various error types
  */
-function getErrorCode(error: unknown): string | undefined {
-  if (error instanceof Error && 'status' in error && typeof (error as { status: unknown }).status === 'number') {
-    return String((error as { status: number }).status);
+function formatError(error: unknown): { error: string; code?: string } {
+  if (error instanceof TenantApiError) {
+    return { error: error.message, code: error.code };
   }
-  return undefined;
+  return { error: error instanceof Error ? error.message : String(error) };
 }
 
 /**
@@ -47,11 +48,9 @@ export async function createTenantAction(
     };
   } catch (error) {
     console.error('Create tenant action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }
@@ -74,11 +73,9 @@ export async function listTenantsAction(
     };
   } catch (error) {
     console.error('❌ List tenants action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }
@@ -99,11 +96,9 @@ export async function getTenantStatusAction(
     };
   } catch (error) {
     console.error('Get tenant status action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }
@@ -124,11 +119,9 @@ export async function getTenantAction(
     };
   } catch (error) {
     console.error('Get tenant action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }
@@ -150,11 +143,9 @@ export async function updateTenantAction(
     };
   } catch (error) {
     console.error('Update tenant action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }
@@ -175,11 +166,9 @@ export async function deleteTenantAction(
     };
   } catch (error) {
     console.error('Delete tenant action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }
@@ -200,11 +189,9 @@ export async function retryTenantAction(
     };
   } catch (error) {
     console.error('Retry tenant action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }
@@ -229,11 +216,9 @@ export async function getSubscriptionAction(
     };
   } catch (error) {
     console.error('Get subscription action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }
@@ -254,11 +239,9 @@ export async function activateSubscriptionAction(
     };
   } catch (error) {
     console.error('Activate subscription action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }
@@ -279,11 +262,9 @@ export async function suspendSubscriptionAction(
     };
   } catch (error) {
     console.error('Suspend subscription action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }
@@ -304,11 +285,9 @@ export async function resumeSubscriptionAction(
     };
   } catch (error) {
     console.error('Resume subscription action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }
@@ -329,11 +308,9 @@ export async function cancelSubscriptionAction(
     };
   } catch (error) {
     console.error('Cancel subscription action failed:', error);
-
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
-      code: getErrorCode(error)
+      ...formatError(error)
     };
   }
 }

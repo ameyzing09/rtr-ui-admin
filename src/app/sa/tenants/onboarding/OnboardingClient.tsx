@@ -1,4 +1,4 @@
-'use client';;
+'use client';
 import { Clock, RefreshCw } from 'lucide-react';
 
 import Button from '@/components/atoms/Button';

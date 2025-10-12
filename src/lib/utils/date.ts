@@ -23,7 +23,7 @@ export function formatRelativeTime(date: Date | string): string {
     const dateObj = normalizeDate(date);
 
     // Check if date is valid
-    if (!dateObj || isNaN(dateObj.getTime())) {
+    if (isNaN(dateObj.getTime())) {
       console.error('Invalid date in formatRelativeTime:', date);
       return 'Invalid date';
     }
@@ -71,7 +71,7 @@ export function formatAbsoluteDate(date: Date | string): string {
     const dateObj = normalizeDate(date);
 
     // Check if date is valid
-    if (!dateObj || isNaN(dateObj.getTime())) {
+    if (isNaN(dateObj.getTime())) {
       return 'Invalid date';
     }
 
@@ -96,7 +96,7 @@ export function formatLongDate(date: Date | string): string {
     const dateObj = normalizeDate(date);
 
     // Check if date is valid
-    if (!dateObj || isNaN(dateObj.getTime())) {
+    if (isNaN(dateObj.getTime())) {
       return 'Invalid date';
     }
 
@@ -122,7 +122,7 @@ export function formatShortDate(date: Date | string): string {
     const dateObj = normalizeDate(date);
 
     // Check if date is valid
-    if (!dateObj || isNaN(dateObj.getTime())) {
+    if (isNaN(dateObj.getTime())) {
       return 'Invalid date';
     }
 

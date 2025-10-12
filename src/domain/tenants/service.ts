@@ -54,19 +54,6 @@ export class TenantService {
   }
 
   /**
-   * Get auth token from session cookie
-   * Note: In the current implementation, the session cookie stores the full AuthSession
-   * which includes the token field
-   */
-  private getAuthToken(): string {
-    // For now, we need to get the token from cookies
-    // This will be passed from the session in server actions
-    // The session structure includes: { token: string, user: AuthUser, ... }
-    // We'll accept it as a parameter instead
-    throw new Error('getAuthToken should not be called directly. Token should be passed from session.');
-  }
-
-  /**
    * Make a request to the backend API
    */
   private async request<T>(

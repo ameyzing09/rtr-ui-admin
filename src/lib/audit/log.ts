@@ -339,11 +339,16 @@ export function auditSettingsChange(
   tenantId?: string,
   changes?: { before?: Record<string, unknown>; after?: Record<string, unknown> }
 ): Promise<void> {
-  const action: AuditEventType = settingsType === 'tenant'
-    ? 'settings.tenant.update'
-    : settingsType === 'billing'
-    ? 'settings.billing.update'
-    : `settings.${settingsType}.update` as AuditEventType;
+  // Type-safe mapping without type assertion
+  const actionMap: Record<typeof settingsType, AuditEventType> = {
+    'global': 'settings.global.update',
+    'security': 'settings.security.update',
+    'db': 'settings.db.update',
+    'tenant': 'settings.tenant.update',
+    'billing': 'settings.billing.update',
+  };
+
+  const action = actionMap[settingsType];
 
   return audit(action, {
     actorId,
