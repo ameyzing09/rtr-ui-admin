@@ -28,9 +28,10 @@ export async function setSessionCookieAction(
     }
 
     // Set the session cookie with httpOnly for security
+    // httpOnly: true prevents XSS attacks by making cookie inaccessible to JavaScript
     const cookieStore = await cookies();
     cookieStore.set('rtr-admin-session', JSON.stringify(session), {
-      httpOnly: false, // Set to false so client can read for now; change to true for production
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       expires: new Date(session.expiresAt),

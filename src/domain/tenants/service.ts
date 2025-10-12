@@ -46,11 +46,16 @@ export class TenantService {
   private readonly baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8082';
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-    if (!this.baseUrl) {
-      throw new Error('NEXT_PUBLIC_API_BASE_URL environment variable is not set');
+    if (!apiBaseUrl) {
+      throw new Error(
+        'NEXT_PUBLIC_API_BASE_URL environment variable is required. ' +
+        'Set it in .env.local for development or configure it in your deployment environment.'
+      );
     }
+
+    this.baseUrl = apiBaseUrl;
   }
 
   /**

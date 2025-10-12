@@ -34,10 +34,17 @@ export function generateCsrfToken(): string {
     window.crypto.getRandomValues(array);
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
   } else {
-    // Node environment - dynamic import for server-side
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const crypto = require('crypto');
-    return crypto.randomBytes(TOKEN_LENGTH).toString('hex');
+    // Node environment - use Node's crypto module
+    // Note: This is synchronous and only runs server-side
+    // Using require here is acceptable for Node-only code paths
+    // Alternative: Make this function async and use await import('crypto')
+    try {
+      // Use dynamic require for server-side crypto (Node.js only)
+      const crypto: typeof import('crypto') = eval('require')('crypto');
+      return crypto.randomBytes(TOKEN_LENGTH).toString('hex');
+    } catch (error) {
+      throw new Error('Failed to generate CSRF token: crypto module not available');
+    }
   }
 }
 

@@ -56,9 +56,52 @@ export async function getSession(): Promise<UserSession | null> {
       return null;
     }
 
-    // TODO: Implement JWT validation here
-    // For now, parse the JSON from cookie (NOT SECURE - replace with JWT verification)
-    const sessionData = JSON.parse(sessionCookie.value);
+    // TODO: CRITICAL SECURITY - Implement JWT validation
+    // Current implementation directly parses JSON without cryptographic verification.
+    // This allows clients to tamper with session data and escalate privileges.
+    //
+    // REQUIRED IMPLEMENTATION:
+    // 1. Install JWT library: `npm install jsonwebtoken @types/jsonwebtoken`
+    // 2. Get JWT secret from env: process.env.JWT_SECRET
+    // 3. Verify JWT signature:
+    //    ```typescript
+    //    import jwt from 'jsonwebtoken';
+    //    const secret = process.env.JWT_SECRET;
+    //    if (!secret) throw new Error('JWT_SECRET not configured');
+    //
+    //    interface JWTPayload {
+    //      user: {
+    //        id: string;
+    //        tenantId?: string;
+    //        role: string;
+    //        email: string;
+    //        name: string;
+    //        permissions?: Permission[];
+    //      };
+    //      token: string;
+    //      expiresAt: string;
+    //      permissions?: Permission[];
+    //    }
+    //
+    //    const sessionData = jwt.verify(sessionCookie.value, secret) as JWTPayload;
+    //    ```
+    // 4. Handle jwt.verify() errors (JsonWebTokenError, TokenExpiredError, etc.)
+    //
+    // Until implemented, this is a CRITICAL security vulnerability.
+    interface SessionCookieData {
+      user: {
+        id: string;
+        tenantId?: string;
+        role: string;
+        email: string;
+        name: string;
+        permissions?: Permission[];
+      };
+      token: string;
+      permissions?: Permission[];
+    }
+
+    const sessionData: SessionCookieData = JSON.parse(sessionCookie.value);
 
     // Validate required fields
     if (!sessionData.user || !sessionData.user.role) {
@@ -66,7 +109,7 @@ export async function getSession(): Promise<UserSession | null> {
     }
 
     // Get permissions from session or derive from role
-    const permissions = sessionData.permissions || sessionData.user?.permissions || [];
+    const permissions: Permission[] = sessionData.permissions || sessionData.user?.permissions || [];
 
     return {
       userId: sessionData.user.id,

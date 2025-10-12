@@ -96,6 +96,23 @@ function getSession(request: NextRequest): SessionData | null {
       return null;
     }
 
+    // TODO: CRITICAL SECURITY - Implement JWT validation
+    // Current implementation directly parses JSON without cryptographic verification.
+    // This allows clients to tamper with session data (role, permissions, userId).
+    //
+    // REQUIRED IMPLEMENTATION:
+    // 1. Install JWT library: `npm install jsonwebtoken @types/jsonwebtoken`
+    // 2. Get JWT secret from env: process.env.JWT_SECRET (must be set in production)
+    // 3. Verify and decode JWT:
+    //    ```typescript
+    //    import jwt from 'jsonwebtoken';
+    //    const secret = process.env.JWT_SECRET;
+    //    if (!secret) throw new Error('JWT_SECRET not configured');
+    //    const sessionData = jwt.verify(sessionCookie.value, secret) as SessionData;
+    //    ```
+    // 4. Handle verification errors (expired, invalid signature, etc.)
+    //
+    // Until implemented, this is a CRITICAL security vulnerability.
     const sessionData = JSON.parse(sessionCookie.value) as SessionData;
 
     // Validate session has required fields

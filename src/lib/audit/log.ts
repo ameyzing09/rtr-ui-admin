@@ -207,13 +207,37 @@ export async function audit(
 
   // Send to backend (fire and forget - don't block on audit logging)
   try {
-    // TODO: Replace with actual API call to your backend
-    // await fetch(AUDIT_ENDPOINT, {
+    // TODO: COMPLIANCE REQUIREMENT - Implement audit event persistence
+    //
+    // Current implementation queues events in memory but never persists them.
+    // This violates audit logging requirements for security and compliance.
+    //
+    // REQUIRED BACKEND IMPLEMENTATION:
+    // 1. Create audit logging API endpoint (POST /api/audit/events)
+    // 2. Endpoint should accept AuditEvent payload
+    // 3. Store events in persistent storage (database, log aggregation service)
+    // 4. Return 201 Created on success, 500 on failure
+    //
+    // FRONTEND IMPLEMENTATION:
+    // Uncomment and configure the fetch call below:
+    //
+    // const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${AUDIT_ENDPOINT}`, {
     //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //     'Authorization': `Bearer ${authToken}`, // Get from session
+    //   },
     //   body: JSON.stringify(event),
-    //   credentials: 'include',
     // });
+    //
+    // if (!response.ok) {
+    //   throw new Error(`Audit API error: ${response.status}`);
+    // }
+    //
+    // ALTERNATIVE: Use batch endpoint for better performance
+    // - See flushAuditQueue() below for batch implementation
+    //
+    // Until implemented, audit events are lost on page refresh/navigation.
 
     // For now, just queue it (you can implement a queue/batch system)
     queueAuditEvent(event);
@@ -253,13 +277,30 @@ async function flushAuditQueue(): Promise<void> {
   }
 
   try {
-    // TODO: Replace with actual batch API call
-    // await fetch(AUDIT_ENDPOINT + '/batch', {
+    // TODO: COMPLIANCE REQUIREMENT - Implement batch audit event persistence
+    //
+    // BACKEND ENDPOINT: POST /api/audit/events/batch
+    // Request body: { events: AuditEvent[] }
+    // Response: 201 Created with { success: true, count: number }
+    //
+    // IMPLEMENTATION:
+    // const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}${AUDIT_ENDPOINT}/batch`, {
     //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //     'Authorization': `Bearer ${authToken}`, // Get from session
+    //   },
     //   body: JSON.stringify({ events }),
-    //   credentials: 'include',
     // });
+    //
+    // if (!response.ok) {
+    //   throw new Error(`Audit batch API error: ${response.status}`);
+    // }
+    //
+    // RETRY STRATEGY:
+    // - On failure, events are put back in queue (already implemented below)
+    // - Consider exponential backoff for retry attempts
+    // - Consider maximum retry limit to prevent memory issues
 
     if (LOG_TO_CONSOLE) {
       console.log(`[AUDIT] Flushed ${events.length} events`);

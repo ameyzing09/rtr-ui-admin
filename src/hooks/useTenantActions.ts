@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect, useCallback } from 'react';
+import { useState, useTransition, useEffect, useCallback, useMemo } from 'react';
 import {
   listTenantsAction,
   createTenantAction,
@@ -35,6 +35,15 @@ export function useTenantList(params: TenantListParams = { limit: 50 }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // Create a stable serialized version of params to prevent infinite loops
+  // useMemo ensures this only changes when param values actually change
+  const paramsKey = useMemo(() => JSON.stringify(params), [
+    params.limit,
+    params.status,
+    params.plan,
+    params.search,
+  ]);
+
   const fetchTenants = useCallback(async () => {
     setError(null);
     startTransition(async () => {
@@ -45,7 +54,9 @@ export function useTenantList(params: TenantListParams = { limit: 50 }) {
         setError(result.error);
       }
     });
-  }, [JSON.stringify(params)]);
+  }, [paramsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Note: We use paramsKey instead of params to avoid infinite loops
+  // params is used in the function body, but paramsKey tracks changes
 
   useEffect(() => {
     fetchTenants();
