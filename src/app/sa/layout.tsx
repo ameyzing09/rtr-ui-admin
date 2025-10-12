@@ -1,48 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardShell from '@/components/layout/DashboardShell';
-import type { PlatformBranding } from '@/lib/auth/types';
-
-interface SessionData {
-  user?: { role: string };
-  expiresAt: string;
-  branding?: PlatformBranding;
-}
-
-/**
- * Check if user has valid superadmin session and return session data
- */
-function getSuperadminSession(): SessionData | null {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    // Check for stored session
-    const sessionData = localStorage.getItem('rtr-admin-session');
-    if (!sessionData) return null;
-
-    const session = JSON.parse(sessionData) as SessionData;
-
-    // Check if session has expired
-    const expiresAt = new Date(session.expiresAt);
-    if (expiresAt.getTime() <= Date.now()) {
-      // Session expired, clear it
-      localStorage.removeItem('rtr-admin-session');
-      return null;
-    }
-
-    // Check if user is superadmin
-    if (session.user?.role !== 'SUPERADMIN') {
-      return null;
-    }
-
-    return session;
-  } catch (error) {
-    console.error('Error checking superadmin auth:', error);
-    return null;
-  }
-}
+import { useAuth } from '@/components/auth/AuthProvider';
 
 export default function SuperadminLayout({
   children,
@@ -50,27 +11,51 @@ export default function SuperadminLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [sessionData, setSessionData] = useState<SessionData | null>(null);
+  const { session, isAuthenticated, isLoading } = useAuth();
 
   useEffect(() => {
-    const session = getSuperadminSession();
+    // Wait for auth to initialize
+    if (isLoading) return;
 
-    if (!session) {
+    // Check if user is authenticated and is a superadmin
+    if (!isAuthenticated || !session?.user) {
       // Store current path for redirect after login
-      sessionStorage.setItem('redirect_after_login', window.location.pathname);
-      router.push('/sa/login');
-    } else {
-      setSessionData(session);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('redirect_after_login', window.location.pathname);
+      }
+      router.push('/login');
+      return;
     }
-  }, [router]);
 
-  // Use branding from session, fallback to defaults
-  const branding = sessionData?.branding;
+    // If authenticated but not superadmin, redirect to unauthorized
+    if (session.user.role !== 'SUPERADMIN') {
+      router.push('/unauthorized?reason=role');
+    }
+  }, [isAuthenticated, isLoading, router, session]);
+
+  // Use branding from AuthProvider session
+  const branding = session?.branding;
   const platformData = {
     name: branding?.navbar_title || branding?.name || 'RTR Admin Portal',
     logo: branding?.logo_url,
     environment: process.env.NODE_ENV === 'development' ? 'dev' as const : undefined,
   };
+
+  // Show loading state while auth is initializing
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--app-bg)] text-[var(--app-fg)]">
+        <div className="glass-pill px-8 py-6 text-center shadow-lg">
+          <p className="text-sm text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated (redirect will happen via useEffect)
+  if (!isAuthenticated || !session?.user || session.user.role !== 'SUPERADMIN') {
+    return null;
+  }
 
   return (
     <DashboardShell

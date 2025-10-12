@@ -1,17 +1,14 @@
 'use client';
 
 import { useMemo } from 'react';
-import { 
-  getSuperadminNavItems,
-  getPlatformAdminNavItems,
-  getHRNavItems,
-  getInterviewerNavItems,
-  getCandidateNavItems,
+import {
+  getNavItemsForRole,
   type UserRole,
   type NavLinkConfig,
   type NavSectionConfig
 } from '@/config/navigationConfig';
-import type { Permission } from '@/lib/auth/types';
+import type { Permission } from '@/lib/rbac/permissions';
+import { getPermissionsForRole } from '@/lib/rbac/permissions';
 
 interface UseNavigationProps {
   userRole: UserRole;
@@ -23,28 +20,18 @@ interface NavigationItems {
   sidebarSections: NavSectionConfig[];
 }
 
+/**
+ * Get navigation items based on user role and permissions
+ * Uses permission-based filtering - only shows items the user has access to
+ */
 export function useNavigation({ userRole, userPermissions = [] }: UseNavigationProps): NavigationItems {
   return useMemo(() => {
-    switch (userRole) {
-      case 'superadmin':
-        return getSuperadminNavItems();
-      
-      case 'admin':
-        return getPlatformAdminNavItems(userPermissions);
-      
-      case 'hr':
-        return getHRNavItems(userPermissions);
-      
-      case 'interviewer':
-        return getInterviewerNavItems(userPermissions);
-      
-      case 'candidate':
-        return getCandidateNavItems();
-      
-      default:
-        // Fallback to candidate view for unknown roles
-        return getCandidateNavItems();
-    }
+    // If no permissions provided, derive from role for backward compatibility
+    const effectivePermissions = userPermissions.length > 0
+      ? userPermissions
+      : getPermissionsForRole(userRole.toUpperCase());
+
+    return getNavItemsForRole(userRole, effectivePermissions);
   }, [userRole, userPermissions]);
 }
 
@@ -55,18 +42,16 @@ export function useDashboardUrl(userRole: UserRole): string {
   return useMemo(() => {
     switch (userRole) {
       case 'superadmin':
-        return '/sa/dashboard';
-      
       case 'admin':
       case 'hr':
         return '/dashboard';
-      
+
       case 'interviewer':
         return '/dashboard/interviews';
-      
+
       case 'candidate':
         return '/dashboard/candidate/applications';
-      
+
       default:
         return '/dashboard';
     }

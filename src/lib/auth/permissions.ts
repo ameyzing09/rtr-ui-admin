@@ -1,5 +1,8 @@
 import type { Permission, UserRole } from './types';
 
+// Re-export Permission for convenience
+export type { Permission };
+
 export const rolePermissions: Record<UserRole, Permission[]> = {
   SUPERADMIN: [
     'platform:overview:view',

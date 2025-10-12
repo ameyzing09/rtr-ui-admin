@@ -67,6 +67,7 @@ export default function Sidebar({
         {!collapsed && (
           <div className="flex items-center gap-3">
             {tenantLogo ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={tenantLogo}
                 alt={`${tenantName} logo`}

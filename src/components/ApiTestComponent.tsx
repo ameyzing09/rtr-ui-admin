@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { authClient } from '@/lib/api/authClient';
-import { tenantClient } from '@/lib/api/tenantClient';
 
 export function ApiTestComponent() {
   const [loading, setLoading] = useState(false);
@@ -67,28 +66,8 @@ export function ApiTestComponent() {
     setLoading(false);
   };
 
-  const testTenantList = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      addResult('🔄 Testing tenant list');
-      
-      const tenants = await tenantClient.listTenants({
-        limit: 10,
-      });
-      
-      addResult('✅ Tenant list successful');
-      addResult(`📊 Found ${tenants.tenants?.length || 0} tenants`);
-      
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-      addResult(`❌ Tenant list failed: ${errorMsg}`);
-      setError(errorMsg);
-    }
-    
-    setLoading(false);
-  };
+  // Tenant list test removed - tenantClient replaced with Server Actions
+  // Use the actual tenant pages for testing tenant operations
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -109,14 +88,6 @@ export function ApiTestComponent() {
           className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
         >
           {loading ? '⏳ Testing...' : '🔐 Test Superadmin Login'}
-        </button>
-        
-        <button
-          onClick={testTenantList}
-          disabled={loading}
-          className="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50"
-        >
-          {loading ? '⏳ Testing...' : '📋 Test Tenant List'}
         </button>
       </div>
 

@@ -1,3 +1,8 @@
+import type { Permission } from '@/lib/rbac/permissions';
+
+// Re-export Permission for convenience
+export type { Permission };
+
 export type UserRole = 'SUPERADMIN' | 'ADMIN' | 'HR' | 'INTERVIEWER' | 'CANDIDATE';
 
 export interface AuthUser {
@@ -7,6 +12,7 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   mustChangePassword: boolean;
+  permissions: Permission[];
 }
 
 export interface PlatformBranding {
@@ -39,15 +45,4 @@ export interface LoginCredentials {
   audience?: LoginAudience;
 }
 
-export type Permission =
-  | 'platform:overview:view'
-  | 'platform:tenants:manage'
-  | 'platform:users:manage'
-  | 'platform:billing:manage'
-  | 'platform:catalog:manage'
-  | 'platform:integrations:manage'
-  | 'platform:health:view'
-  | 'platform:observability:view'
-  | 'platform:experiments:view'
-  | 'platform:ops:view'
-  | 'platform:settings:manage';
+// Permission type now imported from @/lib/rbac/permissions

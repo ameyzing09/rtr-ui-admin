@@ -21,7 +21,8 @@ export class GlobalErrorBoundary extends React.Component<GlobalErrorBoundaryProp
     return { error: ErrorMapper.mapError(error) };
   }
 
-  componentDidCatch(error: unknown, info: unknown) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  componentDidCatch(error: unknown, _info: React.ErrorInfo) {
     // Log error details
     const mapped = ErrorMapper.mapError(error);
     ErrorMapper.logError(mapped, 'GlobalErrorBoundary');

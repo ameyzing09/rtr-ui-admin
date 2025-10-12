@@ -1,15 +1,9 @@
 import { z } from 'zod';
 import { fetcher } from './fetcher';
 import { env } from '@/config/env';
-import type {
-  AuthSession,
-  AuthUser,
-  LoginCredentials,
-  LoginAudience,
-  Permission,
-  PlatformBranding,
-} from '@/lib/auth/types';
-import { rolePermissions } from '@/lib/auth/permissions';
+import type { AuthSession, AuthUser, LoginCredentials, LoginAudience } from '@/lib/auth/types';
+import type { Permission } from '@/lib/rbac/permissions';
+import { audit } from '@/lib/audit/log';
 
 const apiUserSchema = z.object({
   ID: z.string(),
@@ -18,6 +12,7 @@ const apiUserSchema = z.object({
   Email: z.string().email(),
   Role: z.enum(['SUPERADMIN', 'ADMIN', 'HR', 'INTERVIEWER', 'CANDIDATE']),
   MustChangePassword: z.boolean().default(false),
+  Permissions: z.array(z.string()).default([]), // Backend sends permissions array
 });
 
 const platformBrandingSchema = z.object({
@@ -47,6 +42,7 @@ function mapUser(user: LoginApiResponse['User']): AuthUser {
     email: user.Email,
     role: user.Role,
     mustChangePassword: user.MustChangePassword ?? false,
+    permissions: (user.Permissions || []) as Permission[], // Use permissions from backend JWT
   };
 }
 
@@ -84,14 +80,30 @@ export class AuthClient {
 
     console.log('Login successful, processing response');
 
-    // Store the token for future API calls
+    // Store the token for future API calls (sessionStorage for better XSS protection)
     if (typeof window !== 'undefined') {
-      localStorage.setItem('auth_token', response.Token);
-      localStorage.setItem('authToken', response.Token); // Backup key
+      sessionStorage.setItem('auth_token', response.Token);
+      sessionStorage.setItem('authToken', response.Token); // Backup key
     }
 
     const session = mapSession(response);
-    
+
+    // Audit successful login
+    audit('auth.login', {
+      actorId: session.user.id,
+      actorEmail: session.user.email,
+      actorRole: session.user.role,
+      tenantId: session.user.tenantId,
+      status: 'success',
+      details: {
+        audience,
+        email: session.user.email,
+      },
+    }).catch(error => {
+      // Don't block login if audit logging fails
+      console.error('Failed to audit login:', error);
+    });
+
     return session;
   }
 
@@ -113,10 +125,8 @@ export class AuthClient {
       console.error('Logout failed:', error);
       // Even if logout fails on server, we should clear local state
     } finally {
-      // Always clear tokens from local storage
+      // Always clear tokens from session storage
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('authToken');
         sessionStorage.removeItem('auth_token');
         sessionStorage.removeItem('authToken');
       }
@@ -131,12 +141,9 @@ export const authHelpers = {
     if (!permission) {
       return true;
     }
-    
-    // Get the user's role permissions
-    const userPermissions = rolePermissions[user.role] || [];
-    
-    // Check if the user has the specific permission
-    return userPermissions.includes(permission);
+
+    // Use permissions from backend JWT (already in user.permissions)
+    return user.permissions.includes(permission);
   },
 
   hasRole(user: AuthUser, role: AuthUser['role']): boolean {

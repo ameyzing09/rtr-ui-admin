@@ -20,11 +20,12 @@ import { SkeletonTable } from '@/components/ui/Skeleton';
 import { useToastMessages } from '@/components/ui/ToastProvider';
 import DeleteTenantModal from '@/components/tenants/DeleteTenantModal';
 
-import { 
-  type TenantListItem, 
+import {
+  type TenantListItem,
   type TenantStatus,
   type Plan
-} from '@/lib/schemas/tenant';
+} from '@/domain/tenants/schemas';
+import { formatRelativeTime } from '@/lib/utils/date';
 
 export interface TenantTableProps {
   tenants: TenantListItem[];
@@ -262,15 +263,6 @@ function getPlanColor(plan: Plan): string {
   }
 }
 
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}
 
 export default function TenantTable({
   tenants,
@@ -389,7 +381,7 @@ export default function TenantTable({
                   </td>
                   
                   <td className="py-4 px-6 text-sm text-[var(--muted-foreground)]">
-                    {formatDate(tenant.created_at)}
+                    {formatRelativeTime(tenant.created_at)}
                   </td>
                   
                   <td className="py-4 px-6 text-center">

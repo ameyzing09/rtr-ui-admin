@@ -33,12 +33,6 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = React.useState(false);
   const [formError, setFormError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    if (isAuthenticated) {
-      router.replace('/dashboard');
-    }
-  }, [isAuthenticated, router]);
-
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting) {
@@ -49,6 +43,7 @@ export default function LoginPage() {
 
     try {
       await login({ email, password, rememberMe, audience });
+      // All users redirect to /dashboard, which shows role-appropriate content
       router.replace('/dashboard');
     } catch (cause) {
       if (cause instanceof Error && cause.message) {

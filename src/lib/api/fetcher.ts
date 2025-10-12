@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { env, getTenantHeaders, isLocal } from '@/config/env';
+import { getOrCreateCsrfToken, CSRF_CONFIG } from '@/lib/security/csrf';
 
 // API Response base + schemas
 export const baseApiEnvelopeSchema = z.object({
@@ -95,12 +96,12 @@ class Fetcher {
     responseSchema?: z.ZodType<T>
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     // Generate fresh tenant headers for each request in local environment
     const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
-    
+
     const requestHeaders = { ...this.defaultHeaders };
-    
+
     if (isLocalEnv) {
       const tenantHeaders = await getTenantHeaders();
       Object.entries(tenantHeaders).forEach(([key, value]) => {
@@ -109,7 +110,19 @@ class Fetcher {
         }
       });
     }
-    
+
+    // Add CSRF token for state-changing requests (only in browser)
+    const method = options.method?.toUpperCase() || 'GET';
+    if (typeof window !== 'undefined' && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      try {
+        const csrfToken = getOrCreateCsrfToken();
+        requestHeaders[CSRF_CONFIG.HEADER_NAME] = csrfToken;
+      } catch (error) {
+        console.warn('Failed to get CSRF token:', error);
+        // Continue without CSRF token rather than failing the request
+      }
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
     try {
@@ -144,6 +157,7 @@ class Fetcher {
       }
 
       // Check if response has content before trying to parse JSON
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const contentType = response.headers.get('content-type');
       const contentLength = response.headers.get('content-length');
 
@@ -164,7 +178,7 @@ class Fetcher {
         }
       } catch (parseError) {
         // If JSON parsing fails, return empty object
-        console.warn('Failed to parse response as JSON, returning empty object');
+        console.warn('Failed to parse response as JSON, returning empty object', parseError);
         data = {} as T;
       }
 

@@ -235,13 +235,13 @@ export class HttpClient {
   }
 
   /**
-   * Gets auth token from storage
+   * Gets auth token from storage (sessionStorage first, localStorage as legacy fallback)
    */
   private static getAuthToken(): string | null {
     if (typeof window === 'undefined') return null;
-    
+
     try {
-      return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+      return sessionStorage.getItem('auth_token') || localStorage.getItem('auth_token');
     } catch {
       return null;
     }

@@ -11,16 +11,17 @@ import {
 import type { ReactNode } from 'react';
 import { authClient } from '@/lib/api/authClient';
 import { fetcher } from '@/lib/api/fetcher';
-import { rolePermissions } from '@/lib/auth/permissions';
 import { getTenantHeaders } from '@/config/env';
 import type {
   AuthSession,
   AuthUser,
   LoginCredentials,
-  Permission,
   StoredAuthSession,
   UserRole,
 } from '@/lib/auth/types';
+import type { Permission } from '@/lib/rbac/permissions';
+import { audit } from '@/lib/audit/log';
+import { setSessionCookieAction, clearSessionCookieAction } from '@/lib/actions/auth';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -50,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const stored = window.localStorage.getItem(STORAGE_KEY);
+      const stored = window.sessionStorage.getItem(STORAGE_KEY);
       if (!stored) {
         setIsLoading(false);
         return;
@@ -61,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const expiresAt = new Date(parsed.expiresAt);
 
         if (Number.isNaN(expiresAt.getTime()) || expiresAt.getTime() <= Date.now()) {
-          window.localStorage.removeItem(STORAGE_KEY);
+          window.sessionStorage.removeItem(STORAGE_KEY);
           setIsLoading(false);
           return;
         }
@@ -75,10 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setSession(normalized);
         fetcher.setAuthToken(normalized.token);
-        
+
         // In local environment, use environment tenant headers if available, otherwise use user's tenant ID
         const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
-        
+
         if (isLocalEnv) {
           const tenantHeaders = await getTenantHeaders();
           if (Object.keys(tenantHeaders).length > 0) {
@@ -100,8 +101,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Use user's tenant ID
           fetcher.setTenantId(normalized.user.tenantId);
         }
+
+        // Set session cookie for middleware authentication (using Server Action)
+        try {
+          await setSessionCookieAction(parsed);
+        } catch (error) {
+          console.error('Failed to set session cookie on init:', error);
+          // Don't fail initialization if cookie setting fails
+        }
       } catch {
-        window.localStorage.removeItem(STORAGE_KEY);
+        window.sessionStorage.removeItem(STORAGE_KEY);
       } finally {
         setIsLoading(false);
       }
@@ -118,10 +127,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const nextSession = await authClient.login(credentials);
       setSession(nextSession);
       fetcher.setAuthToken(nextSession.token);
-      
+
       // In local environment, use environment tenant headers if available, otherwise use user's tenant ID
       const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
-      
+
       if (isLocalEnv) {
         const tenantHeaders = await getTenantHeaders();
         console.log('Using tenant headers:', tenantHeaders);
@@ -146,16 +155,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (typeof window !== 'undefined') {
-        if (credentials.rememberMe) {
-          const persist: StoredAuthSession = {
-            token: nextSession.token,
-            expiresAt: nextSession.expiresAt.toISOString(),
-            user: nextSession.user,
-            branding: nextSession.branding,
-          };
-          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persist));
-        } else {
-          window.localStorage.removeItem(STORAGE_KEY);
+        const persist: StoredAuthSession = {
+          token: nextSession.token,
+          expiresAt: nextSession.expiresAt.toISOString(),
+          user: nextSession.user,
+          branding: nextSession.branding,
+        };
+
+        // Always store in sessionStorage for client-side access
+        // (rememberMe only affects cookie persistence, not sessionStorage)
+        window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(persist));
+
+        // Set session cookie for middleware authentication (using Server Action)
+        try {
+          await setSessionCookieAction(persist);
+        } catch (error) {
+          console.error('Failed to set session cookie:', error);
+          // Don't fail login if cookie setting fails
         }
       }
     } catch (cause) {
@@ -194,6 +210,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Call backend logout API
         await authClient.logout({ audience, tenantId });
+
+        // Audit successful logout
+        audit('auth.logout', {
+          actorId: session.user.id,
+          actorEmail: session.user.email,
+          actorRole: session.user.role,
+          tenantId: session.user.tenantId,
+          status: 'success',
+          details: {
+            audience,
+          },
+        }).catch(error => {
+          console.error('Failed to audit logout:', error);
+        });
       }
     } catch (error) {
       console.error('Logout API call failed:', error);
@@ -206,18 +236,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fetcher.removeTenantId();
 
       if (typeof window !== 'undefined') {
-        window.localStorage.removeItem(STORAGE_KEY);
+        window.sessionStorage.removeItem(STORAGE_KEY);
+
+        // Clear session cookie (using Server Action)
+        try {
+          await clearSessionCookieAction();
+        } catch (error) {
+          console.error('Failed to clear session cookie:', error);
+          // Don't fail logout if cookie clearing fails
+        }
       }
     }
   }, [session]);
 
   const role = session?.user.role ?? null;
   const permissions = useMemo<Permission[]>(() => {
-    if (!role) {
-      return [];
-    }
-    return rolePermissions[role] ?? [];
-  }, [role]);
+    // Use permissions from backend JWT (already in session.user.permissions)
+    return session?.user.permissions ?? [];
+  }, [session?.user.permissions]);
 
   const value = useMemo<AuthContextValue>(() => ({
     user: session?.user ?? null,

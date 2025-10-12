@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertTriangle, Trash2 } from 'lucide-react';
 
 import Button from '@/components/atoms/Button';
-import { type TenantListItem } from '@/lib/schemas/tenant';
+import { type TenantListItem } from '@/domain/tenants/schemas';
 
 export interface DeleteTenantModalProps {
   tenant: TenantListItem | null;
