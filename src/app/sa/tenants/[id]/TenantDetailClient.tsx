@@ -395,7 +395,7 @@ function StatusTab({ tenantId }: StatusTabProps) {
         </div>
 
         <div className="space-y-4">
-          {(status.timeline || []).map((step, index) => (
+          {status.timeline.map((step, index) => (
             <div key={index} className="flex items-center gap-4">
               {getStepIcon(step.status)}
               <div className="flex-1">
