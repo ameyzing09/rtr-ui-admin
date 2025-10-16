@@ -33,8 +33,8 @@ const loginResponseSchema = z.object({
   Token: z.string(),
   ExpiresAt: z.string(),
   User: apiUserSchema,
-  TenantBranding: brandingSchema,
-  PlatformBranding: brandingSchema,
+  TenantBranding: brandingSchema.optional(),
+  PlatformBranding: brandingSchema.optional(),
 });
 
 type LoginApiResponse = z.infer<typeof loginResponseSchema>;
