@@ -15,6 +15,9 @@ export interface AuthUser {
   permissions: Permission[];
 }
 
+// Branding information returned by backend
+// - TenantBranding for tenant user logins
+// - PlatformBranding for superadmin logins
 export interface PlatformBranding {
   name: string;
   logo_url?: string;

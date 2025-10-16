@@ -9,6 +9,10 @@ import { ThemeToggle } from '@/components/theme';
 import MobileDrawer from './MobileDrawer';
 import Image from 'next/image';
 import { useAuth } from '../auth';
+import SearchCommand from './SearchCommand';
+import NotificationBell from './NotificationBell';
+import SectionTabs from './SectionTabs';
+import { getSectionTabs } from '@/config/sectionTabs';
 
 export type NavItem = {
   label: string;
@@ -18,18 +22,20 @@ export type NavItem = {
 };
 
 export interface NavbarProps {
-  navItems: NavItem[];
+  navItems: NavItem[]; // Legacy - now unused (kept for compatibility)
   tenantName?: string;
   tenantLogo?: string;
   environment?: 'dev' | 'staging' | 'prod';
+  showSectionTabs?: boolean;
   onMobileMenuToggle?: (isOpen: boolean) => void;
 }
 
 export default function Navbar({
   navItems,
-  tenantName = 'Your SaaS',
+  tenantName = 'Dashboard',
   tenantLogo,
   environment,
+  showSectionTabs = true,
   onMobileMenuToggle,
 }: NavbarProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -38,6 +44,9 @@ export default function Navbar({
   const userMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const { logout } = useAuth();
+
+  // Get section tabs based on current route
+  const sectionTabs = getSectionTabs(pathname);
 
   const handleSignOut = useCallback(async () => {
     setIsUserMenuOpen(false);
@@ -72,14 +81,6 @@ export default function Navbar({
     const newState = !isMobileMenuOpen;
     setIsMobileMenuOpen(newState);
     onMobileMenuToggle?.(newState);
-  };
-
-  // Check if link is active
-  const isLinkActive = (item: NavItem): boolean => {
-    if (item.match === 'exact') {
-      return pathname === item.href;
-    }
-    return pathname.startsWith(item.href);
   };
 
   // Environment badge colors
@@ -124,31 +125,17 @@ export default function Navbar({
               </span>
             </div>
 
-            {/* Center: Navigation Links */}
-            <div className="flex items-center justify-center gap-1 flex-1 max-w-md">
-              {navItems.map((item) => {
-                const isActive = isLinkActive(item);
-                const Icon = item.icon;
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`
-                      flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
-                      transition-smooth focus-ring nav-link-hover
-                      ${isActive ? 'nav-link-active' : 'text-gray-700'}
-                    `}
-                  >
-                    {Icon && <Icon className="w-4 h-4" />}
-                    <span className="hidden sm:block">{item.label}</span>
-                  </Link>
-                );
-              })}
+            {/* Center: Section Tabs (contextual to current route) */}
+            <div className="flex items-center justify-center gap-1 flex-1 max-w-3xl">
+              {showSectionTabs && sectionTabs.length > 0 && (
+                <SectionTabs tabs={sectionTabs} />
+              )}
             </div>
 
-            {/* Right: Theme Toggle + Environment Badge + User Menu */}
+            {/* Right: Search + Notifications + Theme + Environment + User Menu */}
             <div className="flex items-center gap-2 flex-shrink-0">
+              <SearchCommand variant="navbar" />
+              <NotificationBell />
               <ThemeToggle variant="pill" />
               {/* Environment Badge */}
               {environment && (

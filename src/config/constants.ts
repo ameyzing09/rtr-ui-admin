@@ -104,7 +104,7 @@ export const SUCCESS_MESSAGES = {
 
 // Default values for forms and components
 export const DEFAULT_VALUES = {
-  TENANT_NAME: 'Acme Corp',
+  TENANT_NAME: 'Dashboard', // Generic fallback, backend should provide actual branding
   USER_NAME: 'John Doe',
   USER_EMAIL: 'john.doe@example.com',
   USER_ROLE: 'Administrator',

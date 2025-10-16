@@ -15,7 +15,11 @@ const apiUserSchema = z.object({
   Permissions: z.array(z.string()).default([]), // Backend sends permissions array
 });
 
-const platformBrandingSchema = z.object({
+// Branding schema for both tenant and platform branding
+// Backend returns:
+// - TenantBranding for tenant user logins
+// - PlatformBranding for superadmin logins
+const brandingSchema = z.object({
   name: z.string(),
   logo_url: z.string().optional(),
   primary_color: z.string().optional(),
@@ -29,7 +33,8 @@ const loginResponseSchema = z.object({
   Token: z.string(),
   ExpiresAt: z.string(),
   User: apiUserSchema,
-  PlatformBranding: platformBrandingSchema,
+  TenantBranding: brandingSchema,
+  PlatformBranding: brandingSchema,
 });
 
 type LoginApiResponse = z.infer<typeof loginResponseSchema>;
@@ -47,11 +52,14 @@ function mapUser(user: LoginApiResponse['User']): AuthUser {
 }
 
 function mapSession(payload: LoginApiResponse): AuthSession {
+  // Use TenantBranding for tenant users, PlatformBranding for superadmins
+  const branding = payload.TenantBranding || payload.PlatformBranding;
+
   return {
     token: payload.Token,
     expiresAt: new Date(payload.ExpiresAt),
     user: mapUser(payload.User),
-    branding: payload.PlatformBranding,
+    branding,
   };
 }
 
@@ -113,12 +121,8 @@ export class AuthClient {
     console.log(`Attempting logout to ${this.baseUrl}${endpoint}`);
 
     try {
-      if (options.audience === 'platform') {
-        fetcher.removeTenantId();
-      } else if (options.tenantId) {
-        fetcher.setTenantId(options.tenantId);
-      }
-
+      // Tenant context is automatically derived from JWT by backend
+      // No need to set/remove tenant headers
       await fetcher.post(endpoint);
       console.log('Logout successful');
     } catch (error) {

@@ -38,6 +38,13 @@ export class ForbiddenError extends Error {
   }
 }
 
+export class TenantContextError extends Error {
+  constructor(message: string, public attemptedTenantId?: string) {
+    super(message);
+    this.name = 'TenantContextError';
+  }
+}
+
 // ============================================================================
 // Session Helpers
 // ============================================================================
@@ -307,3 +314,224 @@ export async function hasPermissions(
     return false;
   }
 }
+
+// ============================================================================
+// Tenant Context Guards (Multi-Tenant Isolation)
+// ============================================================================
+
+/**
+ * Assert that a user can access a resource from a specific tenant
+ * Prevents cross-tenant data access by validating tenant context
+ *
+ * IMPORTANT: This is a critical security control for multi-tenant isolation.
+ * - Superadmins bypass this check (they manage all tenants)
+ * - Tenant users can ONLY access resources from their own tenant
+ * - Backend MUST also enforce this validation (defense-in-depth)
+ *
+ * @param session - User session
+ * @param resourceTenantId - The tenant ID that owns the resource
+ * @throws TenantContextError if tenant user tries to access other tenant's resource
+ *
+ * @example
+ * // In a job service
+ * async getJob(session: UserSession, jobId: string) {
+ *   assertPermission(session, PERMISSIONS.JOB_READ);
+ *   const job = await fetchJob(jobId);
+ *   assertTenantContext(session, job.tenantId); // Validate tenant isolation
+ *   return job;
+ * }
+ */
+export function assertTenantContext(session: UserSession, resourceTenantId: string | undefined): void {
+  // Superadmins can access resources from any tenant
+  if (session.role === 'SUPERADMIN') {
+    return;
+  }
+
+  // Tenant users must have a tenantId
+  if (!session.tenantId) {
+    throw new TenantContextError(
+      'User session does not have a tenant ID. This user cannot access tenant-scoped resources.',
+      resourceTenantId
+    );
+  }
+
+  // Resource must have a tenantId
+  if (!resourceTenantId) {
+    throw new TenantContextError(
+      'Resource does not have a tenant ID. Cannot validate tenant context.',
+      undefined
+    );
+  }
+
+  // Validate tenant match
+  if (session.tenantId !== resourceTenantId) {
+    throw new TenantContextError(
+      'Access denied: Cannot access resources from other tenants',
+      resourceTenantId
+    );
+  }
+}
+
+/**
+ * Assert that a user belongs to a specific tenant
+ * Used when a tenant ID is provided directly (e.g., in URL params)
+ *
+ * @param session - User session
+ * @param tenantId - The tenant ID being accessed
+ * @throws TenantContextError if tenant user tries to access different tenant
+ *
+ * @example
+ * // In a tenant settings endpoint
+ * async getTenantSettings(session: UserSession, tenantId: string) {
+ *   assertOwnTenant(session, tenantId);
+ *   assertPermission(session, PERMISSIONS.SETTINGS_READ);
+ *   return await fetchTenantSettings(tenantId);
+ * }
+ */
+export function assertOwnTenant(session: UserSession, tenantId: string): void {
+  // Superadmins can access any tenant
+  if (session.role === 'SUPERADMIN') {
+    return;
+  }
+
+  // Tenant users must have a tenantId
+  if (!session.tenantId) {
+    throw new TenantContextError(
+      'User session does not have a tenant ID. This user cannot access tenant-scoped operations.',
+      tenantId
+    );
+  }
+
+  // Validate tenant match
+  if (session.tenantId !== tenantId) {
+    throw new TenantContextError(
+      `Access denied: Cannot access tenant ${tenantId}. You can only access your own tenant (${session.tenantId})`,
+      tenantId
+    );
+  }
+}
+
+/**
+ * Assert tenant context for a resource object
+ * Generic helper for objects with a tenantId property
+ *
+ * @param session - User session
+ * @param resource - The resource object (must have tenantId property)
+ * @throws TenantContextError if tenant user tries to access other tenant's resource
+ *
+ * @example
+ * // Works with any resource type that has tenantId
+ * async getApplication(session: UserSession, applicationId: string) {
+ *   assertPermission(session, PERMISSIONS.APPLICATION_READ);
+ *   const application = await fetchApplication(applicationId);
+ *   assertTenantResource(session, application);
+ *   return application;
+ * }
+ */
+export function assertTenantResource<T extends { tenantId?: string }>(
+  session: UserSession,
+  resource: T
+): void {
+  assertTenantContext(session, resource.tenantId);
+}
+
+/**
+ * Check if user can access a resource from a specific tenant (non-throwing)
+ * Useful for conditional rendering or filtering
+ *
+ * @param session - User session
+ * @param resourceTenantId - The tenant ID that owns the resource
+ * @returns true if user can access the resource
+ */
+export function canAccessTenant(session: UserSession, resourceTenantId: string | undefined): boolean {
+  try {
+    assertTenantContext(session, resourceTenantId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================================
+// Usage Examples & Best Practices
+// ============================================================================
+
+/*
+ * TENANT-SCOPED RESOURCES (Require Tenant Context Validation)
+ *
+ * These resources belong to a specific tenant and must include tenant context checks:
+ *
+ * 1. Jobs (job:*)
+ *    - List jobs: Filter by session.tenantId
+ *    - Get job: Validate job.tenantId === session.tenantId
+ *    - Create job: Set tenantId = session.tenantId
+ *    - Update/Delete job: Validate job.tenantId === session.tenantId
+ *
+ * 2. Applications (application:*)
+ *    - All CRUD operations require tenant context validation
+ *
+ * 3. Pipeline (pipeline:*)
+ *    - All CRUD operations require tenant context validation
+ *
+ * 4. Members (member:*)
+ *    - List members: Filter by session.tenantId
+ *    - Invite/Remove members: Validate target tenant === session.tenantId
+ *
+ * 5. Interviews (interview:*)
+ *    - All CRUD operations require tenant context validation
+ *
+ * 6. Settings (settings:read, settings:update)
+ *    - Get/Update tenant settings: Validate tenantId === session.tenantId
+ *
+ * 7. Billing (billing:*)
+ *    - All billing operations: Validate tenantId === session.tenantId
+ *
+ * 8. Integrations (integrations:*)
+ *    - All integration operations: Validate tenantId === session.tenantId
+ *
+ *
+ * PLATFORM-SCOPED RESOURCES (No Tenant Context - Superadmin Only)
+ *
+ * These resources are NOT tenant-scoped and should NOT use tenant context checks:
+ *
+ * 1. Tenant Management (tenant:*)
+ *    - Managed by superadmins only
+ *    - No tenant context validation needed
+ *
+ * 2. System Management (sys:*)
+ *    - System users, health monitoring
+ *    - Superadmin only, no tenant context
+ *
+ * 3. Global Settings (settings:global, settings:security, settings:db)
+ *    - Platform-wide settings
+ *    - Superadmin only, no tenant context
+ *
+ *
+ * IMPLEMENTATION PATTERN:
+ *
+ * async function getResource(session: UserSession, resourceId: string) {
+ *   // 1. Check permission first
+ *   assertPermission(session, PERMISSIONS.RESOURCE_READ);
+ *
+ *   // 2. Fetch the resource
+ *   const resource = await fetchResource(resourceId);
+ *
+ *   // 3. Validate tenant context BEFORE returning
+ *   assertTenantContext(session, resource.tenantId);
+ *
+ *   return resource;
+ * }
+ *
+ * async function createResource(session: UserSession, data: CreateResourceRequest) {
+ *   // 1. Check permission
+ *   assertPermission(session, PERMISSIONS.RESOURCE_CREATE);
+ *
+ *   // 2. Set tenantId from session (tenant users) or from request (superadmin)
+ *   const tenantId = session.role === 'SUPERADMIN'
+ *     ? data.tenantId  // Superadmin can create for any tenant
+ *     : session.tenantId; // Tenant user creates for their own tenant
+ *
+ *   // 3. Create resource
+ *   return await createResourceInBackend({ ...data, tenantId });
+ * }
+ */
