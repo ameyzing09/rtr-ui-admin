@@ -39,6 +39,37 @@ export const PLATFORM_PERMISSIONS = {
   SETTINGS_GLOBAL: 'settings:global',
   SETTINGS_SECURITY: 'settings:security',
   SETTINGS_DB: 'settings:db',
+
+  // Catalog (Global Plans/Entitlements/Features)
+  CATALOG_LIST: 'catalog:list',
+  CATALOG_CREATE: 'catalog:create',
+  CATALOG_READ: 'catalog:read',
+  CATALOG_UPDATE: 'catalog:update',
+  CATALOG_DELETE: 'catalog:delete',
+
+  // Platform Billing (Subscription Engine)
+  PLATFORM_BILLING_READ: 'platform:billing:read',
+  PLATFORM_BILLING_MANAGE: 'platform:billing:manage',
+
+  // Platform Integrations
+  PLATFORM_INTEGRATIONS_LIST: 'platform:integrations:list',
+  PLATFORM_INTEGRATIONS_MANAGE: 'platform:integrations:manage',
+
+  // Observability (Logs, Traces, Metrics)
+  OBSERVABILITY_READ: 'observability:read',
+  OBSERVABILITY_LOGS: 'observability:logs',
+  OBSERVABILITY_TRACES: 'observability:traces',
+  OBSERVABILITY_METRICS: 'observability:metrics',
+
+  // Experiments (Feature Flags/Rollouts)
+  EXPERIMENTS_LIST: 'experiments:list',
+  EXPERIMENTS_CREATE: 'experiments:create',
+  EXPERIMENTS_UPDATE: 'experiments:update',
+  EXPERIMENTS_DELETE: 'experiments:delete',
+
+  // Ops Support
+  OPS_SUPPORT_READ: 'ops:support:read',
+  OPS_SUPPORT_IMPERSONATE: 'ops:support:impersonate',
 } as const;
 
 /**
@@ -95,6 +126,13 @@ export const TENANT_PERMISSIONS = {
   // Integrations
   INTEGRATIONS_READ: 'integrations:read',
   INTEGRATIONS_UPDATE: 'integrations:update',
+
+  // Feedback & Scores
+  FEEDBACK_LIST: 'feedback:list',
+  FEEDBACK_CREATE: 'feedback:create',
+  FEEDBACK_READ: 'feedback:read',
+  FEEDBACK_UPDATE: 'feedback:update',
+  FEEDBACK_DELETE: 'feedback:delete',
 } as const;
 
 // All permissions combined
@@ -115,6 +153,7 @@ export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];
  * Has all platform permissions, no tenant permissions by default
  */
 export const SUPERADMIN_PERMISSIONS: Permission[] = [
+  // Tenant Management
   PERMISSIONS.TENANT_LIST,
   PERMISSIONS.TENANT_CREATE,
   PERMISSIONS.TENANT_READ,
@@ -123,15 +162,52 @@ export const SUPERADMIN_PERMISSIONS: Permission[] = [
   PERMISSIONS.TENANT_IMPERSONATE,
   PERMISSIONS.TENANT_STATUS,
   PERMISSIONS.TENANT_SUBSCRIPTION_MANAGE,
+
+  // System Management
   PERMISSIONS.SYS_USER_LIST,
   PERMISSIONS.SYS_USER_CREATE,
   PERMISSIONS.SYS_USER_UPDATE,
   PERMISSIONS.SYS_USER_DELETE,
   PERMISSIONS.SYS_HEALTH_READ,
+
+  // Analytics
   PERMISSIONS.ANALYTICS_READ,
+
+  // Settings
   PERMISSIONS.SETTINGS_GLOBAL,
   PERMISSIONS.SETTINGS_SECURITY,
   PERMISSIONS.SETTINGS_DB,
+
+  // Catalog
+  PERMISSIONS.CATALOG_LIST,
+  PERMISSIONS.CATALOG_CREATE,
+  PERMISSIONS.CATALOG_READ,
+  PERMISSIONS.CATALOG_UPDATE,
+  PERMISSIONS.CATALOG_DELETE,
+
+  // Platform Billing
+  PERMISSIONS.PLATFORM_BILLING_READ,
+  PERMISSIONS.PLATFORM_BILLING_MANAGE,
+
+  // Platform Integrations
+  PERMISSIONS.PLATFORM_INTEGRATIONS_LIST,
+  PERMISSIONS.PLATFORM_INTEGRATIONS_MANAGE,
+
+  // Observability
+  PERMISSIONS.OBSERVABILITY_READ,
+  PERMISSIONS.OBSERVABILITY_LOGS,
+  PERMISSIONS.OBSERVABILITY_TRACES,
+  PERMISSIONS.OBSERVABILITY_METRICS,
+
+  // Experiments
+  PERMISSIONS.EXPERIMENTS_LIST,
+  PERMISSIONS.EXPERIMENTS_CREATE,
+  PERMISSIONS.EXPERIMENTS_UPDATE,
+  PERMISSIONS.EXPERIMENTS_DELETE,
+
+  // Ops Support
+  PERMISSIONS.OPS_SUPPORT_READ,
+  PERMISSIONS.OPS_SUPPORT_IMPERSONATE,
 ];
 
 /**
@@ -188,6 +264,13 @@ export const TENANT_ADMIN_PERMISSIONS: Permission[] = [
   // Integrations
   TENANT_PERMISSIONS.INTEGRATIONS_READ,
   TENANT_PERMISSIONS.INTEGRATIONS_UPDATE,
+
+  // Feedback & Scores
+  TENANT_PERMISSIONS.FEEDBACK_LIST,
+  TENANT_PERMISSIONS.FEEDBACK_CREATE,
+  TENANT_PERMISSIONS.FEEDBACK_READ,
+  TENANT_PERMISSIONS.FEEDBACK_UPDATE,
+  TENANT_PERMISSIONS.FEEDBACK_DELETE,
 ];
 
 /**
@@ -286,12 +369,38 @@ const TENANT_SETTINGS: Permission[] = [
 /**
  * Check if a user has a specific permission
  *
+ * Supports wildcard permissions:
+ * - If user has "settings:*", they have "settings:read", "settings:update", etc.
+ * - If user has "job:*", they have "job:list", "job:create", etc.
+ *
  * @param userPermissions - Array of permissions the user has
  * @param requiredPermission - The permission to check for
  * @returns true if user has the permission
+ *
+ * @example
+ * can(['settings:*'], 'settings:read') // true
+ * can(['settings:read'], 'settings:update') // false
+ * can(['job:*'], 'job:create') // true
  */
 export function can(userPermissions: Permission[], requiredPermission: Permission): boolean {
-  return userPermissions.includes(requiredPermission);
+  // Direct match - exact permission found
+  if (userPermissions.includes(requiredPermission)) {
+    return true;
+  }
+
+  // Wildcard match - check if user has namespace:* permission
+  // Extract namespace from required permission (e.g., "settings:read" → "settings")
+  const colonIndex = requiredPermission.indexOf(':');
+  if (colonIndex !== -1) {
+    const namespace = requiredPermission.substring(0, colonIndex);
+    const wildcardPermission = `${namespace}:*` as Permission;
+
+    if (userPermissions.includes(wildcardPermission)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

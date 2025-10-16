@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { env, getTenantHeaders, isLocal } from '@/config/env';
+import { env, getLocalTenantId } from '@/config/env';
 import { getOrCreateCsrfToken, CSRF_CONFIG } from '@/lib/security/csrf';
 
 // API Response base + schemas
@@ -82,12 +82,6 @@ class Fetcher {
       ...config.defaultHeaders,
     };
     this.timeout = config.timeout || 10000; // 10 seconds
-    
-    // In local environment, automatically set tenant headers from environment if available
-    if (isLocal) {
-      // Note: We can't use async/await in constructor, so we'll set headers in the request method
-      // This is a placeholder for now
-    }
   }
 
   private async request<T>(
@@ -97,18 +91,12 @@ class Fetcher {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
-    // Generate fresh tenant headers for each request in local environment
-    const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
-
     const requestHeaders = { ...this.defaultHeaders };
 
-    if (isLocalEnv) {
-      const tenantHeaders = await getTenantHeaders();
-      Object.entries(tenantHeaders).forEach(([key, value]) => {
-        if (value) {
-          requestHeaders[key] = value;
-        }
-      });
+    // In local dev mode, add tenant ID header for convenience (no signature needed)
+    const localTenantId = getLocalTenantId();
+    if (localTenantId && !requestHeaders['X-Tenant-ID']) {
+      requestHeaders['X-Tenant-ID'] = localTenantId;
     }
 
     // Add CSRF token for state-changing requests (only in browser)
@@ -276,40 +264,14 @@ class Fetcher {
     delete this.defaultHeaders.Authorization;
   }
 
+  // Note: Tenant ID in headers is deprecated
+  // Tenant context is now derived from JWT by backend
   setTenantId(tenantId: string) {
     this.defaultHeaders['X-Tenant-ID'] = tenantId;
   }
 
-  setTenantTs(tenantTs: string) {
-    this.defaultHeaders['X-Tenant-Ts'] = tenantTs;
-  }
-
-  setTenantSig(tenantSig: string) {
-    this.defaultHeaders['X-Tenant-Sig'] = tenantSig;
-  }
-
-  setTenantHeaders(tenantId: string, tenantTs?: string, tenantSig?: string) {
-    this.setTenantId(tenantId);
-    if (tenantTs) this.setTenantTs(tenantTs);
-    if (tenantSig) this.setTenantSig(tenantSig);
-  }
-
   removeTenantId() {
     delete this.defaultHeaders['X-Tenant-ID'];
-  }
-
-  removeTenantTs() {
-    delete this.defaultHeaders['X-Tenant-Ts'];
-  }
-
-  removeTenantSig() {
-    delete this.defaultHeaders['X-Tenant-Sig'];
-  }
-
-  removeAllTenantHeaders() {
-    delete this.defaultHeaders['X-Tenant-ID'];
-    delete this.defaultHeaders['X-Tenant-Ts'];
-    delete this.defaultHeaders['X-Tenant-Sig'];
   }
 
   // Update headers
@@ -325,14 +287,10 @@ export const fetcher = new Fetcher();
 export function createAuthenticatedFetcher(token: string, tenantId?: string): Fetcher {
   const authFetcher = new Fetcher();
   authFetcher.setAuthToken(token);
-  
-  // Use provided tenantId if available
-  if (tenantId) {
-    authFetcher.setTenantId(tenantId);
-  }
-  // Note: Environment tenant headers will be automatically added in the request method
-  // when isLocalEnv is true, so we don't need to set them here
-  
+
+  // Note: Tenant context is automatically derived from JWT by backend
+  // tenantId parameter is kept for backwards compatibility but not used
+
   return authFetcher;
 }
 

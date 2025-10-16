@@ -12,9 +12,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { session, isLoading } = useAuth();
 
   // Use branding from AuthProvider session
+  // Backend returns TenantBranding for tenant users, PlatformBranding for superadmins
   const branding = session?.branding;
+
   const tenantData = {
-    name: branding?.navbar_title || branding?.name || 'Acme Corp',
+    name: branding?.navbar_title || branding?.name || 'Dashboard',
     logo: branding?.logo_url,
     environment: process.env.NODE_ENV === 'development' ? 'dev' as const : undefined,
   };

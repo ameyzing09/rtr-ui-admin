@@ -11,7 +11,7 @@ import {
 import type { ReactNode } from 'react';
 import { authClient } from '@/lib/api/authClient';
 import { fetcher } from '@/lib/api/fetcher';
-import { getTenantHeaders } from '@/config/env';
+import { getLocalTenantId } from '@/config/env';
 import type {
   AuthSession,
   AuthUser,
@@ -77,29 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(normalized);
         fetcher.setAuthToken(normalized.token);
 
-        // In local environment, use environment tenant headers if available, otherwise use user's tenant ID
-        const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
-
-        if (isLocalEnv) {
-          const tenantHeaders = await getTenantHeaders();
-          if (Object.keys(tenantHeaders).length > 0) {
-            // Use environment tenant headers
-            if (tenantHeaders['X-Tenant-ID']) {
-              fetcher.setTenantId(tenantHeaders['X-Tenant-ID']);
-            }
-            if (tenantHeaders['X-Tenant-Ts']) {
-              fetcher.setTenantTs(tenantHeaders['X-Tenant-Ts']);
-            }
-            if (tenantHeaders['X-Tenant-Sig']) {
-              fetcher.setTenantSig(tenantHeaders['X-Tenant-Sig']);
-            }
-          } else {
-            // Fall back to user's tenant ID
-            fetcher.setTenantId(normalized.user.tenantId);
-          }
-        } else {
-          // Use user's tenant ID
-          fetcher.setTenantId(normalized.user.tenantId);
+        // In local dev mode, optionally set tenant ID header for testing convenience
+        const localTenantId = getLocalTenantId();
+        if (localTenantId) {
+          fetcher.setTenantId(localTenantId);
         }
 
         // Set session cookie for middleware authentication (using Server Action)
@@ -128,30 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession);
       fetcher.setAuthToken(nextSession.token);
 
-      // In local environment, use environment tenant headers if available, otherwise use user's tenant ID
-      const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
-
-      if (isLocalEnv) {
-        const tenantHeaders = await getTenantHeaders();
-        console.log('Using tenant headers:', tenantHeaders);
-        if (Object.keys(tenantHeaders).length > 0) {
-          // Use environment tenant headers
-          if (tenantHeaders['X-Tenant-ID']) {
-            fetcher.setTenantId(tenantHeaders['X-Tenant-ID']);
-          }
-          if (tenantHeaders['X-Tenant-Ts']) {
-            fetcher.setTenantTs(tenantHeaders['X-Tenant-Ts']);
-          }
-          if (tenantHeaders['X-Tenant-Sig']) {
-            fetcher.setTenantSig(tenantHeaders['X-Tenant-Sig']);
-          }
-        } else {
-          // Fall back to user's tenant ID
-          fetcher.setTenantId(nextSession.user.tenantId);
-        }
-      } else {
-        // Use user's tenant ID
-        fetcher.setTenantId(nextSession.user.tenantId);
+      // In local dev mode, optionally set tenant ID header for testing convenience
+      const localTenantId = getLocalTenantId();
+      if (localTenantId) {
+        fetcher.setTenantId(localTenantId);
       }
 
       if (typeof window !== 'undefined') {
@@ -192,24 +153,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (session?.user) {
         // Determine audience based on current role
         const audience = session.user.role === 'SUPERADMIN' ? 'platform' : 'tenant';
-        
-        // In local environment, use environment tenant headers if available, otherwise use user's tenant ID
-        const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
-        
-        let tenantId: string;
-        if (isLocalEnv) {
-          const tenantHeaders = await getTenantHeaders();
-          if (tenantHeaders['X-Tenant-ID']) {
-            tenantId = tenantHeaders['X-Tenant-ID'];
-          } else {
-            tenantId = session.user.tenantId;
-          }
-        } else {
-          tenantId = session.user.tenantId;
-        }
-        
+
         // Call backend logout API
-        await authClient.logout({ audience, tenantId });
+        // Tenant context is automatically derived from JWT by backend
+        await authClient.logout({ audience, tenantId: session.user.tenantId });
 
         // Audit successful logout
         audit('auth.logout', {
