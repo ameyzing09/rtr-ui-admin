@@ -25,6 +25,58 @@ export type ActionResult<T> =
     };
 
 /**
+ * Parse backend validation errors into field-level errors
+ * Handles patterns like:
+ * - "extra: missing required property 'salary_range'" → { extra_salary_range: ["This field is required"] }
+ * - "extra/experience_years: must be number" → { extra_experience_years: ["must be number"] }
+ */
+function parseValidationErrors(errors: string[]): Record<string, string[]> {
+  const fieldErrors: Record<string, string[]> = {};
+
+  errors.forEach((error) => {
+    // Pattern 1: "extra: missing required property 'field_name'"
+    const match1 = error.match(/extra:\s*missing required property '(.+?)'/);
+    if (match1) {
+      const fieldName = match1[1];
+      const key = `extra_${fieldName}`;
+      if (!fieldErrors[key]) fieldErrors[key] = [];
+      fieldErrors[key].push('This field is required');
+      return;
+    }
+
+    // Pattern 2: "extra/field_name: error message"
+    const match2 = error.match(/extra\/(.+?):\s*(.+)/);
+    if (match2) {
+      const fieldName = match2[1];
+      const errorMsg = match2[2];
+      const key = `extra_${fieldName}`;
+      if (!fieldErrors[key]) fieldErrors[key] = [];
+      fieldErrors[key].push(errorMsg);
+      return;
+    }
+
+    // Pattern 3: Generic "extra: error message"
+    if (error.startsWith('extra:')) {
+      const errorMsg = error.replace('extra:', '').trim();
+      if (!fieldErrors.extra) fieldErrors.extra = [];
+      fieldErrors.extra.push(errorMsg);
+      return;
+    }
+
+    // Pattern 4: Standard field errors "field_name should not be empty"
+    const match4 = error.match(/^(\w+)\s+(.+)/);
+    if (match4) {
+      const fieldName = match4[1];
+      const errorMsg = match4[2];
+      if (!fieldErrors[fieldName]) fieldErrors[fieldName] = [];
+      fieldErrors[fieldName].push(errorMsg);
+    }
+  });
+
+  return fieldErrors;
+}
+
+/**
  * Format error for ActionResult
  * Extracts error message, code, and field-level errors from various error types
  */
@@ -34,10 +86,18 @@ function formatError(error: unknown): {
   fieldErrors?: Record<string, string[]>;
 } {
   if (error instanceof JobApiError) {
+    let fieldErrors: Record<string, string[]> | undefined =
+      error.details?.fieldErrors as Record<string, string[]> | undefined;
+
+    // Check if error.details contains a message array (backend validation errors)
+    if (error.details && Array.isArray(error.details.message)) {
+      fieldErrors = parseValidationErrors(error.details.message as string[]);
+    }
+
     return {
       error: error.message,
       code: error.code,
-      fieldErrors: error.details?.fieldErrors as Record<string, string[]> | undefined,
+      fieldErrors,
     };
   }
   return { error: error instanceof Error ? error.message : String(error) };

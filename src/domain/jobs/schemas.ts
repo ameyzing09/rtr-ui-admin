@@ -27,39 +27,32 @@ export const JOB_STATUS_OPTIONS = [
 
 /**
  * Core job model from backend API
+ * Backend returns camelCase field names
  */
 export const jobSchema = z.object({
   id: z.string(),
-  tenant_id: z.string(),
+  tenantId: z.string(),
 
   // Basic information
   title: z.string(),
   department: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
-  openings: z.number().int().positive().optional(), // Client-side only, not sent to backend
 
   // Description and requirements
   description: z.string().nullable().optional(),
-  requirements: z.string().nullable().optional(),
-  attachments: z.array(z.string()).optional(), // Array of file URLs
 
   // Visibility and publishing
-  is_public: z.boolean().default(true),
-  publish_at: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
-  expire_at: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
-  external_apply_url: z.string().url().nullable().optional(),
-
-  // Status and metadata
-  status: jobStatusSchema,
-  created_by: z.string().optional(),
-  created_at: z.string().transform((val) => new Date(val)),
-  updated_at: z.string().transform((val) => new Date(val)),
+  isPublic: z.boolean().default(true),
+  publishAt: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
+  expireAt: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
+  externalApplyUrl: z.string().url().nullable().optional(),
 
   // Custom fields (EPIC E - driven by tenant schema)
-  extra: z.record(z.string(), z.unknown()).optional(),
+  extra: z.record(z.string(), z.unknown()).nullable().optional(),
 
-  // Computed fields (may come from backend)
-  application_count: z.number().int().optional(),
+  // Status and metadata
+  createdAt: z.string().transform((val) => new Date(val)),
+  updatedAt: z.string().transform((val) => new Date(val)),
 });
 
 export type Job = z.infer<typeof jobSchema>;
@@ -70,10 +63,11 @@ export type Job = z.infer<typeof jobSchema>;
 
 /**
  * Create job request schema with validation
+ * Backend expects camelCase field names
  * Validation rules:
  * - title is required
- * - expire_at must be after publish_at when both are set
- * - external_apply_url must be a valid URL
+ * - expireAt must be after publishAt when both are set
+ * - externalApplyUrl must be a valid URL
  */
 export const createJobRequestSchema = z.object({
   // Step 1: Basics
@@ -82,32 +76,29 @@ export const createJobRequestSchema = z.object({
     .max(200, 'Job title must be less than 200 characters'),
   department: z.string().max(100).optional(),
   location: z.string().max(200).optional(),
-  openings: z.number().int().positive().optional(), // Client-side only
 
   // Step 2: Description
   description: z.string().optional(),
-  requirements: z.string().optional(),
-  attachments: z.array(z.string()).optional(),
 
   // Step 3: Visibility
-  is_public: z.boolean().default(true),
-  publish_at: z.date().nullable().optional(),
-  expire_at: z.date().nullable().optional(),
-  external_apply_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  isPublic: z.boolean().default(true),
+  publishAt: z.date().nullable().optional(),
+  expireAt: z.date().nullable().optional(),
+  externalApplyUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
 
   // Step 4: Custom fields (EPIC E)
   extra: z.record(z.string(), z.unknown()).optional(),
 }).refine(
   (data) => {
-    // Validation: expire_at must be after publish_at when both are set
-    if (data.publish_at && data.expire_at) {
-      return data.expire_at > data.publish_at;
+    // Validation: expireAt must be after publishAt when both are set
+    if (data.publishAt && data.expireAt) {
+      return data.expireAt > data.publishAt;
     }
     return true;
   },
   {
     message: 'Expiration date must be after publish date',
-    path: ['expire_at'],
+    path: ['expireAt'],
   }
 );
 
@@ -125,20 +116,21 @@ export type UpdateJobRequest = z.infer<typeof updateJobRequestSchema>;
 
 /**
  * Job list item schema - may have fewer fields than full job
+ * Backend returns camelCase field names
  */
 export const jobListItemSchema = z.object({
   id: z.string(),
-  tenant_id: z.string(),
+  tenantId: z.string(),
   title: z.string(),
   department: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
-  status: jobStatusSchema,
-  is_public: z.boolean(),
-  publish_at: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
-  expire_at: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
-  created_at: z.string().transform((val) => new Date(val)),
-  updated_at: z.string().transform((val) => new Date(val)),
-  application_count: z.number().int().optional(),
+  isPublic: z.boolean(),
+  publishAt: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
+  expireAt: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
+  externalApplyUrl: z.string().url().nullable().optional(),
+  extra: z.record(z.string(), z.unknown()).nullable().optional(),
+  createdAt: z.string().transform((val) => new Date(val)),
+  updatedAt: z.string().transform((val) => new Date(val)),
 });
 
 export type JobListItem = z.infer<typeof jobListItemSchema>;
@@ -178,6 +170,7 @@ export type JobListResponse = z.infer<typeof jobListResponseSchema>;
 
 /**
  * Job list query parameters
+ * Backend expects camelCase for sorting fields
  */
 export const jobListParamsSchema = z.object({
   // Filters
@@ -185,11 +178,11 @@ export const jobListParamsSchema = z.object({
   department: z.string().optional(), // Filter by department
   location: z.string().optional(), // Filter by location
   status: jobStatusSchema.optional(), // Filter by status
-  is_public: z.boolean().optional(), // Filter by visibility
+  isPublic: z.boolean().optional(), // Filter by visibility
 
   // Sorting
-  sort_by: z.enum(['created_at', 'updated_at', 'title', 'publish_at']).default('created_at'),
-  sort_order: z.enum(['asc', 'desc']).default('desc'),
+  sortBy: z.enum(['createdAt', 'updatedAt', 'title', 'publishAt']).default('createdAt'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
 
   // Pagination
   page: z.number().int().positive().default(1),
@@ -238,17 +231,18 @@ export function getJobStatusColor(status: JobStatus): string {
  * Check if job is currently active (published and not expired)
  */
 export function isJobActive(job: Job | JobListItem): boolean {
-  if (job.status !== 'PUBLISHED') return false;
-
   const now = new Date();
 
-  // Check publish_at
-  if (job.publish_at && job.publish_at > now) {
+  // Check if public
+  if (!job.isPublic) return false;
+
+  // Check publishAt
+  if (job.publishAt && job.publishAt > now) {
     return false;
   }
 
-  // Check expire_at
-  if (job.expire_at && job.expire_at < now) {
+  // Check expireAt
+  if (job.expireAt && job.expireAt < now) {
     return false;
   }
 
@@ -256,20 +250,26 @@ export function isJobActive(job: Job | JobListItem): boolean {
 }
 
 /**
- * Get job status badge text
+ * Get job status badge text based on current state
  */
 export function getJobStatusBadge(job: Job | JobListItem): string {
-  if (isJobActive(job)) {
-    return 'Active';
+  const now = new Date();
+
+  // If not public, it's a draft
+  if (!job.isPublic) {
+    return 'Draft';
   }
 
-  const statusLabels: Record<JobStatus, string> = {
-    DRAFT: 'Draft',
-    PUBLISHED: 'Published',
-    EXPIRED: 'Expired',
-    ARCHIVED: 'Archived',
-    CLOSED: 'Closed',
-  };
+  // If publish date is in the future, it's scheduled
+  if (job.publishAt && job.publishAt > now) {
+    return 'Scheduled';
+  }
 
-  return statusLabels[job.status] || job.status;
+  // If expire date is in the past, it's expired
+  if (job.expireAt && job.expireAt < now) {
+    return 'Expired';
+  }
+
+  // Otherwise, it's active
+  return 'Active';
 }

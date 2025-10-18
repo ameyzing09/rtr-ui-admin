@@ -16,14 +16,15 @@ export async function auditJobCreate(
     actorRole: session.user.role,
     tenantId: session.user.tenantId || 'N/A',
     status: 'success',
-    resourceId: job.id,
-    resourceType: 'job',
+    targetId: job.id,
+    targetType: 'job',
     details: {
       title: job.title,
       department: job.department,
       location: job.location,
-      is_public: job.is_public,
-      status: job.status,
+      isPublic: job.isPublic,
+      publishAt: job.publishAt?.toISOString(),
+      expireAt: job.expireAt?.toISOString(),
     },
   }).catch((error) => {
     console.error('Failed to audit job creation:', error);
@@ -45,8 +46,8 @@ export async function auditJobUpdate(
     actorRole: session.user.role,
     tenantId: session.user.tenantId || 'N/A',
     status: 'success',
-    resourceId: jobId,
-    resourceType: 'job',
+    targetId: jobId,
+    targetType: 'job',
     details: {
       updated_fields: Object.keys(patch),
       changes: patch,
@@ -76,8 +77,8 @@ export async function auditJobDelete(
     actorRole: session.user.role,
     tenantId: session.user.tenantId || 'N/A',
     status: 'success',
-    resourceId: jobId,
-    resourceType: 'job',
+    targetId: jobId,
+    targetType: 'job',
     details: {
       title: job?.title,
       department: job?.department,
@@ -89,48 +90,60 @@ export async function auditJobDelete(
 }
 
 /**
- * Audit job view/read
+ * Audit job publish
+ * Triggered when a job's isPublic is set to true or publishAt date is set
  */
-export async function auditJobView(
+export async function auditJobPublish(
   session: AuthSession,
   jobId: string,
   job?: Job
 ): Promise<void> {
-  await audit('job.view', {
+  await audit('job.publish', {
     actorId: session.user.id,
     actorEmail: session.user.email,
     actorRole: session.user.role,
     tenantId: session.user.tenantId || 'N/A',
     status: 'success',
-    resourceId: jobId,
-    resourceType: 'job',
+    targetId: jobId,
+    targetType: 'job',
     details: {
       title: job?.title,
+      department: job?.department,
+      location: job?.location,
+      publishAt: job?.publishAt?.toISOString(),
+      expireAt: job?.expireAt?.toISOString(),
     },
   }).catch((error) => {
-    console.error('Failed to audit job view:', error);
+    console.error('Failed to audit job publish:', error);
   });
 }
 
 /**
- * Audit job list access
+ * Audit job unpublish
+ * Triggered when a job's isPublic is set to false
  */
-export async function auditJobList(
+export async function auditJobUnpublish(
   session: AuthSession,
-  filters?: Record<string, unknown>
+  jobId: string,
+  job?: Job,
+  reason?: string
 ): Promise<void> {
-  await audit('job.list', {
+  await audit('job.unpublish', {
     actorId: session.user.id,
     actorEmail: session.user.email,
     actorRole: session.user.role,
     tenantId: session.user.tenantId || 'N/A',
     status: 'success',
-    resourceType: 'job',
+    targetId: jobId,
+    targetType: 'job',
     details: {
-      filters,
+      title: job?.title,
+      department: job?.department,
+      location: job?.location,
+      reason,
     },
   }).catch((error) => {
-    console.error('Failed to audit job list:', error);
+    console.error('Failed to audit job unpublish:', error);
   });
 }
 
@@ -143,13 +156,13 @@ export async function auditJobError(
   error: unknown,
   details?: Record<string, unknown>
 ): Promise<void> {
-  await audit(`job.${operation}.error`, {
+  await audit(`job.${operation}.error` as any, {
     actorId: session.user.id,
     actorEmail: session.user.email,
     actorRole: session.user.role,
     tenantId: session.user.tenantId || 'N/A',
-    status: 'error',
-    resourceType: 'job',
+    status: 'failure',
+    targetType: 'job',
     details: {
       error: error instanceof Error ? error.message : String(error),
       ...details,

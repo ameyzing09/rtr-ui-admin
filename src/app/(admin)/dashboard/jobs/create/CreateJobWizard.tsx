@@ -25,18 +25,15 @@ export function CreateJobWizard() {
     title: '',
     department: '',
     location: '',
-    openings: undefined,
 
     // Step 2: Description
     description: '',
-    requirements: '',
-    attachments: [],
 
     // Step 3: Visibility
-    is_public: true,
-    publish_at: null,
-    expire_at: null,
-    external_apply_url: '',
+    isPublic: true,
+    publishAt: null,
+    expireAt: null,
+    externalApplyUrl: '',
 
     // Step 4: Custom Fields (EPIC E)
     extra: {},
@@ -97,19 +94,19 @@ export function CreateJobWizard() {
   const validateStep3 = (): boolean => {
     const errors: Record<string, string> = {};
 
-    // Validate expire_at > publish_at
-    if (formData.publish_at && formData.expire_at) {
-      if (formData.expire_at <= formData.publish_at) {
-        errors.expire_at = 'Expiration date must be after publish date';
+    // Validate expireAt > publishAt
+    if (formData.publishAt && formData.expireAt) {
+      if (formData.expireAt <= formData.publishAt) {
+        errors.expireAt = 'Expiration date must be after publish date';
       }
     }
 
-    // Validate external_apply_url format
-    if (formData.external_apply_url && formData.external_apply_url.trim() !== '') {
+    // Validate externalApplyUrl format
+    if (formData.externalApplyUrl && formData.externalApplyUrl.trim() !== '') {
       try {
-        new URL(formData.external_apply_url);
+        new URL(formData.externalApplyUrl);
       } catch {
-        errors.external_apply_url = 'Must be a valid URL';
+        errors.externalApplyUrl = 'Must be a valid URL';
       }
     }
 
@@ -151,7 +148,12 @@ export function CreateJobWizard() {
       } else {
         // Handle server-side errors
         if (result.fieldErrors) {
-          setFieldErrors(result.fieldErrors);
+          // Convert fieldErrors from Record<string, string[]> to Record<string, string>
+          const convertedErrors: Record<string, string> = {};
+          Object.entries(result.fieldErrors).forEach(([field, errors]) => {
+            convertedErrors[field] = Array.isArray(errors) ? errors.join(', ') : errors;
+          });
+          setFieldErrors(convertedErrors);
         }
 
         toast({

@@ -22,8 +22,8 @@ export const metadata = {
 export default async function JobsPage() {
   // Initial data fetch (server-side)
   const result = await listJobsAction({
-    sort_by: 'created_at',
-    sort_order: 'desc',
+    sortBy: 'createdAt',
+    sortOrder: 'desc',
     limit: 50,
   });
 

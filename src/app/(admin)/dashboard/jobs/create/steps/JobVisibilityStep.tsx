@@ -12,10 +12,10 @@ interface JobVisibilityStepProps {
 
 /**
  * Step 3: Visibility & Publishing
- * - is_public (checkbox)
- * - publish_at (date picker)
- * - expire_at (date picker)
- * - external_apply_url (URL input)
+ * - isPublic (checkbox)
+ * - publishAt (date picker)
+ * - expireAt (date picker)
+ * - externalApplyUrl (URL input)
  */
 export function JobVisibilityStep({
   formData,
@@ -25,14 +25,14 @@ export function JobVisibilityStep({
 }: JobVisibilityStepProps) {
   const handlePublishDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value ? new Date(e.target.value) : null;
-    updateFormData({ publish_at: value });
-    clearFieldError('publish_at');
+    updateFormData({ publishAt: value });
+    clearFieldError('publishAt');
   };
 
   const handleExpireDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value ? new Date(e.target.value) : null;
-    updateFormData({ expire_at: value });
-    clearFieldError('expire_at');
+    updateFormData({ expireAt: value });
+    clearFieldError('expireAt');
   };
 
   const formatDateForInput = (date: Date | null | undefined): string => {
@@ -53,16 +53,16 @@ export function JobVisibilityStep({
         <div className="flex items-start gap-3">
           <input
             type="checkbox"
-            id="is_public"
-            checked={formData.is_public ?? true}
+            id="isPublic"
+            checked={formData.isPublic ?? true}
             onChange={(e) => {
-              updateFormData({ is_public: e.target.checked });
-              clearFieldError('is_public');
+              updateFormData({ isPublic: e.target.checked });
+              clearFieldError('isPublic');
             }}
             className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
           <div className="flex-1">
-            <label htmlFor="is_public" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="isPublic" className="block text-sm font-medium text-gray-700">
               Make this job public
             </label>
             <p className="mt-1 text-xs text-gray-500">
@@ -73,20 +73,20 @@ export function JobVisibilityStep({
 
         {/* Publish Date */}
         <div>
-          <label htmlFor="publish_at" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="publishAt" className="block text-sm font-medium text-gray-700">
             Publish Date (Optional)
           </label>
           <input
             type="datetime-local"
-            id="publish_at"
-            value={formatDateForInput(formData.publish_at)}
+            id="publishAt"
+            value={formatDateForInput(formData.publishAt)}
             onChange={handlePublishDateChange}
             className={`mt-1 block w-full rounded-lg border ${
-              fieldErrors.publish_at ? 'border-red-300' : 'border-gray-300'
+              fieldErrors.publishAt ? 'border-red-300' : 'border-gray-300'
             } px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500`}
           />
-          {fieldErrors.publish_at && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.publish_at}</p>
+          {fieldErrors.publishAt && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.publishAt}</p>
           )}
           <p className="mt-1 text-xs text-gray-500">
             Schedule when this job should be published (leave empty to publish immediately)
@@ -95,20 +95,20 @@ export function JobVisibilityStep({
 
         {/* Expiration Date */}
         <div>
-          <label htmlFor="expire_at" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="expireAt" className="block text-sm font-medium text-gray-700">
             Expiration Date (Optional)
           </label>
           <input
             type="datetime-local"
-            id="expire_at"
-            value={formatDateForInput(formData.expire_at)}
+            id="expireAt"
+            value={formatDateForInput(formData.expireAt)}
             onChange={handleExpireDateChange}
             className={`mt-1 block w-full rounded-lg border ${
-              fieldErrors.expire_at ? 'border-red-300' : 'border-gray-300'
+              fieldErrors.expireAt ? 'border-red-300' : 'border-gray-300'
             } px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500`}
           />
-          {fieldErrors.expire_at && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.expire_at}</p>
+          {fieldErrors.expireAt && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.expireAt}</p>
           )}
           <p className="mt-1 text-xs text-gray-500">
             Automatically close this job after this date (must be after publish date)
@@ -117,24 +117,24 @@ export function JobVisibilityStep({
 
         {/* External Apply URL */}
         <div>
-          <label htmlFor="external_apply_url" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="externalApplyUrl" className="block text-sm font-medium text-gray-700">
             External Apply URL (Optional)
           </label>
           <input
             type="url"
-            id="external_apply_url"
-            value={formData.external_apply_url || ''}
+            id="externalApplyUrl"
+            value={formData.externalApplyUrl || ''}
             onChange={(e) => {
-              updateFormData({ external_apply_url: e.target.value });
-              clearFieldError('external_apply_url');
+              updateFormData({ externalApplyUrl: e.target.value });
+              clearFieldError('externalApplyUrl');
             }}
             placeholder="https://example.com/apply"
             className={`mt-1 block w-full rounded-lg border ${
-              fieldErrors.external_apply_url ? 'border-red-300' : 'border-gray-300'
+              fieldErrors.externalApplyUrl ? 'border-red-300' : 'border-gray-300'
             } px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500`}
           />
-          {fieldErrors.external_apply_url && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.external_apply_url}</p>
+          {fieldErrors.externalApplyUrl && (
+            <p className="mt-1 text-sm text-red-600">{fieldErrors.externalApplyUrl}</p>
           )}
           <p className="mt-1 text-xs text-gray-500">
             Redirect applicants to an external application form (e.g., on your company website)

@@ -18,43 +18,26 @@ export const applicationStatusSchema = z.enum([
 export type ApplicationStatus = z.infer<typeof applicationStatusSchema>;
 
 // ============================================================================
-// API Response Schema (snake_case from backend)
+// API Response Schema (camelCase from backend)
 // ============================================================================
 
 /**
  * Application entity as returned by the API
- * Note: Backend uses snake_case for most fields
+ * Backend returns camelCase field names
  */
-const applicationApiResponseSchema = z.object({
+export const applicationSchema = z.object({
   id: z.string().uuid(),
   tenantId: z.string().uuid(),
-  job_id: z.string().uuid(),
-  applicant_name: z.string(),
-  applicant_email: z.string().email(),
-  applicant_phone: z.string(),
-  resume_url: z.string().url(),
-  cover_letter: z.string().nullable(),
+  jobId: z.string().uuid(),
+  applicantName: z.string(),
+  applicantEmail: z.string().email(),
+  applicantPhone: z.string(),
+  resumeUrl: z.string().url(),
+  coverLetter: z.string().nullable(),
   status: applicationStatusSchema,
-  created_at: z.coerce.date(),
-  updated_at: z.coerce.date(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
 });
-
-/**
- * Transform API response to frontend-friendly camelCase
- */
-export const applicationSchema = applicationApiResponseSchema.transform((data) => ({
-  id: data.id,
-  tenantId: data.tenantId,
-  jobId: data.job_id,
-  applicantName: data.applicant_name,
-  applicantEmail: data.applicant_email,
-  applicantPhone: data.applicant_phone,
-  resumeUrl: data.resume_url,
-  coverLetter: data.cover_letter,
-  status: data.status,
-  createdAt: data.created_at,
-  updatedAt: data.updated_at,
-}));
 
 export type Application = z.infer<typeof applicationSchema>;
 

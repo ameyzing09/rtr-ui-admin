@@ -15,6 +15,7 @@ import {
   Activity as ActivityIcon,
   Settings as SettingsIcon,
   GitBranch,
+  Plus,
 } from 'lucide-react';
 import type { Job } from '@/domain/jobs/schemas';
 import { getJobStatusBadge, getJobStatusColor, isJobActive } from '@/domain/jobs/schemas';
@@ -116,13 +117,6 @@ export function JobDetailClient({ job, applications }: JobDetailClientProps) {
                     />
                   </svg>
                   {job.location}
-                </span>
-              )}
-
-              {job.application_count !== undefined && (
-                <span className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  {job.application_count} applicant{job.application_count !== 1 ? 's' : ''}
                 </span>
               )}
             </div>
@@ -273,35 +267,30 @@ function OverviewTab({ job }: { job: Job }) {
           )}
 
           <div>
-            <label className="text-sm font-medium text-gray-500">Status</label>
-            <p className="mt-1 text-sm text-gray-900">{job.status}</p>
-          </div>
-
-          <div>
             <label className="text-sm font-medium text-gray-500">Visibility</label>
-            <p className="mt-1 text-sm text-gray-900">{job.is_public ? 'Public' : 'Private'}</p>
+            <p className="mt-1 text-sm text-gray-900">{job.isPublic ? 'Public' : 'Private'}</p>
           </div>
 
-          {job.publish_at && (
+          {job.publishAt && (
             <div>
               <label className="text-sm font-medium text-gray-500">Publish Date</label>
-              <p className="mt-1 text-sm text-gray-900">{formatDate(job.publish_at)}</p>
+              <p className="mt-1 text-sm text-gray-900">{formatDate(job.publishAt)}</p>
             </div>
           )}
 
-          {job.expire_at && (
+          {job.expireAt && (
             <div>
               <label className="text-sm font-medium text-gray-500">Expiration Date</label>
-              <p className="mt-1 text-sm text-gray-900">{formatDate(job.expire_at)}</p>
+              <p className="mt-1 text-sm text-gray-900">{formatDate(job.expireAt)}</p>
             </div>
           )}
 
-          {job.external_apply_url && (
+          {job.externalApplyUrl && (
             <div className="sm:col-span-2">
               <label className="text-sm font-medium text-gray-500">External Apply URL</label>
               <p className="mt-1 text-sm text-blue-600 hover:underline">
-                <a href={job.external_apply_url} target="_blank" rel="noopener noreferrer">
-                  {job.external_apply_url}
+                <a href={job.externalApplyUrl} target="_blank" rel="noopener noreferrer">
+                  {job.externalApplyUrl}
                 </a>
               </p>
             </div>
@@ -317,45 +306,6 @@ function OverviewTab({ job }: { job: Job }) {
             className="mt-4 prose prose-sm max-w-none text-gray-700"
             dangerouslySetInnerHTML={{ __html: job.description }}
           />
-        </Card>
-      )}
-
-      {/* Requirements Card */}
-      {job.requirements && (
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900">Requirements</h2>
-          <div
-            className="mt-4 prose prose-sm max-w-none text-gray-700"
-            dangerouslySetInnerHTML={{ __html: job.requirements }}
-          />
-        </Card>
-      )}
-
-      {/* Attachments Card */}
-      {job.attachments && job.attachments.length > 0 && (
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900">Attachments</h2>
-          <div className="mt-4 space-y-2">
-            {job.attachments.map((url, index) => (
-              <a
-                key={index}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                Attachment {index + 1}
-              </a>
-            ))}
-          </div>
         </Card>
       )}
     </div>
@@ -509,7 +459,7 @@ function ApplicantsTab({ job, applications }: { job: Job; applications: Applicat
       {/* Modals */}
       {canCreate && (
         <CreateApplicationModal
-          jobs={[{ id: job.id, title: job.title, department: job.department, location: job.location, status: job.status, application_count: applications.length, created_at: job.created_at, updated_at: job.updated_at }]}
+          jobs={[job]}
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => router.refresh()}

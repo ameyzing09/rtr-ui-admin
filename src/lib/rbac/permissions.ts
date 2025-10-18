@@ -97,6 +97,8 @@ export const TENANT_PERMISSIONS = {
   JOB_READ: 'job:read',
   JOB_UPDATE: 'job:update',
   JOB_DELETE: 'job:delete',
+  JOB_PUBLISH: 'job:publish',    // Requires ADMIN or HR role
+  JOB_UNPUBLISH: 'job:unpublish', // Requires ADMIN or HR role
 
   // Applications
   APPLICATION_LIST: 'application:list',
@@ -246,6 +248,8 @@ export const TENANT_ADMIN_PERMISSIONS: Permission[] = [
   TENANT_PERMISSIONS.JOB_READ,
   TENANT_PERMISSIONS.JOB_UPDATE,
   TENANT_PERMISSIONS.JOB_DELETE,
+  TENANT_PERMISSIONS.JOB_PUBLISH,
+  TENANT_PERMISSIONS.JOB_UNPUBLISH,
 
   // Applications - all operations
   TENANT_PERMISSIONS.APPLICATION_LIST,
@@ -298,6 +302,7 @@ export const TENANT_ADMIN_PERMISSIONS: Permission[] = [
 /**
  * HR Role
  * Can manage jobs, applications, pipeline, and members
+ * Includes publish/unpublish permissions per API requirements
  */
 export const HR_PERMISSIONS: Permission[] = [
   TENANT_PERMISSIONS.JOB_LIST,
@@ -305,6 +310,8 @@ export const HR_PERMISSIONS: Permission[] = [
   TENANT_PERMISSIONS.JOB_READ,
   TENANT_PERMISSIONS.JOB_UPDATE,
   TENANT_PERMISSIONS.JOB_DELETE,
+  TENANT_PERMISSIONS.JOB_PUBLISH,
+  TENANT_PERMISSIONS.JOB_UNPUBLISH,
 
   TENANT_PERMISSIONS.APPLICATION_LIST,
   TENANT_PERMISSIONS.APPLICATION_CREATE,

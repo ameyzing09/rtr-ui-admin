@@ -13,9 +13,9 @@ export const metadata = {
  * - Multi-step wizard (4 steps)
  * - Step 1: Basics (title, department, location, openings)
  * - Step 2: Description (rich text, attachments)
- * - Step 3: Visibility (is_public, publish_at, expire_at, external_apply_url)
+ * - Step 3: Visibility (isPublic, publishAt, expireAt, externalApplyUrl)
  * - Step 4: Custom Fields (EPIC E placeholder)
- * - Validation (title required, expire_at > publish_at, URL validation)
+ * - Validation (title required, expireAt > publishAt, URL validation)
  * - On success: toast + redirect to job detail
  */
 export default function CreateJobPage() {

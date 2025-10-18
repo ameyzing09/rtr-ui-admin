@@ -1,5 +1,5 @@
-import { auditLog } from '@/lib/audit/auditLog';
-import type { Session } from '@/domain/auth/schemas';
+import { audit } from '@/lib/audit/log';
+import type { AuthSession } from '@/lib/auth/types';
 import type {
   Application,
   CreateApplicationRequest,
@@ -7,132 +7,82 @@ import type {
   ApplicationStatus,
 } from './schemas';
 
-// ============================================================================
-// Audit Actions
-// ============================================================================
-
 /**
- * Application-related audit actions
- */
-export enum ApplicationAuditAction {
-  LIST = 'APPLICATION_LIST',
-  VIEW = 'APPLICATION_VIEW',
-  CREATE = 'APPLICATION_CREATE',
-  UPDATE = 'APPLICATION_UPDATE',
-  STATUS_CHANGE = 'APPLICATION_STATUS_CHANGE',
-  DELETE = 'APPLICATION_DELETE',
-}
-
-// ============================================================================
-// Audit Functions
-// ============================================================================
-
-/**
- * Audit: List applications
- */
-export async function auditApplicationList(
-  session: Session,
-  count: number,
-  filters?: { jobId?: string }
-): Promise<void> {
-  await auditLog({
-    userId: session.user.id,
-    tenantId: session.tenantId,
-    action: ApplicationAuditAction.LIST,
-    resourceType: 'application',
-    resourceId: null,
-    details: {
-      count,
-      filters,
-    },
-  });
-}
-
-/**
- * Audit: View application
- */
-export async function auditApplicationView(
-  session: Session,
-  application: Application
-): Promise<void> {
-  await auditLog({
-    userId: session.user.id,
-    tenantId: session.tenantId,
-    action: ApplicationAuditAction.VIEW,
-    resourceType: 'application',
-    resourceId: application.id,
-    details: {
-      applicationId: application.id,
-      jobId: application.jobId,
-      applicantName: application.applicantName,
-      status: application.status,
-    },
-  });
-}
-
-/**
- * Audit: Create application
+ * Audit application creation
  */
 export async function auditApplicationCreate(
-  session: Session,
+  session: AuthSession,
   application: Application,
-  requestData: CreateApplicationRequest
+  request: CreateApplicationRequest
 ): Promise<void> {
-  await auditLog({
-    userId: session.user.id,
-    tenantId: session.tenantId,
-    action: ApplicationAuditAction.CREATE,
-    resourceType: 'application',
-    resourceId: application.id,
+  await audit('application.create', {
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    actorRole: session.user.role,
+    tenantId: session.user.tenantId || 'N/A',
+    status: 'success',
+    targetId: application.id,
+    targetType: 'application',
     details: {
       applicationId: application.id,
       jobId: application.jobId,
       applicantName: application.applicantName,
       applicantEmail: application.applicantEmail,
+      applicantPhone: application.applicantPhone,
       status: application.status,
     },
+  }).catch((error) => {
+    console.error('Failed to audit application creation:', error);
   });
 }
 
 /**
- * Audit: Update application
+ * Audit application update
  */
 export async function auditApplicationUpdate(
-  session: Session,
-  application: Application,
-  requestData: UpdateApplicationRequest
+  session: AuthSession,
+  applicationId: string,
+  patch: UpdateApplicationRequest,
+  previousApplication?: Application
 ): Promise<void> {
-  await auditLog({
-    userId: session.user.id,
-    tenantId: session.tenantId,
-    action: ApplicationAuditAction.UPDATE,
-    resourceType: 'application',
-    resourceId: application.id,
+  await audit('application.update', {
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    actorRole: session.user.role,
+    tenantId: session.user.tenantId || 'N/A',
+    status: 'success',
+    targetId: applicationId,
+    targetType: 'application',
     details: {
-      applicationId: application.id,
-      jobId: application.jobId,
-      applicantName: application.applicantName,
-      updates: requestData,
+      applicationId,
+      jobId: previousApplication?.jobId,
+      applicantName: previousApplication?.applicantName,
+      updated_fields: Object.keys(patch),
+      changes: patch,
     },
+  }).catch((error) => {
+    console.error('Failed to audit application update:', error);
   });
 }
 
 /**
- * Audit: Change application status
+ * Audit application status change
  * Special audit for status changes (important business event)
  */
 export async function auditApplicationStatusChange(
-  session: Session,
+  session: AuthSession,
   application: Application,
   oldStatus: ApplicationStatus,
   newStatus: ApplicationStatus
 ): Promise<void> {
-  await auditLog({
-    userId: session.user.id,
-    tenantId: session.tenantId,
-    action: ApplicationAuditAction.STATUS_CHANGE,
-    resourceType: 'application',
-    resourceId: application.id,
+  await audit('application.status_change', {
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    actorRole: session.user.role,
+    tenantId: session.user.tenantId || 'N/A',
+    status: 'success',
+    targetId: application.id,
+    targetType: 'application',
     details: {
       applicationId: application.id,
       jobId: application.jobId,
@@ -141,23 +91,27 @@ export async function auditApplicationStatusChange(
       oldStatus,
       newStatus,
     },
+  }).catch((error) => {
+    console.error('Failed to audit application status change:', error);
   });
 }
 
 /**
- * Audit: Delete application
+ * Audit application deletion
  */
 export async function auditApplicationDelete(
-  session: Session,
+  session: AuthSession,
   applicationId: string,
   application?: Application
 ): Promise<void> {
-  await auditLog({
-    userId: session.user.id,
-    tenantId: session.tenantId,
-    action: ApplicationAuditAction.DELETE,
-    resourceType: 'application',
-    resourceId: applicationId,
+  await audit('application.delete', {
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    actorRole: session.user.role,
+    tenantId: session.user.tenantId || 'N/A',
+    status: 'success',
+    targetId: applicationId,
+    targetType: 'application',
     details: {
       applicationId,
       jobId: application?.jobId,
@@ -165,5 +119,32 @@ export async function auditApplicationDelete(
       applicantEmail: application?.applicantEmail,
       status: application?.status,
     },
+  }).catch((error) => {
+    console.error('Failed to audit application deletion:', error);
+  });
+}
+
+/**
+ * Audit application operation failure
+ */
+export async function auditApplicationError(
+  session: AuthSession,
+  operation: string,
+  error: unknown,
+  details?: Record<string, unknown>
+): Promise<void> {
+  await audit(`application.${operation}.error` as any, {
+    actorId: session.user.id,
+    actorEmail: session.user.email,
+    actorRole: session.user.role,
+    tenantId: session.user.tenantId || 'N/A',
+    status: 'failure',
+    targetType: 'application',
+    details: {
+      error: error instanceof Error ? error.message : String(error),
+      ...details,
+    },
+  }).catch((auditError) => {
+    console.error('Failed to audit application error:', auditError);
   });
 }

@@ -78,9 +78,9 @@ export class JobService {
       if (params.department) queryParams.set('department', params.department);
       if (params.location) queryParams.set('location', params.location);
       if (params.status) queryParams.set('status', params.status);
-      if (params.is_public !== undefined) queryParams.set('is_public', String(params.is_public));
-      if (params.sort_by) queryParams.set('sort_by', params.sort_by);
-      if (params.sort_order) queryParams.set('sort_order', params.sort_order);
+      if (params.isPublic !== undefined) queryParams.set('isPublic', String(params.isPublic));
+      if (params.sortBy) queryParams.set('sortBy', params.sortBy);
+      if (params.sortOrder) queryParams.set('sortOrder', params.sortOrder);
       if (params.page) queryParams.set('page', String(params.page));
       if (params.limit) queryParams.set('limit', String(params.limit));
 
@@ -116,10 +116,8 @@ export class JobService {
       // Transform dates to ISO strings for API
       const apiPayload = {
         ...payload,
-        publish_at: payload.publish_at ? payload.publish_at.toISOString() : null,
-        expire_at: payload.expire_at ? payload.expire_at.toISOString() : null,
-        // Remove client-side only fields
-        openings: undefined,
+        publishAt: payload.publishAt ? payload.publishAt.toISOString() : null,
+        expireAt: payload.expireAt ? payload.expireAt.toISOString() : null,
       };
 
       const response = await fetcher.post(this.baseUrl, apiPayload, jobSchema);
@@ -173,10 +171,9 @@ export class JobService {
       // Transform dates to ISO strings for API
       const apiPatch: Record<string, unknown> = {};
       Object.entries(patch).forEach(([key, value]) => {
-        if (key === 'publish_at' || key === 'expire_at') {
+        if (key === 'publishAt' || key === 'expireAt') {
           apiPatch[key] = value instanceof Date ? value.toISOString() : value;
-        } else if (key !== 'openings') {
-          // Skip client-side only fields
+        } else {
           apiPatch[key] = value;
         }
       });

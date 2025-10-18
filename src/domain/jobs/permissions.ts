@@ -5,6 +5,7 @@ import type { AuthSession } from '@/lib/auth/types';
 
 /**
  * Job permissions from RBAC system
+ * Note: PUBLISH and UNPUBLISH require ADMIN or HR role
  */
 export const JOB_PERMISSIONS = {
   LIST: PERMISSIONS.JOB_LIST,
@@ -12,6 +13,8 @@ export const JOB_PERMISSIONS = {
   READ: PERMISSIONS.JOB_READ,
   UPDATE: PERMISSIONS.JOB_UPDATE,
   DELETE: PERMISSIONS.JOB_DELETE,
+  PUBLISH: PERMISSIONS.JOB_PUBLISH,
+  UNPUBLISH: PERMISSIONS.JOB_UNPUBLISH,
 } as const;
 
 /**
@@ -72,6 +75,24 @@ export async function requireCanDeleteJobs(): Promise<AuthSession> {
 }
 
 /**
+ * Check if user can publish jobs
+ * Requires ADMIN or HR role
+ * @returns The authenticated session
+ */
+export async function requireCanPublishJobs(): Promise<AuthSession> {
+  return requireJobPermission(JOB_PERMISSIONS.PUBLISH);
+}
+
+/**
+ * Check if user can unpublish jobs
+ * Requires ADMIN or HR role
+ * @returns The authenticated session
+ */
+export async function requireCanUnpublishJobs(): Promise<AuthSession> {
+  return requireJobPermission(JOB_PERMISSIONS.UNPUBLISH);
+}
+
+/**
  * Check if user can manage jobs (create, update, delete)
  * @returns The authenticated session
  */
@@ -85,6 +106,25 @@ export async function requireCanManageJobs(): Promise<AuthSession> {
 
   if (!canManage) {
     throw new Error('Missing required permissions to manage jobs');
+  }
+
+  return session;
+}
+
+/**
+ * Check if user can manage job publishing (publish/unpublish)
+ * Requires ADMIN or HR role
+ * @returns The authenticated session
+ */
+export async function requireCanManageJobPublishing(): Promise<AuthSession> {
+  const session = await requireAuth();
+
+  const canManagePublishing =
+    can(session.user.permissions, JOB_PERMISSIONS.PUBLISH) &&
+    can(session.user.permissions, JOB_PERMISSIONS.UNPUBLISH);
+
+  if (!canManagePublishing) {
+    throw new Error('Missing required permissions to publish/unpublish jobs');
   }
 
   return session;
