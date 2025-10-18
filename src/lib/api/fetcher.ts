@@ -286,6 +286,16 @@ class Fetcher {
     delete this.defaultHeaders['X-Tenant-ID'];
   }
 
+  // Get all default headers (for internal use)
+  getHeaders(): Record<string, string> {
+    return { ...this.defaultHeaders };
+  }
+
+  // Get a specific header value
+  getHeader(name: string): string | undefined {
+    return this.defaultHeaders[name];
+  }
+
   // Update headers
   updateHeaders(headers: Record<string, string>) {
     this.defaultHeaders = { ...this.defaultHeaders, ...headers };
@@ -296,6 +306,7 @@ class Fetcher {
 export const fetcher = new Fetcher();
 
 // Create authenticated fetcher with token
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function createAuthenticatedFetcher(token: string, tenantId?: string): Fetcher {
   const authFetcher = new Fetcher();
   authFetcher.setAuthToken(token);
@@ -312,7 +323,7 @@ export function createAuthenticatedFetcher(token: string, tenantId?: string): Fe
  * @returns true if Authorization header is set with Bearer token
  */
 export function hasValidToken(): boolean {
-  return fetcher['defaultHeaders'].Authorization?.startsWith('Bearer ') ?? false;
+  return fetcher.getHeader('Authorization')?.startsWith('Bearer ') ?? false;
 }
 
 /**
@@ -320,7 +331,7 @@ export function hasValidToken(): boolean {
  * @returns JWT token string or null if not set
  */
 export function getToken(): string | null {
-  const authHeader = fetcher['defaultHeaders'].Authorization;
+  const authHeader = fetcher.getHeader('Authorization');
   if (!authHeader?.startsWith('Bearer ')) return null;
   return authHeader.substring(7); // Remove 'Bearer ' prefix
 }
