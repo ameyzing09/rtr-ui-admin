@@ -15,6 +15,17 @@
  * Used by superadmins to manage the platform itself
  */
 export const PLATFORM_PERMISSIONS = {
+  // Platform Overview & Operations
+  PLATFORM_OVERVIEW_VIEW: 'platform:overview:view',
+  PLATFORM_OPS_VIEW: 'platform:ops:view',
+  PLATFORM_SETTINGS_MANAGE: 'platform:settings:manage',
+  PLATFORM_TENANTS_MANAGE: 'platform:tenants:manage',
+  PLATFORM_USERS_MANAGE: 'platform:users:manage',
+  PLATFORM_HEALTH_VIEW: 'platform:health:view',
+  PLATFORM_OBSERVABILITY_VIEW: 'platform:observability:view',
+  PLATFORM_EXPERIMENTS_VIEW: 'platform:experiments:view',
+  PLATFORM_CATALOG_MANAGE: 'platform:catalog:manage',
+
   // Tenant Management
   TENANT_LIST: 'tenant:list',
   TENANT_CREATE: 'tenant:create',
@@ -153,6 +164,17 @@ export type Permission = typeof PERMISSIONS[keyof typeof PERMISSIONS];
  * Has all platform permissions, no tenant permissions by default
  */
 export const SUPERADMIN_PERMISSIONS: Permission[] = [
+  // Platform Overview & Operations
+  PERMISSIONS.PLATFORM_OVERVIEW_VIEW,
+  PERMISSIONS.PLATFORM_OPS_VIEW,
+  PERMISSIONS.PLATFORM_SETTINGS_MANAGE,
+  PERMISSIONS.PLATFORM_TENANTS_MANAGE,
+  PERMISSIONS.PLATFORM_USERS_MANAGE,
+  PERMISSIONS.PLATFORM_HEALTH_VIEW,
+  PERMISSIONS.PLATFORM_OBSERVABILITY_VIEW,
+  PERMISSIONS.PLATFORM_EXPERIMENTS_VIEW,
+  PERMISSIONS.PLATFORM_CATALOG_MANAGE,
+
   // Tenant Management
   PERMISSIONS.TENANT_LIST,
   PERMISSIONS.TENANT_CREATE,
@@ -448,7 +470,8 @@ export function isPlatformPermission(permission: Permission): boolean {
     return PLATFORM_SETTINGS.includes(permission);
   }
 
-  return permission.startsWith('tenant:') ||
+  return permission.startsWith('platform:') ||
+         permission.startsWith('tenant:') ||
          permission.startsWith('sys:') ||
          permission === 'analytics:read';
 }
