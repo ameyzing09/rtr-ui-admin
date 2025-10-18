@@ -177,7 +177,8 @@ export const authHelpers = {
     const now = Date.now();
     const expiryTime = session.expiresAt.getTime();
     const threshold = thresholdMinutes * 60 * 1000;
-    return (expiryTime - now) < threshold && (expiryTime - now) > 0;
+    const timeToExpiry = expiryTime - now;
+    return timeToExpiry < threshold && timeToExpiry > 0;
   },
 
   /**
