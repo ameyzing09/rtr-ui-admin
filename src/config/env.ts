@@ -58,6 +58,7 @@ const envSchema = z.object({
   // Tenant Configuration
   NEXT_PUBLIC_DEFAULT_TENANT: z.string().default('default'),
   NEXT_PUBLIC_TENANT_ID: z.string().optional(),
+  NEXT_PUBLIC_TENANT_SUBDOMAIN: z.string().optional(), // For public career site (optional, defaults to TENANT_ID)
   NEXT_PUBLIC_TENANT_DOMAIN: z.string().optional(),
   NEXT_PUBLIC_MULTI_TENANT_MODE: z.string().default('false').transform(val => val === 'true'),
   NEXT_PUBLIC_LOCAL_MODE: z.string().default('false').transform(val => val === 'true'),
@@ -117,6 +118,21 @@ export function getLocalTenantId(): string | undefined {
 
   if (isLocalEnv && process.env.NEXT_PUBLIC_TENANT_ID) {
     return process.env.NEXT_PUBLIC_TENANT_ID;
+  }
+
+  return undefined;
+}
+
+// Get local tenant subdomain for development mode (public career site)
+// This provides the subdomain for Host header in public API requests
+// Falls back to TENANT_ID if TENANT_SUBDOMAIN is not explicitly set
+// In production, subdomain is extracted from actual hostname
+export function getLocalTenantSubdomain(): string | undefined {
+  const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
+
+  if (isLocalEnv) {
+    // Prefer explicit subdomain, fall back to tenant ID
+    return process.env.NEXT_PUBLIC_TENANT_SUBDOMAIN || process.env.NEXT_PUBLIC_TENANT_ID;
   }
 
   return undefined;
