@@ -88,11 +88,8 @@ export class AuthClient {
 
     console.log('Login successful, processing response');
 
-    // Store the token for future API calls (sessionStorage for better XSS protection)
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('auth_token', response.Token);
-      sessionStorage.setItem('authToken', response.Token); // Backup key
-    }
+    // Token is managed by AuthProvider (stored in session state and sessionStorage)
+    // No need to store separately here
 
     const session = mapSession(response);
 
@@ -128,13 +125,8 @@ export class AuthClient {
     } catch (error) {
       console.error('Logout failed:', error);
       // Even if logout fails on server, we should clear local state
-    } finally {
-      // Always clear tokens from session storage
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem('auth_token');
-        sessionStorage.removeItem('authToken');
-      }
     }
+    // Note: Token cleanup is handled by AuthProvider
   }
 }
 
@@ -172,5 +164,38 @@ export const authHelpers = {
 
   getSessionTimeRemaining(session: AuthSession): number {
     return Math.max(0, session.expiresAt.getTime() - Date.now());
+  },
+
+  /**
+   * Check if the token is expiring soon (within threshold)
+   * Useful for proactive token refresh or warning users
+   * @param session - Current auth session
+   * @param thresholdMinutes - Minutes before expiration to consider "expiring soon" (default: 5)
+   * @returns true if token expires within the threshold
+   */
+  isTokenExpiringSoon(session: AuthSession, thresholdMinutes = 5): boolean {
+    const now = Date.now();
+    const expiryTime = session.expiresAt.getTime();
+    const threshold = thresholdMinutes * 60 * 1000;
+    return (expiryTime - now) < threshold && (expiryTime - now) > 0;
+  },
+
+  /**
+   * Get human-readable time remaining until token expiration
+   * @param session - Current auth session
+   * @returns String like "5 minutes" or "2 hours"
+   */
+  getTimeRemainingDisplay(session: AuthSession): string {
+    const ms = this.getSessionTimeRemaining(session);
+    if (ms <= 0) return 'Expired';
+
+    const minutes = Math.floor(ms / (60 * 1000));
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''}`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? 's' : ''}`;
+    return 'Less than a minute';
   },
 };

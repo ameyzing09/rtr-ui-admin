@@ -111,6 +111,18 @@ class Fetcher {
       }
     }
 
+    // Verification logging (development only)
+    if (env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      const hasAuth = requestHeaders.Authorization?.startsWith('Bearer ');
+      const hasTenantId = !!requestHeaders['X-Tenant-ID'];
+      console.log(`[Fetcher] ${method} ${endpoint}`, {
+        hasAuthToken: hasAuth,
+        authTokenPreview: hasAuth ? requestHeaders.Authorization?.substring(0, 20) + '...' : 'MISSING',
+        hasTenantId,
+        tenantId: requestHeaders['X-Tenant-ID'] || 'N/A',
+      });
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
     try {
@@ -292,5 +304,32 @@ export function createAuthenticatedFetcher(token: string, tenantId?: string): Fe
   // tenantId parameter is kept for backwards compatibility but not used
 
   return authFetcher;
+}
+
+// Token availability helpers
+/**
+ * Check if a valid JWT token is set on the default fetcher instance
+ * @returns true if Authorization header is set with Bearer token
+ */
+export function hasValidToken(): boolean {
+  return fetcher['defaultHeaders'].Authorization?.startsWith('Bearer ') ?? false;
+}
+
+/**
+ * Get the current JWT token from the default fetcher instance
+ * @returns JWT token string or null if not set
+ */
+export function getToken(): string | null {
+  const authHeader = fetcher['defaultHeaders'].Authorization;
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  return authHeader.substring(7); // Remove 'Bearer ' prefix
+}
+
+/**
+ * Check if the fetcher is configured for authenticated requests
+ * Useful for protecting service calls that require authentication
+ */
+export function isAuthenticated(): boolean {
+  return hasValidToken();
 }
 
