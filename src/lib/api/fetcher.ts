@@ -319,10 +319,13 @@ export function createAuthenticatedFetcher(token: string, tenantId?: string): Fe
 
 // Token availability helpers
 /**
- * Check if a valid JWT token is set on the default fetcher instance
- * @returns true if Authorization header is set with Bearer token
+ * Check if an Authorization header with Bearer token is set on the default fetcher instance
+ * Note: This only checks for the presence of the Authorization header with 'Bearer ' prefix.
+ * It does NOT validate JWT structure, signature, or expiration.
+ * For full JWT validation, use the backend or a dedicated JWT validation library.
+ * @returns true if Authorization header with 'Bearer ' prefix is set
  */
-export function hasValidToken(): boolean {
+export function hasBearerToken(): boolean {
   return fetcher.getHeader('Authorization')?.startsWith('Bearer ') ?? false;
 }
 
@@ -339,8 +342,9 @@ export function getToken(): string | null {
 /**
  * Check if the fetcher is configured for authenticated requests
  * Useful for protecting service calls that require authentication
+ * Note: This only checks if a Bearer token header is present, not if it's valid
  */
 export function isAuthenticated(): boolean {
-  return hasValidToken();
+  return hasBearerToken();
 }
 
