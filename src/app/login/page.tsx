@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Mail, Lock, ArrowLeft } from 'lucide-react';
 import Input from '@/components/atoms/Input';
 import Button from '@/components/atoms/Button';
@@ -24,7 +23,6 @@ const loginModes: { id: LoginAudience; title: string; description: string }[] = 
 ];
 
 export default function LoginPage() {
-  const router = useRouter();
   const { login, isAuthenticated, isLoading, error } = useAuth();
   const [audience, setAudience] = React.useState<LoginAudience>('tenant');
   const [email, setEmail] = React.useState('');
@@ -43,8 +41,10 @@ export default function LoginPage() {
 
     try {
       await login({ email, password, rememberMe, audience });
-      // All users redirect to /dashboard, which shows role-appropriate content
-      router.replace('/dashboard');
+      // AuthProvider handles redirects:
+      // - If mustChangePassword = true → redirects to /change-password
+      // - If mustChangePassword = false → redirects to /dashboard
+      // No redirect needed here
     } catch (cause) {
       if (cause instanceof Error && cause.message) {
         setFormError(cause.message);

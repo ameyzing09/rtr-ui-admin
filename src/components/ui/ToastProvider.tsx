@@ -90,6 +90,14 @@ export function ToastProvider({ children, maxToasts = 5 }: ToastProviderProps) {
     }
   }, [maxToasts, removeToast]);
 
+  // Register global toast function
+  React.useEffect(() => {
+    registerGlobalToast(addToast);
+    return () => {
+      registerGlobalToast(() => {});
+    };
+  }, [addToast]);
+
   return (
     <ToastContext.Provider value={{ addToast, removeToast, toasts }}>
       {children}
@@ -113,7 +121,7 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-4 left-4 right-4 lg:left-auto lg:right-4 z-[100] flex flex-col gap-2 pointer-events-none">
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
@@ -164,7 +172,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
         damping: 30,
       }}
       className={`
-        pointer-events-auto w-96 max-w-sm border rounded-lg shadow-lg p-4
+        pointer-events-auto w-full sm:w-96 border rounded-lg shadow-lg p-4
         ${colors[toast.type]}
       `}
     >
@@ -212,4 +220,48 @@ export function useToastMessages() {
     warning: (title: string, description?: string) =>
       addToast({ type: 'warning', title, description }),
   };
+}
+
+// Singleton toast manager for imperative API
+let globalAddToast: ((toast: Omit<Toast, 'id'>) => void) | null = null;
+
+export function registerGlobalToast(addToast: (toast: Omit<Toast, 'id'>) => void) {
+  globalAddToast = addToast;
+}
+
+/**
+ * Standalone toast function for use outside of React components
+ * or when hooks are not available
+ *
+ * @example
+ * ```ts
+ * import { toast } from '@/components/ui/ToastProvider';
+ *
+ * toast({
+ *   title: 'Success!',
+ *   description: 'Job created successfully',
+ *   variant: 'success',
+ * });
+ * ```
+ */
+export function toast(options: {
+  title: string;
+  description?: string;
+  variant?: ToastType;
+  duration?: number;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+}) {
+  if (!globalAddToast) {
+    console.warn('Toast system not initialized. Make sure ToastProvider is mounted.');
+    return;
+  }
+
+  const { variant = 'info', ...rest } = options;
+  globalAddToast({
+    type: variant,
+    ...rest,
+  });
 }

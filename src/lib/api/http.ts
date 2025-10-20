@@ -61,7 +61,12 @@ export class HttpClient {
   private credentials: RequestCredentials;
 
   constructor(config: HttpConfig = {}) {
-    this.baseUrl = config.baseUrl || env.NEXT_PUBLIC_API_BASE_URL || '';
+    // Default to Job-Application service (most common usage)
+    // Falls back to deprecated env vars for backward compatibility
+    this.baseUrl = config.baseUrl ||
+                   env.NEXT_PUBLIC_JOB_API_BASE_URL ||
+                   env.NEXT_PUBLIC_API_BASE_URL ||
+                   '';
     this.timeout = config.timeout || TIMEOUTS.API_REQUEST;
     this.defaultHeaders = {
       'Content-Type': 'application/json',

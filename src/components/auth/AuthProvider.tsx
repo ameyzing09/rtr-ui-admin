@@ -11,6 +11,7 @@ import {
 import type { ReactNode } from 'react';
 import { authClient } from '@/lib/api/authClient';
 import { fetcher } from '@/lib/api/fetcher';
+import { useRouter } from 'next/navigation';
 import { getLocalTenantId } from '@/config/env';
 import type {
   AuthSession,
@@ -41,6 +42,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const STORAGE_KEY = 'rtr-admin-session';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -134,6 +136,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error('Failed to set session cookie:', error);
           // Don't fail login if cookie setting fails
         }
+
+        // If user must change password, redirect to change password page
+        if (nextSession.user.mustChangePassword) {
+          setIsLoading(false);
+          router.replace('/change-password');
+          return;
+        }
+
+        // Otherwise, redirect to dashboard
+        setIsLoading(false);
+        router.replace('/dashboard');
+        return;
       }
     } catch (cause) {
       let message = 'Unable to sign in. Please check your credentials.';
@@ -145,18 +159,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
   const logout = useCallback(async () => {
     try {
       // Only call logout API if we have a valid session
-      if (session?.user) {
+      if (session?.user && session?.token) {
         // Determine audience based on current role
         const audience = session.user.role === 'SUPERADMIN' ? 'platform' : 'tenant';
 
-        // Call backend logout API
-        // Tenant context is automatically derived from JWT by backend
-        await authClient.logout({ audience, tenantId: session.user.tenantId });
+        // Call backend logout API with authentication token
+        // The token is required for the backend to authenticate the logout request
+        await authClient.logout({
+          audience,
+          tenantId: session.user.tenantId,
+          token: session.token,
+        });
 
         // Audit successful logout
         audit('auth.logout', {

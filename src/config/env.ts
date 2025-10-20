@@ -37,9 +37,17 @@ const envSchema = z.object({
   NEXT_PUBLIC_ENABLE_DEV_TOOLS: z.string().default('false').transform(val => val === 'true'),
   NEXT_PUBLIC_USE_MOCK_DATA: z.string().default('false').transform(val => val === 'true'),
   
-  // API Configuration
-  NEXT_PUBLIC_API_BASE_URL: z.string().url().default('http://localhost:8082'),
+  // API Configuration - Microservices
+  // Job-Application service (client + server)
+  NEXT_PUBLIC_JOB_API_BASE_URL: z.string().url().optional(),
+  // User-Auth service (client + server) - needed for browser login + server tenant ops
+  NEXT_PUBLIC_USER_AUTH_API_BASE_URL: z.string().url().optional(),
+
+  // Deprecated: Use NEXT_PUBLIC_JOB_API_BASE_URL and NEXT_PUBLIC_USER_AUTH_API_BASE_URL instead
+  NEXT_PUBLIC_API_BASE_URL: z.string().url().optional(),
   AUTH_API_BASE: z.string().url().optional(),
+  USER_AUTH_API_BASE_URL: z.string().url().optional(),
+
   API_SECRET_KEY: z.string().optional(),
   
   // Authentication
@@ -58,6 +66,7 @@ const envSchema = z.object({
   // Tenant Configuration
   NEXT_PUBLIC_DEFAULT_TENANT: z.string().default('default'),
   NEXT_PUBLIC_TENANT_ID: z.string().optional(),
+  NEXT_PUBLIC_TENANT_SUBDOMAIN: z.string().optional(), // For public career site (optional, defaults to TENANT_ID)
   NEXT_PUBLIC_TENANT_DOMAIN: z.string().optional(),
   NEXT_PUBLIC_MULTI_TENANT_MODE: z.string().default('false').transform(val => val === 'true'),
   NEXT_PUBLIC_LOCAL_MODE: z.string().default('false').transform(val => val === 'true'),
@@ -117,6 +126,21 @@ export function getLocalTenantId(): string | undefined {
 
   if (isLocalEnv && process.env.NEXT_PUBLIC_TENANT_ID) {
     return process.env.NEXT_PUBLIC_TENANT_ID;
+  }
+
+  return undefined;
+}
+
+// Get local tenant subdomain for development mode (public career site)
+// This provides the subdomain for Host header in public API requests
+// Falls back to TENANT_ID if TENANT_SUBDOMAIN is not explicitly set
+// In production, subdomain is extracted from actual hostname
+export function getLocalTenantSubdomain(): string | undefined {
+  const isLocalEnv = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true' || process.env.NODE_ENV === 'development';
+
+  if (isLocalEnv) {
+    // Prefer explicit subdomain, fall back to tenant ID
+    return process.env.NEXT_PUBLIC_TENANT_SUBDOMAIN || process.env.NEXT_PUBLIC_TENANT_ID;
   }
 
   return undefined;

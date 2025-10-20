@@ -1,6 +1,6 @@
 'use server';
 
-import { requireSuperadmin } from '@/lib/rbac/guard';
+import { requireSuperadmin } from '@/lib/rbac/guard.server';
 import { tenantService, TenantApiError } from '@/domain/tenants/service';
 import type {
   CreateTenantRequest,
@@ -47,6 +47,11 @@ export async function createTenantAction(
       data: tenant
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Create tenant action failed:', error);
     return {
       success: false,
@@ -72,6 +77,11 @@ export async function listTenantsAction(
       data: tenants
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('❌ List tenants action failed:', error);
     return {
       success: false,
@@ -95,6 +105,11 @@ export async function getTenantStatusAction(
       data: status
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Get tenant status action failed:', error);
     return {
       success: false,
@@ -118,6 +133,11 @@ export async function getTenantAction(
       data: tenant
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Get tenant action failed:', error);
     return {
       success: false,
@@ -142,6 +162,11 @@ export async function updateTenantAction(
       data: tenant
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Update tenant action failed:', error);
     return {
       success: false,
@@ -165,6 +190,11 @@ export async function deleteTenantAction(
       data: result
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Delete tenant action failed:', error);
     return {
       success: false,
@@ -188,6 +218,11 @@ export async function retryTenantAction(
       data: result
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Retry tenant action failed:', error);
     return {
       success: false,
@@ -215,6 +250,11 @@ export async function getSubscriptionAction(
       data: subscription
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Get subscription action failed:', error);
     return {
       success: false,
@@ -238,6 +278,11 @@ export async function activateSubscriptionAction(
       data: subscription
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Activate subscription action failed:', error);
     return {
       success: false,
@@ -261,6 +306,11 @@ export async function suspendSubscriptionAction(
       data: subscription
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Suspend subscription action failed:', error);
     return {
       success: false,
@@ -284,6 +334,11 @@ export async function resumeSubscriptionAction(
       data: subscription
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Resume subscription action failed:', error);
     return {
       success: false,
@@ -307,6 +362,11 @@ export async function cancelSubscriptionAction(
       data: subscription
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('Cancel subscription action failed:', error);
     return {
       success: false,

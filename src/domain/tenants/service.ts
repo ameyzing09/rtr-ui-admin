@@ -46,11 +46,18 @@ export class TenantService {
   private readonly baseUrl: string;
 
   constructor() {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    // Use NEXT_PUBLIC_USER_AUTH_API_BASE_URL for tenant/auth operations
+    // This is accessible on both server and client (though TenantService is server-only)
+    // Fallback to deprecated env vars for backward compatibility
+    const apiBaseUrl =
+      process.env.NEXT_PUBLIC_USER_AUTH_API_BASE_URL ||
+      process.env.USER_AUTH_API_BASE_URL ||
+      process.env.AUTH_API_BASE ||
+      process.env.NEXT_PUBLIC_API_BASE_URL;
 
     if (!apiBaseUrl) {
       throw new Error(
-        'NEXT_PUBLIC_API_BASE_URL environment variable is required. ' +
+        'NEXT_PUBLIC_USER_AUTH_API_BASE_URL environment variable is required. ' +
         'Set it in .env.local for development or configure it in your deployment environment.'
       );
     }

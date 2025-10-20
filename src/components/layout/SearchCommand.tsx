@@ -11,7 +11,6 @@ interface SearchCommandProps {
 
 export default function SearchCommand({
   variant = 'navbar',
-  placeholder = 'Search...'
 }: SearchCommandProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');

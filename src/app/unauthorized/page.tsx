@@ -1,18 +1,22 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldAlert, ArrowLeft, LogOut } from 'lucide-react';
 import Button from '@/components/atoms/Button';
 import { useAuth } from '@/components/auth';
 
-export default function UnauthorizedPage() {
+function UnauthorizedPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { logout, user } = useAuth();
+  const [reason, setReason] = useState<string>('unknown');
+  const [required, setRequired] = useState<string | null>(null);
 
-  const reason = searchParams.get('reason') || 'unknown';
-  const required = searchParams.get('required');
+  useEffect(() => {
+    setReason(searchParams.get('reason') || 'unknown');
+    setRequired(searchParams.get('required'));
+  }, [searchParams]);
 
   const getMessage = () => {
     switch (reason) {
@@ -125,5 +129,13 @@ export default function UnauthorizedPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function UnauthorizedPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <UnauthorizedPageContent />
+    </Suspense>
   );
 }

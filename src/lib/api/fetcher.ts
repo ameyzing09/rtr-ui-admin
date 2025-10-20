@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { env, getLocalTenantId } from '@/config/env';
 import { getOrCreateCsrfToken, CSRF_CONFIG } from '@/lib/security/csrf';
+import { extractTenantIdFromToken } from '@/lib/utils/jwt';
 
 // API Response base + schemas
 export const baseApiEnvelopeSchema = z.object({
@@ -70,13 +71,16 @@ export interface FetcherConfig {
   timeout?: number;
 }
 
-class Fetcher {
+export class Fetcher {
   private baseUrl: string;
   private defaultHeaders: Record<string, string>;
   private timeout: number;
 
   constructor(config: FetcherConfig = {}) {
-    this.baseUrl = config.baseUrl || env.NEXT_PUBLIC_API_BASE_URL || '';
+    // Use NEXT_PUBLIC_JOB_API_BASE_URL for job-application service
+    // Fallback to NEXT_PUBLIC_API_BASE_URL for backward compatibility
+    console.log('Initializing Fetcher with config:', config);
+    this.baseUrl = config.baseUrl || env.NEXT_PUBLIC_JOB_API_BASE_URL || env.NEXT_PUBLIC_API_BASE_URL || '';
     this.defaultHeaders = {
       'Content-Type': 'application/json',
       ...config.defaultHeaders,
@@ -145,13 +149,43 @@ class Fetcher {
           errorData = { message: `HTTP ${response.status}: ${response.statusText}` };
         }
 
-        const parsedError = apiErrorSchema.safeParse(errorData);
-        const error = parsedError.success ? parsedError.data : { message: `HTTP ${response.status}` };
+        // Handle backend validation errors where message is an array
+        // e.g., { statusCode: 400, message: ["error1", "error2"], error: "Bad Request" }
+        let errorMessage: string;
+        let errorDetails: Record<string, unknown> | undefined;
+
+        if (typeof errorData === 'object' && errorData !== null && 'message' in errorData) {
+          if (Array.isArray(errorData.message)) {
+            // Backend validation errors - message is an array
+            errorMessage = errorData.message.join(', ') || `HTTP ${response.status}`;
+            errorDetails = { message: errorData.message };
+
+            // Also include any other fields from errorData
+            Object.keys(errorData).forEach((key) => {
+              if (key !== 'message' && errorData && typeof errorData === 'object' && key in errorData) {
+                if (!errorDetails) errorDetails = {};
+                errorDetails[key] = (errorData as Record<string, unknown>)[key];
+              }
+            });
+          } else {
+            // Standard error format
+            const parsedError = apiErrorSchema.safeParse(errorData);
+            const error = parsedError.success ? parsedError.data : { message: `HTTP ${response.status}` };
+            errorMessage = error.message || `HTTP ${response.status}`;
+            errorDetails = 'details' in error ? error.details : undefined;
+          }
+        } else {
+          errorMessage = `HTTP ${response.status}`;
+        }
+
+        const errorCode = typeof errorData === 'object' && errorData !== null && 'code' in errorData
+          ? (errorData.code as string)
+          : undefined;
 
         throw new ApiException(
-          error.message || `HTTP ${response.status}`,
-          'code' in error ? error.code : undefined,
-          'details' in error ? error.details : undefined,
+          errorMessage,
+          errorCode,
+          errorDetails,
           response.status
         );
       }
@@ -276,8 +310,8 @@ class Fetcher {
     delete this.defaultHeaders.Authorization;
   }
 
-  // Note: Tenant ID in headers is deprecated
-  // Tenant context is now derived from JWT by backend
+  // Set tenant ID in X-Tenant-ID header
+  // Automatically used by createAuthenticatedFetcher() which extracts it from JWT
   setTenantId(tenantId: string) {
     this.defaultHeaders['X-Tenant-ID'] = tenantId;
   }
@@ -306,13 +340,19 @@ class Fetcher {
 export const fetcher = new Fetcher();
 
 // Create authenticated fetcher with token
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function createAuthenticatedFetcher(token: string, tenantId?: string): Fetcher {
-  const authFetcher = new Fetcher();
+export function createAuthenticatedFetcher(token: string, config?: FetcherConfig): Fetcher {
+  const authFetcher = new Fetcher(config);
   authFetcher.setAuthToken(token);
 
-  // Note: Tenant context is automatically derived from JWT by backend
-  // tenantId parameter is kept for backwards compatibility but not used
+  // Automatically extract and set tenantId from JWT token
+  // This ensures X-Tenant-ID header is included with all requests
+  const extractedTenantId = extractTenantIdFromToken(token);
+  if (extractedTenantId) {
+    authFetcher.setTenantId(extractedTenantId);
+    console.log('[createAuthenticatedFetcher] Automatically set X-Tenant-ID header from token');
+  } else {
+    console.warn('[createAuthenticatedFetcher] Could not extract tenantId from token');
+  }
 
   return authFetcher;
 }

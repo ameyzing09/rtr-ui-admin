@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { fetcher } from './fetcher';
+import { Fetcher } from './fetcher';
 import { env } from '@/config/env';
 import type { AuthSession, AuthUser, LoginCredentials, LoginAudience } from '@/lib/auth/types';
 import type { Permission } from '@/lib/rbac/permissions';
@@ -11,8 +11,8 @@ const apiUserSchema = z.object({
   Name: z.string(),
   Email: z.string().email(),
   Role: z.enum(['SUPERADMIN', 'ADMIN', 'HR', 'INTERVIEWER', 'CANDIDATE']),
-  MustChangePassword: z.boolean().default(false),
-  Permissions: z.array(z.string()).default([]), // Backend sends permissions array
+  ForcePasswordReset: z.boolean().default(false),
+  Permissions: z.array(z.string()).default([]),
 });
 
 // Branding schema for both tenant and platform branding
@@ -46,8 +46,8 @@ function mapUser(user: LoginApiResponse['User']): AuthUser {
     name: user.Name,
     email: user.Email,
     role: user.Role,
-    mustChangePassword: user.MustChangePassword ?? false,
-    permissions: (user.Permissions || []) as Permission[], // Use permissions from backend JWT
+    mustChangePassword: user.ForcePasswordReset ?? false,
+    permissions: (user.Permissions || []) as Permission[],
   };
 }
 
@@ -64,20 +64,25 @@ function mapSession(payload: LoginApiResponse): AuthSession {
 }
 
 export class AuthClient {
-  private baseUrl: string;
+  private fetcher: Fetcher;
 
   constructor() {
-    this.baseUrl = env.NEXT_PUBLIC_API_BASE_URL;
+    // Create dedicated fetcher for User-Auth service
+    // NEXT_PUBLIC_ prefix allows browser access (needed for login forms)
+    const baseUrl = env.NEXT_PUBLIC_USER_AUTH_API_BASE_URL ||
+                    process.env.USER_AUTH_API_BASE_URL ||
+                    process.env.AUTH_API_BASE ||
+                    env.NEXT_PUBLIC_API_BASE_URL ||
+                    'http://localhost:8082';
+
+    this.fetcher = new Fetcher({ baseUrl });
   }
 
   async login(credentials: LoginCredentials): Promise<AuthSession> {
     const { audience = 'tenant', email, password } = credentials;
-    console.log('AuthClient.login called with:', credentials);
     const endpoint = audience === 'platform' ? '/admin/login' : '/login';
 
-    console.log(`Attempting login to ${this.baseUrl}${endpoint} for ${email} (audience: ${audience})`);
-
-    const response = await fetcher.post(
+    const response = await this.fetcher.post(
       endpoint,
       {
         email,
@@ -86,10 +91,11 @@ export class AuthClient {
       loginResponseSchema,
     );
 
-    console.log('Login successful, processing response');
-
-    // Token is managed by AuthProvider (stored in session state and sessionStorage)
-    // No need to store separately here
+    // Store the token for future API calls (sessionStorage for better XSS protection)
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('auth_token', response.Token);
+      sessionStorage.setItem('authToken', response.Token); // Backup key
+    }
 
     const session = mapSession(response);
 
@@ -112,15 +118,21 @@ export class AuthClient {
     return session;
   }
 
-  async logout(options: { audience: LoginAudience; tenantId?: string }): Promise<void> {
+  async logout(options: { audience: LoginAudience; tenantId?: string; token?: string }): Promise<void> {
     const endpoint = options.audience === 'platform' ? '/admin/logout' : '/logout';
 
-    console.log(`Attempting logout to ${this.baseUrl}${endpoint}`);
+    console.log(`Attempting logout to endpoint: ${endpoint}`);
 
     try {
+      // Set Authorization header if token is provided
+      // This is required for the backend to authenticate the logout request
+      if (options.token) {
+        this.fetcher.setAuthToken(options.token);
+      }
+
       // Tenant context is automatically derived from JWT by backend
       // No need to set/remove tenant headers
-      await fetcher.post(endpoint);
+      await this.fetcher.post(endpoint);
       console.log('Logout successful');
     } catch (error) {
       console.error('Logout failed:', error);
