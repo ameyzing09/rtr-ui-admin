@@ -2,10 +2,10 @@
 
 import { useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import 'react-quill/dist/quill.snow.css';
+import 'react-quill-new/dist/quill.snow.css';
 
 // Dynamically import ReactQuill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quill'), {
+const ReactQuill = dynamic(() => import('react-quill-new'), {
   ssr: false,
   loading: () => (
     <div className="h-64 w-full animate-pulse rounded-lg border border-gray-300 bg-gray-100" />
@@ -55,7 +55,6 @@ export function RichTextEditor({
     'underline',
     'strike',
     'list',
-    'bullet',
     'indent',
     'link',
     'image',

@@ -3,18 +3,19 @@ import Link from 'next/link';
 import { ArrowLeft, MapPin, Briefcase, Calendar } from 'lucide-react';
 import { publicJobService } from '@/domain/public/service';
 import { formatPublishDate } from '@/domain/public/schemas';
-import { Card } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 import { PublicApplicationForm } from '@/components/public/PublicApplicationForm';
 
 interface JobDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function generateMetadata({ params }: JobDetailPageProps) {
   try {
-    const job = await publicJobService.getJob(params.id);
+    const { id } = await params;
+    const job = await publicJobService.getJob(id);
     return {
       title: `${job.title} - Careers`,
       description: job.description?.substring(0, 160) || `Apply for ${job.title} position`,
@@ -38,7 +39,8 @@ export async function generateMetadata({ params }: JobDetailPageProps) {
  */
 export default async function JobDetailPage({ params }: JobDetailPageProps) {
   try {
-    const job = await publicJobService.getJob(params.id);
+    const { id } = await params;
+    const job = await publicJobService.getJob(id);
 
     return (
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">

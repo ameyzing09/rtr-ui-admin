@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Search, MapPin, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PublicJobsResponse } from '@/domain/public/schemas';
 import { formatPublishDate, calculateTotalPages } from '@/domain/public/schemas';
-import { Card } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 
 interface PublicJobsListClientProps {
   initialData: PublicJobsResponse;
@@ -36,11 +36,11 @@ export function PublicJobsListClient({
 
   // Extract unique departments and locations
   const departments = Array.from(
-    new Set(initialData.data.map((job) => job.department).filter(Boolean))
+    new Set(initialData.data.map((job) => job.department).filter(Boolean) as string[])
   ).sort();
 
   const locations = Array.from(
-    new Set(initialData.data.map((job) => job.location).filter(Boolean))
+    new Set(initialData.data.map((job) => job.location).filter(Boolean) as string[])
   ).sort();
 
   /**

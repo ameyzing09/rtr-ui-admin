@@ -1,4 +1,7 @@
 import { publicClient, PublicApiError } from '@/lib/api/publicClient';
+
+// Re-export for use in API routes and actions
+export { PublicApiError };
 import {
   publicJobsResponseSchema,
   publicJobDetailSchema,
@@ -25,7 +28,7 @@ export class PublicJobService {
    * D1: List public jobs (paginated)
    * GET /public/jobs
    */
-  async listJobs(query: PublicJobsQuery = {}): Promise<PublicJobsResponse> {
+  async listJobs(query: PublicJobsQuery = { page: 1, pageSize: 10 }): Promise<PublicJobsResponse> {
     try {
       const queryParams: Record<string, string | number> = {};
 

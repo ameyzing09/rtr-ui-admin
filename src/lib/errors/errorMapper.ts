@@ -182,7 +182,6 @@ export function mapApiError(error: unknown, defaultTitle = 'Operation Failed'): 
   if (error && typeof error === 'object' && 'name' in error && error.name === 'ApiException') {
     const apiError = error as ApiException;
     const status = apiError.status;
-    const code = apiError.code;
 
     // Get user-friendly title
     const title = status ? getErrorTitleFromStatus(status) : defaultTitle;
@@ -237,7 +236,7 @@ export function mapApiError(error: unknown, defaultTitle = 'Operation Failed'): 
     const zodError = error as ZodError;
     const fieldErrors: Record<string, string> = {};
 
-    zodError.errors.forEach((err) => {
+    zodError.issues.forEach((err) => {
       const field = err.path.join('.');
       fieldErrors[field] = err.message;
     });

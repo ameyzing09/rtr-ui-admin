@@ -9,7 +9,7 @@
  */
 
 import Skeleton, { SkeletonText } from '@/components/ui/Skeleton';
-import { Card } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 
 /**
  * Skeleton for job list card

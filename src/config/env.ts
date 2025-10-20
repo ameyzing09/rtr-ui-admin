@@ -37,9 +37,17 @@ const envSchema = z.object({
   NEXT_PUBLIC_ENABLE_DEV_TOOLS: z.string().default('false').transform(val => val === 'true'),
   NEXT_PUBLIC_USE_MOCK_DATA: z.string().default('false').transform(val => val === 'true'),
   
-  // API Configuration
-  NEXT_PUBLIC_API_BASE_URL: z.string().url().default('http://localhost:8082'),
+  // API Configuration - Microservices
+  // Job-Application service (client + server)
+  NEXT_PUBLIC_JOB_API_BASE_URL: z.string().url().optional(),
+  // User-Auth service (client + server) - needed for browser login + server tenant ops
+  NEXT_PUBLIC_USER_AUTH_API_BASE_URL: z.string().url().optional(),
+
+  // Deprecated: Use NEXT_PUBLIC_JOB_API_BASE_URL and NEXT_PUBLIC_USER_AUTH_API_BASE_URL instead
+  NEXT_PUBLIC_API_BASE_URL: z.string().url().optional(),
   AUTH_API_BASE: z.string().url().optional(),
+  USER_AUTH_API_BASE_URL: z.string().url().optional(),
+
   API_SECRET_KEY: z.string().optional(),
   
   // Authentication

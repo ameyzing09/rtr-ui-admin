@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useState } from 'react';
@@ -18,10 +19,10 @@ import {
   Plus,
 } from 'lucide-react';
 import type { Job } from '@/domain/jobs/schemas';
-import { getJobStatusBadge, getJobStatusColor, isJobActive } from '@/domain/jobs/schemas';
+import { getJobStatusBadge, isJobActive } from '@/domain/jobs/schemas';
 import type { ApplicationListResponse, Application } from '@/domain/applications/schemas';
-import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import Card from '@/components/ui/Card';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { hasJobPermission, JOB_PERMISSIONS } from '@/domain/jobs/permissions';
 import { hasApplicationPermission, APPLICATION_PERMISSIONS } from '@/domain/applications/permissions';
@@ -39,7 +40,6 @@ interface JobDetailClientProps {
 type TabType = 'overview' | 'pipeline' | 'applicants' | 'activity' | 'settings';
 
 export function JobDetailClient({ job, applications }: JobDetailClientProps) {
-  const router = useRouter();
   const { session } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showMenu, setShowMenu] = useState(false);

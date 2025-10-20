@@ -1,8 +1,7 @@
 import { audit } from '@/lib/audit/log';
-import type { AuthSession } from '@/lib/auth/types';
+import type { UserSession } from '@/lib/rbac/guard';
 import type {
   Application,
-  CreateApplicationRequest,
   UpdateApplicationRequest,
   ApplicationStatus,
 } from './schemas';
@@ -11,15 +10,14 @@ import type {
  * Audit application creation
  */
 export async function auditApplicationCreate(
-  session: AuthSession,
-  application: Application,
-  request: CreateApplicationRequest
+  session: UserSession,
+  application: Application
 ): Promise<void> {
   await audit('application.create', {
-    actorId: session.user.id,
-    actorEmail: session.user.email,
-    actorRole: session.user.role,
-    tenantId: session.user.tenantId || 'N/A',
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
     status: 'success',
     targetId: application.id,
     targetType: 'application',
@@ -40,16 +38,16 @@ export async function auditApplicationCreate(
  * Audit application update
  */
 export async function auditApplicationUpdate(
-  session: AuthSession,
+  session: UserSession,
   applicationId: string,
   patch: UpdateApplicationRequest,
   previousApplication?: Application
 ): Promise<void> {
   await audit('application.update', {
-    actorId: session.user.id,
-    actorEmail: session.user.email,
-    actorRole: session.user.role,
-    tenantId: session.user.tenantId || 'N/A',
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
     status: 'success',
     targetId: applicationId,
     targetType: 'application',
@@ -70,16 +68,16 @@ export async function auditApplicationUpdate(
  * Special audit for status changes (important business event)
  */
 export async function auditApplicationStatusChange(
-  session: AuthSession,
+  session: UserSession,
   application: Application,
   oldStatus: ApplicationStatus,
   newStatus: ApplicationStatus
 ): Promise<void> {
   await audit('application.status_change', {
-    actorId: session.user.id,
-    actorEmail: session.user.email,
-    actorRole: session.user.role,
-    tenantId: session.user.tenantId || 'N/A',
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
     status: 'success',
     targetId: application.id,
     targetType: 'application',
@@ -100,15 +98,15 @@ export async function auditApplicationStatusChange(
  * Audit application deletion
  */
 export async function auditApplicationDelete(
-  session: AuthSession,
+  session: UserSession,
   applicationId: string,
   application?: Application
 ): Promise<void> {
   await audit('application.delete', {
-    actorId: session.user.id,
-    actorEmail: session.user.email,
-    actorRole: session.user.role,
-    tenantId: session.user.tenantId || 'N/A',
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
     status: 'success',
     targetId: applicationId,
     targetType: 'application',
@@ -128,16 +126,16 @@ export async function auditApplicationDelete(
  * Audit application operation failure
  */
 export async function auditApplicationError(
-  session: AuthSession,
+  session: UserSession,
   operation: string,
   error: unknown,
   details?: Record<string, unknown>
 ): Promise<void> {
-  await audit(`application.${operation}.error` as any, {
-    actorId: session.user.id,
-    actorEmail: session.user.email,
-    actorRole: session.user.role,
-    tenantId: session.user.tenantId || 'N/A',
+  await audit(`application.${operation}.error` as unknown as Parameters<typeof audit>[0], {
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
     status: 'failure',
     targetType: 'application',
     details: {
@@ -146,5 +144,55 @@ export async function auditApplicationError(
     },
   }).catch((auditError) => {
     console.error('Failed to audit application error:', auditError);
+  });
+}
+
+/**
+ * Audit application list operation
+ * Triggered when user lists applications
+ */
+export async function auditApplicationList(
+  session: UserSession,
+  filters?: Record<string, unknown>
+): Promise<void> {
+  await audit('application.list' as unknown as Parameters<typeof audit>[0], {
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
+    status: 'success',
+    targetType: 'application',
+    details: {
+      filters,
+    },
+  }).catch((error) => {
+    console.error('Failed to audit application list:', error);
+  });
+}
+
+/**
+ * Audit application view operation
+ * Triggered when user views application details
+ */
+export async function auditApplicationView(
+  session: UserSession,
+  applicationId: string,
+  application?: Application
+): Promise<void> {
+  await audit('application.view' as unknown as Parameters<typeof audit>[0], {
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
+    status: 'success',
+    targetId: applicationId,
+    targetType: 'application',
+    details: {
+      applicantName: application?.applicantName,
+      applicantEmail: application?.applicantEmail,
+      jobId: application?.jobId,
+    },
+  }).catch((error) => {
+    console.error('Failed to audit application view:', error);
   });
 }

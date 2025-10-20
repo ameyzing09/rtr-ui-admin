@@ -7,7 +7,8 @@ import { getLocalTenantSubdomain } from '@/config/env';
  * Tenant is identified via subdomain in Host header
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+// Use Job-Application service for public APIs
+const BASE_URL = process.env.NEXT_PUBLIC_JOB_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 /**
  * Public API Error

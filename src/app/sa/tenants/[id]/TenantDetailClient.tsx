@@ -14,7 +14,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Users,
 } from 'lucide-react';
 
 import Button from '@/components/atoms/Button';
@@ -39,6 +40,7 @@ import {
   type SubscriptionStatus
 } from '@/domain/tenants/schemas';
 import { formatLongDate, formatShortDate, formatRelativeTime } from '@/lib/utils/date';
+import UsersTab from './components/UsersTab';
 
 interface TenantHeaderProps {
   tenant: TenantDetail;
@@ -693,6 +695,7 @@ export default function TenantDetailClient() {
     { id: 'overview', label: 'Overview', icon: Building },
     { id: 'status', label: 'Status', icon: Activity },
     { id: 'subscription', label: 'Subscription', icon: CreditCard },
+    { id: 'users', label: 'Users', icon: Users },
   ];
 
   return (
@@ -735,6 +738,7 @@ export default function TenantDetailClient() {
           {activeTab === 'overview' && <OverviewTab tenant={tenant} />}
           {activeTab === 'status' && <StatusTab tenantId={tenant.id} />}
           {activeTab === 'subscription' && <SubscriptionTab tenantId={tenant.id} />}
+          {activeTab === 'users' && <UsersTab tenantId={tenant.id} />}
         </motion.div>
       </AnimatePresence>
     </div>

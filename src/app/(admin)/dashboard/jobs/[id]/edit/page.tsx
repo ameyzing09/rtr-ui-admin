@@ -3,13 +3,14 @@ import { getJobAction } from '@/lib/actions/job';
 import { EditJobWizard } from './EditJobWizard';
 
 interface EditJobPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function generateMetadata({ params }: EditJobPageProps) {
-  const result = await getJobAction(params.id);
+  const { id } = await params;
+  const result = await getJobAction(id);
 
   if (!result.success) {
     return {
@@ -33,7 +34,8 @@ export async function generateMetadata({ params }: EditJobPageProps) {
  * - 404 handling
  */
 export default async function EditJobPage({ params }: EditJobPageProps) {
-  const result = await getJobAction(params.id);
+  const { id } = await params;
+  const result = await getJobAction(id);
 
   // Handle 404
   if (!result.success) {

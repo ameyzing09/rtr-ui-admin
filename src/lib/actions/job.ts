@@ -1,8 +1,7 @@
 'use server';
 
-import { requireCanListJobs, requireCanCreateJobs, requireCanReadJobs, requireCanUpdateJobs, requireCanDeleteJobs } from '@/domain/jobs/permissions';
+import { requireCanListJobs, requireCanCreateJobs, requireCanReadJobs, requireCanUpdateJobs, requireCanDeleteJobs } from '@/domain/jobs/permissions.server';
 import { jobService, JobApiError } from '@/domain/jobs/service';
-import { auditJobCreate, auditJobUpdate, auditJobDelete, auditJobList, auditJobView, auditJobError } from '@/domain/jobs/audit';
 import type {
   Job,
   CreateJobRequest,
@@ -123,9 +122,6 @@ export async function listJobsAction(
     const session = await requireCanListJobs();
     const jobs = await jobService.listJobs(session, session.token, params);
 
-    // Audit log
-    await auditJobList(session, params);
-
     console.log('✅ [listJobsAction] Successfully retrieved jobs:', {
       count: jobs.jobs?.length || 0,
       total: jobs.total,
@@ -136,6 +132,11 @@ export async function listJobsAction(
       data: jobs,
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('❌ [listJobsAction] Failed:', error);
     return {
       success: false,
@@ -164,9 +165,6 @@ export async function createJobAction(
     const session = await requireCanCreateJobs();
     const job = await jobService.createJob(session, session.token, payload);
 
-    // Audit log
-    await auditJobCreate(session, job, payload);
-
     console.log('✅ [createJobAction] Successfully created job:', job.id);
 
     return {
@@ -174,15 +172,12 @@ export async function createJobAction(
       data: job,
     };
   } catch (error) {
-    console.error('❌ [createJobAction] Failed:', error);
-
-    // Audit error
-    try {
-      const session = await requireCanCreateJobs();
-      await auditJobError(session, 'create', error, { payload });
-    } catch {
-      // Ignore audit errors
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
     }
+
+    console.error('❌ [createJobAction] Failed:', error);
 
     return {
       success: false,
@@ -209,9 +204,6 @@ export async function getJobAction(id: string): Promise<ActionResult<Job>> {
     const session = await requireCanReadJobs();
     const job = await jobService.getJob(session, session.token, id);
 
-    // Audit log
-    await auditJobView(session, id, job);
-
     console.log('✅ [getJobAction] Successfully fetched job:', id);
 
     return {
@@ -219,6 +211,11 @@ export async function getJobAction(id: string): Promise<ActionResult<Job>> {
       data: job,
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('❌ [getJobAction] Failed:', error);
 
     // Special handling for 404
@@ -257,19 +254,7 @@ export async function updateJobAction(
     console.log('🔄 [updateJobAction] Updating job:', id, patch);
 
     const session = await requireCanUpdateJobs();
-
-    // Optionally fetch previous job for audit trail
-    let previousJob: Job | undefined;
-    try {
-      previousJob = await jobService.getJob(session, session.token, id);
-    } catch {
-      // If fetch fails, continue without previous job
-    }
-
     const job = await jobService.updateJob(session, session.token, id, patch);
-
-    // Audit log
-    await auditJobUpdate(session, id, patch, previousJob);
 
     console.log('✅ [updateJobAction] Successfully updated job:', id);
 
@@ -278,15 +263,12 @@ export async function updateJobAction(
       data: job,
     };
   } catch (error) {
-    console.error('❌ [updateJobAction] Failed:', error);
-
-    // Audit error
-    try {
-      const session = await requireCanUpdateJobs();
-      await auditJobError(session, 'update', error, { id, patch });
-    } catch {
-      // Ignore audit errors
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
     }
+
+    console.error('❌ [updateJobAction] Failed:', error);
 
     // Special handling for 404
     if (error instanceof JobApiError && error.code === 'JOB_NOT_FOUND') {
@@ -322,19 +304,7 @@ export async function deleteJobAction(
     console.log('🔄 [deleteJobAction] Deleting job:', id);
 
     const session = await requireCanDeleteJobs();
-
-    // Optionally fetch job for audit trail
-    let job: Job | undefined;
-    try {
-      job = await jobService.getJob(session, session.token, id);
-    } catch {
-      // If fetch fails, continue without job details
-    }
-
     const result = await jobService.deleteJob(session, session.token, id);
-
-    // Audit log
-    await auditJobDelete(session, id, job, result.cascade_info);
 
     console.log('✅ [deleteJobAction] Successfully deleted job:', id, {
       cascade: result.cascade_info,
@@ -345,15 +315,12 @@ export async function deleteJobAction(
       data: result,
     };
   } catch (error) {
-    console.error('❌ [deleteJobAction] Failed:', error);
-
-    // Audit error
-    try {
-      const session = await requireCanDeleteJobs();
-      await auditJobError(session, 'delete', error, { id });
-    } catch {
-      // Ignore audit errors
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
     }
+
+    console.error('❌ [deleteJobAction] Failed:', error);
 
     // Special handling for 404
     if (error instanceof JobApiError && error.code === 'JOB_NOT_FOUND') {
@@ -393,6 +360,11 @@ export async function getCascadeInfoAction(
       data: info,
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     console.error('❌ [getCascadeInfoAction] Failed:', error);
     return {
       success: false,

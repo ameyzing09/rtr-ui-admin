@@ -125,7 +125,7 @@ export function useErrorHandler(options: HandleErrorOptions = {}) {
 /**
  * Utility to create a retry action with toast
  */
-export function useRetryableAction<T extends (...args: any[]) => Promise<any>>(
+export function useRetryableAction<T extends (...args: unknown[]) => Promise<unknown>>(
   action: T,
   options: {
     successMessage?: { title: string; description?: string };

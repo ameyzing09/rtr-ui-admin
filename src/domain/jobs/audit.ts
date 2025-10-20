@@ -1,20 +1,21 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { audit } from '@/lib/audit/log';
-import type { AuthSession } from '@/lib/auth/types';
-import type { Job, CreateJobRequest, UpdateJobRequest } from './schemas';
+import type { UserSession } from '@/lib/rbac/guard';
+import type { Job, CreateJobRequest, UpdateJobRequest, JobListParams } from './schemas';
 
 /**
  * Audit job creation
  */
 export async function auditJobCreate(
-  session: AuthSession,
+  session: UserSession,
   job: Job,
-  request: CreateJobRequest
+  _request: CreateJobRequest
 ): Promise<void> {
   await audit('job.create', {
-    actorId: session.user.id,
-    actorEmail: session.user.email,
-    actorRole: session.user.role,
-    tenantId: session.user.tenantId || 'N/A',
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
     status: 'success',
     targetId: job.id,
     targetType: 'job',
@@ -35,16 +36,16 @@ export async function auditJobCreate(
  * Audit job update
  */
 export async function auditJobUpdate(
-  session: AuthSession,
+  session: UserSession,
   jobId: string,
   patch: UpdateJobRequest,
   previousJob?: Job
 ): Promise<void> {
   await audit('job.update', {
-    actorId: session.user.id,
-    actorEmail: session.user.email,
-    actorRole: session.user.role,
-    tenantId: session.user.tenantId || 'N/A',
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
     status: 'success',
     targetId: jobId,
     targetType: 'job',
@@ -62,7 +63,7 @@ export async function auditJobUpdate(
  * Audit job deletion
  */
 export async function auditJobDelete(
-  session: AuthSession,
+  session: UserSession,
   jobId: string,
   job?: Job,
   cascadeInfo?: {
@@ -72,10 +73,10 @@ export async function auditJobDelete(
   }
 ): Promise<void> {
   await audit('job.delete', {
-    actorId: session.user.id,
-    actorEmail: session.user.email,
-    actorRole: session.user.role,
-    tenantId: session.user.tenantId || 'N/A',
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
     status: 'success',
     targetId: jobId,
     targetType: 'job',
@@ -94,15 +95,15 @@ export async function auditJobDelete(
  * Triggered when a job's isPublic is set to true or publishAt date is set
  */
 export async function auditJobPublish(
-  session: AuthSession,
+  session: UserSession,
   jobId: string,
   job?: Job
 ): Promise<void> {
   await audit('job.publish', {
-    actorId: session.user.id,
-    actorEmail: session.user.email,
-    actorRole: session.user.role,
-    tenantId: session.user.tenantId || 'N/A',
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
     status: 'success',
     targetId: jobId,
     targetType: 'job',
@@ -123,16 +124,16 @@ export async function auditJobPublish(
  * Triggered when a job's isPublic is set to false
  */
 export async function auditJobUnpublish(
-  session: AuthSession,
+  session: UserSession,
   jobId: string,
   job?: Job,
   reason?: string
 ): Promise<void> {
   await audit('job.unpublish', {
-    actorId: session.user.id,
-    actorEmail: session.user.email,
-    actorRole: session.user.role,
-    tenantId: session.user.tenantId || 'N/A',
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
     status: 'success',
     targetId: jobId,
     targetType: 'job',
@@ -151,16 +152,16 @@ export async function auditJobUnpublish(
  * Audit job operation failure
  */
 export async function auditJobError(
-  session: AuthSession,
+  session: UserSession,
   operation: string,
   error: unknown,
   details?: Record<string, unknown>
 ): Promise<void> {
-  await audit(`job.${operation}.error` as any, {
-    actorId: session.user.id,
-    actorEmail: session.user.email,
-    actorRole: session.user.role,
-    tenantId: session.user.tenantId || 'N/A',
+  await audit(`job.${operation}.error` as unknown as Parameters<typeof audit>[0], {
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
     status: 'failure',
     targetType: 'job',
     details: {
@@ -169,5 +170,54 @@ export async function auditJobError(
     },
   }).catch((auditError) => {
     console.error('Failed to audit job error:', auditError);
+  });
+}
+
+/**
+ * Audit job list operation
+ * Triggered when user lists jobs
+ */
+export async function auditJobList(
+  session: UserSession,
+  params: Partial<JobListParams>
+): Promise<void> {
+  await audit('job.list' as unknown as Parameters<typeof audit>[0], {
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
+    status: 'success',
+    targetType: 'job',
+    details: {
+      filters: params,
+    },
+  }).catch((error) => {
+    console.error('Failed to audit job list:', error);
+  });
+}
+
+/**
+ * Audit job view operation
+ * Triggered when user views job details
+ */
+export async function auditJobView(
+  session: UserSession,
+  jobId: string,
+  job?: Job
+): Promise<void> {
+  await audit('job.view' as unknown as Parameters<typeof audit>[0], {
+    actorId: session.userId,
+    actorEmail: session.email,
+    actorRole: session.role,
+    tenantId: session.tenantId || 'N/A',
+    status: 'success',
+    targetId: jobId,
+    targetType: 'job',
+    details: {
+      title: job?.title,
+      department: job?.department,
+    },
+  }).catch((error) => {
+    console.error('Failed to audit job view:', error);
   });
 }

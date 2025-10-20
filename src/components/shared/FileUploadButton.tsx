@@ -4,13 +4,16 @@ import { useRef, useState } from 'react';
 import { Upload, X, FileText, Loader2 } from 'lucide-react';
 
 interface FileUploadButtonProps {
-  onUpload: (fileUrl: string) => void;
+  onUpload?: (fileUrl: string) => void;
+  onUploadComplete?: (fileUrl: string) => void;
   onRemove?: (fileUrl: string) => void;
   uploadedFiles?: string[];
   maxFiles?: number;
   acceptedTypes?: string[];
+  accept?: string;
   disabled?: boolean;
   className?: string;
+  children?: React.ReactNode;
 }
 
 /**
@@ -19,16 +22,27 @@ interface FileUploadButtonProps {
  */
 export function FileUploadButton({
   onUpload,
+  onUploadComplete,
   onRemove,
   uploadedFiles = [],
   maxFiles = 5,
   acceptedTypes = ['.pdf', '.doc', '.docx'],
+  accept,
   disabled = false,
   className = '',
+  children,
 }: FileUploadButtonProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Use callback prop - prefer onUploadComplete if provided, fallback to onUpload
+  const handleUpload = onUploadComplete || onUpload;
+
+  // Parse accept prop if provided (e.g., ".pdf,.doc,.docx")
+  const finalAcceptedTypes = accept
+    ? accept.split(',').map((t) => (t.trim().startsWith('.') ? t.trim() : `.${t.trim()}`))
+    : acceptedTypes;
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -48,13 +62,15 @@ export function FileUploadButton({
       for (const file of Array.from(files)) {
         // Validate file type
         const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`;
-        if (!acceptedTypes.includes(fileExtension)) {
+        if (!finalAcceptedTypes.includes(fileExtension)) {
           throw new Error(`File type ${fileExtension} not accepted`);
         }
 
         // Upload file to API
         const uploadUrl = await uploadFile(file);
-        onUpload(uploadUrl);
+        if (handleUpload) {
+          handleUpload(uploadUrl);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload file');
@@ -90,6 +106,8 @@ export function FileUploadButton({
               <Loader2 className="h-4 w-4 animate-spin" />
               Uploading...
             </>
+          ) : children ? (
+            children
           ) : (
             <>
               <Upload className="h-4 w-4" />
@@ -103,7 +121,7 @@ export function FileUploadButton({
       <input
         ref={fileInputRef}
         type="file"
-        accept={acceptedTypes.join(',')}
+        accept={finalAcceptedTypes.join(',')}
         multiple
         onChange={handleFileSelect}
         className="hidden"
@@ -112,7 +130,7 @@ export function FileUploadButton({
 
       {/* File Type Info */}
       <p className="mt-1 text-xs text-gray-500">
-        Accepted: {acceptedTypes.join(', ')} • Max {maxFiles} files
+        Accepted: {finalAcceptedTypes.join(', ')} • Max {maxFiles} files
       </p>
 
       {/* Error Message */}

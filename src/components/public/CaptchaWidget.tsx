@@ -45,6 +45,9 @@ export function CaptchaWidget({ onVerify, onError, onExpire }: CaptchaWidgetProp
         }
       }
     };
+    // loadHCaptcha and loadTurnstile are intentionally excluded from dependencies as they're defined below
+    // and would cause infinite loops if included. They only depend on provider and siteKey which are already tracked.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider, siteKey]);
 
   /**

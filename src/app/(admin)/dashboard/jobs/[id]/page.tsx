@@ -4,13 +4,14 @@ import { listApplicationsAction } from '@/lib/actions/application';
 import { JobDetailClient } from './JobDetailClient';
 
 interface JobDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export async function generateMetadata({ params }: JobDetailPageProps) {
-  const result = await getJobAction(params.id);
+  const { id } = await params;
+  const result = await getJobAction(id);
 
   if (!result.success) {
     return {
@@ -34,7 +35,8 @@ export async function generateMetadata({ params }: JobDetailPageProps) {
  * - Applications tab with filtered view
  */
 export default async function JobDetailPage({ params }: JobDetailPageProps) {
-  const result = await getJobAction(params.id);
+  const { id } = await params;
+  const result = await getJobAction(id);
 
   // Handle 404
   if (!result.success) {
@@ -54,7 +56,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
   }
 
   // Fetch applications for this job
-  const applicationsResult = await listApplicationsAction(params.id);
+  const applicationsResult = await listApplicationsAction(id);
 
   return (
     <JobDetailClient

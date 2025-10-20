@@ -49,13 +49,6 @@ export function CreateJobWizard() {
   };
 
   /**
-   * Set error for a specific field
-   */
-  const setFieldError = (field: string, error: string) => {
-    setFieldErrors((prev) => ({ ...prev, [field]: error }));
-  };
-
-  /**
    * Clear error for a specific field
    */
   const clearFieldError = (field: string) => {
@@ -129,12 +122,13 @@ export function CreateJobWizard() {
     setIsSubmitting(true);
 
     try {
+      console.log('Submitting job creation with data:', formData);
       // Final validation with Zod schema
       const validatedData = createJobRequestSchema.parse(formData);
-
+      console.log('Validated job data:', validatedData);
       // Submit to server action
       const result = await createJobAction(validatedData);
-
+      console.log('Create job result:', result);
       if (result.success) {
         // Show success toast
         toast({

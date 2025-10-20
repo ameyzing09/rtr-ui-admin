@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Clock, RefreshCw } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 
 export interface RateLimitInfo {
   retryAfter: number; // Seconds until retry is allowed
@@ -211,7 +211,6 @@ export function RateLimitNotice({
  */
 export function CompactRateLimitNotice({
   rateLimit,
-  onRetry,
 }: {
   rateLimit: RateLimitInfo;
   onRetry?: () => void;

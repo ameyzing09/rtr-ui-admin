@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/Badge';
 import { getApplicationStatusColor, getApplicationStatusLabel, type ApplicationStatus } from '@/domain/applications/schemas';
 
 interface ApplicationStatusBadgeProps {

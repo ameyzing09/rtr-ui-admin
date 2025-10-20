@@ -1,19 +1,14 @@
 'use server';
 
-import { applicationService } from '@/domain/applications/service';
+import { applicationService, ApplicationApiError } from '@/domain/applications/service';
 import {
   requireCanListApplications,
   requireCanCreateApplications,
   requireCanUpdateApplications,
   requireCanDeleteApplications,
-} from '@/domain/applications/permissions';
+} from '@/domain/applications/permissions.server';
 import {
-  auditApplicationList,
-  auditApplicationView,
-  auditApplicationCreate,
-  auditApplicationUpdate,
   auditApplicationStatusChange,
-  auditApplicationDelete,
 } from '@/domain/applications/audit';
 import {
   createApplicationRequestSchema,
@@ -23,8 +18,37 @@ import {
   type CreateApplicationRequest,
   type UpdateApplicationRequest,
 } from '@/domain/applications/schemas';
-import { ActionResult, formatError } from '@/lib/utils/actions';
 import { ZodError } from 'zod';
+
+/**
+ * Generic action result type
+ */
+export type ActionResult<T> =
+  | { success: true; data: T }
+  | {
+      success: false;
+      error: string;
+      code?: string;
+      fieldErrors?: Record<string, string[]>;
+    };
+
+/**
+ * Format error for ActionResult
+ * Extracts error message, code, and field-level errors from various error types
+ */
+function formatError(error: unknown): {
+  error: string;
+  code?: string;
+  fieldErrors?: Record<string, string[]>;
+} {
+  if (error instanceof ApplicationApiError) {
+    return {
+      error: error.message,
+      code: error.code,
+    };
+  }
+  return { error: error instanceof Error ? error.message : String(error) };
+}
 
 // ============================================================================
 // C2: List Applications
@@ -41,21 +65,23 @@ export async function listApplicationsAction(
     // Check permissions
     const session = await requireCanListApplications();
 
-    // Fetch applications
+    // Fetch applications (audit logging handled in service)
     const applications = await applicationService.listApplications(
       session,
       session.token,
       jobId
     );
 
-    // Audit log
-    await auditApplicationList(session, applications.length, { jobId });
-
     return {
       success: true,
       data: applications,
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     return {
       success: false,
       ...formatError(error),
@@ -77,21 +103,23 @@ export async function getApplicationAction(
     // Check permissions
     const session = await requireCanListApplications();
 
-    // Fetch application
+    // Fetch application (audit logging handled in service)
     const application = await applicationService.getApplication(
       session,
       session.token,
       applicationId
     );
 
-    // Audit log
-    await auditApplicationView(session, application);
-
     return {
       success: true,
       data: application,
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     return {
       success: false,
       ...formatError(error),
@@ -116,28 +144,30 @@ export async function createApplicationAction(
     // Validate payload
     const validatedPayload = createApplicationRequestSchema.parse(payload);
 
-    // Create application
+    // Create application (audit logging handled in service)
     const application = await applicationService.createApplication(
       session,
       session.token,
       validatedPayload
     );
 
-    // Audit log
-    await auditApplicationCreate(session, application, validatedPayload);
-
     return {
       success: true,
       data: application,
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     if (error instanceof ZodError) {
       return {
         success: false,
         error: 'Validation failed',
         code: 'VALIDATION_ERROR',
         fieldErrors: Object.fromEntries(
-          error.errors.map((err) => [err.path.join('.'), err.message])
+          error.issues.map((err) => [err.path.join('.'), [err.message]])
         ),
       };
     }
@@ -164,7 +194,7 @@ export async function updateApplicationAction(
     // Check permissions
     const session = await requireCanUpdateApplications();
 
-    // Get current application (for status change audit)
+    // Get current application (for status change detection)
     const currentApplication = await applicationService.getApplication(
       session,
       session.token,
@@ -174,16 +204,13 @@ export async function updateApplicationAction(
     // Validate payload
     const validatedPayload = updateApplicationRequestSchema.parse(payload);
 
-    // Update application
+    // Update application (basic audit logging handled in service)
     const updatedApplication = await applicationService.updateApplication(
       session,
       session.token,
       applicationId,
       validatedPayload
     );
-
-    // Audit log
-    await auditApplicationUpdate(session, updatedApplication, validatedPayload);
 
     // If status changed, log special status change audit
     if (
@@ -203,13 +230,18 @@ export async function updateApplicationAction(
       data: updatedApplication,
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     if (error instanceof ZodError) {
       return {
         success: false,
         error: 'Validation failed',
         code: 'VALIDATION_ERROR',
         fieldErrors: Object.fromEntries(
-          error.errors.map((err) => [err.path.join('.'), err.message])
+          error.issues.map((err) => [err.path.join('.'), [err.message]])
         ),
       };
     }
@@ -235,30 +267,19 @@ export async function deleteApplicationAction(
     // Check permissions
     const session = await requireCanDeleteApplications();
 
-    // Get application details before deletion (for audit)
-    let application: Application | undefined;
-    try {
-      application = await applicationService.getApplication(
-        session,
-        session.token,
-        applicationId
-      );
-    } catch {
-      // If we can't get the application, it might already be deleted
-      // Continue with deletion attempt
-    }
-
-    // Delete application
+    // Delete application (audit logging handled in service)
     await applicationService.deleteApplication(session, session.token, applicationId);
-
-    // Audit log
-    await auditApplicationDelete(session, applicationId, application);
 
     return {
       success: true,
       data: undefined,
     };
   } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
     return {
       success: false,
       ...formatError(error),

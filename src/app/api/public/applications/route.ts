@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             statusCode: 400,
-            message: error.errors.map((err) => `${err.path.join('.')}: ${err.message}`),
+            message: error.issues.map((err) => `${err.path.join('.')}: ${err.message}`),
             error: 'Bad Request',
           },
           { status: 400 }

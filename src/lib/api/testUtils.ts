@@ -1,4 +1,4 @@
-// API Testing Utilities for localhost:8082 integration
+// API Testing Utilities for User-Auth service (localhost:8082)
 
 import { env } from '@/config/env';
 
@@ -8,17 +8,23 @@ export const API_ENDPOINTS = {
   TENANT_LOGIN: '/login',
   ADMIN_LOGOUT: '/admin/logout',
   TENANT_LOGOUT: '/logout',
-  
+
   // Tenant Management
   TENANT_CREATE: '/tenant/create',
   TENANT_LIST: '/tenant/list',
   TENANT_STATUS: '/tenant/status',
-  
+
   // Health Check
   HEALTH: '/health',
 } as const;
 
-export const BASE_URL = env.NEXT_PUBLIC_API_BASE_URL;
+// Use User-Auth service for testing
+// Falls back to deprecated env vars for backward compatibility
+export const BASE_URL = process.env.NEXT_PUBLIC_USER_AUTH_API_BASE_URL ||
+                        process.env.USER_AUTH_API_BASE_URL ||
+                        process.env.AUTH_API_BASE ||
+                        env.NEXT_PUBLIC_API_BASE_URL ||
+                        'http://localhost:8082';
 
 /**
  * Test if the API server is reachable

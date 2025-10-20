@@ -3,12 +3,11 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Plus, Filter, MoreVertical, Edit, Trash2, Eye } from 'lucide-react';
+import { Search, Plus, MoreVertical, Edit, Trash2, Eye } from 'lucide-react';
 import type { JobListResponse, JobListItem } from '@/domain/jobs/schemas';
-import { getJobStatusBadge, getJobStatusColor, isJobActive } from '@/domain/jobs/schemas';
-import { Badge } from '@/components/ui/Badge';
-import { Card } from '@/components/ui/Card';
-import { Spinner } from '@/components/ui/Spinner';
+import { getJobStatusBadge, isJobActive } from '@/domain/jobs/schemas';
+import Badge from '@/components/ui/Badge';
+import Card from '@/components/ui/Card';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { hasJobPermission, JOB_PERMISSIONS } from '@/domain/jobs/permissions';
 import { DeleteJobModal } from '@/components/jobs/DeleteJobModal';
@@ -18,12 +17,10 @@ interface JobListClientProps {
 }
 
 export function JobListClient({ initialData }: JobListClientProps) {
-  const router = useRouter();
   const { session } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   // Check permissions
   const canCreate = session ? hasJobPermission(session.user.permissions, JOB_PERMISSIONS.CREATE) : false;

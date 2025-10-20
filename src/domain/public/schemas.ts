@@ -16,7 +16,7 @@ export const publicJobSchema = z.object({
   description_excerpt: z.string(),
   publish_at: z.coerce.date(),
   updated_at: z.coerce.date(),
-  extra: z.record(z.unknown()).nullable().optional(),
+  extra: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export type PublicJob = z.infer<typeof publicJobSchema>;
@@ -45,7 +45,7 @@ export const publicJobDetailSchema = z.object({
   description: z.string().nullable().optional(),
   publish_at: z.coerce.date(),
   updated_at: z.coerce.date(),
-  extra: z.record(z.unknown()).nullable().optional(),
+  extra: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export type PublicJobDetail = z.infer<typeof publicJobDetailSchema>;

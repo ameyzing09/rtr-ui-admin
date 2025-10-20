@@ -1,5 +1,5 @@
-import { fetcher, ApiException } from '@/lib/api/fetcher';
-import type { AuthSession } from '@/lib/auth/types';
+import { ApiException, createAuthenticatedFetcher } from '@/lib/api/fetcher';
+import type { UserSession } from '@/lib/rbac/guard';
 import {
   jobSchema,
   jobListResponseSchema,
@@ -11,6 +11,14 @@ import {
   type JobListParams,
   type DeleteJobResponse,
 } from './schemas';
+import {
+  auditJobCreate,
+  auditJobUpdate,
+  auditJobDelete,
+  auditJobList,
+  auditJobView,
+  auditJobError,
+} from './audit';
 
 /**
  * Custom error class for Job API errors
@@ -65,7 +73,7 @@ export class JobService {
    * B1: GET /job
    */
   async listJobs(
-    session: AuthSession,
+    session: UserSession,
     token: string,
     params: Partial<JobListParams> = {}
   ): Promise<JobListResponse> {
@@ -88,15 +96,22 @@ export class JobService {
         ? `${this.baseUrl}?${queryParams.toString()}`
         : this.baseUrl;
 
-      const response = await fetcher.get(endpoint, jobListResponseSchema);
+      // Create authenticated fetcher with token
+      const authFetcher = createAuthenticatedFetcher(token);
+      const response = await authFetcher.get(endpoint, jobListResponseSchema);
 
       console.log('[JobService] Successfully fetched jobs:', {
         count: response.jobs?.length || 0,
         total: response.total,
       });
 
+      // Audit log successful list operation
+      await auditJobList(session, params);
+
       return response;
     } catch (error) {
+      // Audit error
+      await auditJobError(session, 'list', error, { params });
       return this.handleError(error);
     }
   }
@@ -106,7 +121,7 @@ export class JobService {
    * B2: POST /job
    */
   async createJob(
-    session: AuthSession,
+    session: UserSession,
     token: string,
     payload: CreateJobRequest
   ): Promise<Job> {
@@ -120,12 +135,19 @@ export class JobService {
         expireAt: payload.expireAt ? payload.expireAt.toISOString() : null,
       };
 
-      const response = await fetcher.post(this.baseUrl, apiPayload, jobSchema);
+      // Create authenticated fetcher with token
+      const authFetcher = createAuthenticatedFetcher(token);
+      const response = await authFetcher.post(this.baseUrl, apiPayload, jobSchema);
 
       console.log('[JobService] Successfully created job:', response.id);
 
+      // Audit log successful creation
+      await auditJobCreate(session, response, payload);
+
       return response;
     } catch (error) {
+      // Audit error
+      await auditJobError(session, 'create', error, { payload });
       return this.handleError(error);
     }
   }
@@ -135,22 +157,29 @@ export class JobService {
    * B3: GET /job/:id
    */
   async getJob(
-    session: AuthSession,
+    session: UserSession,
     token: string,
     id: string
   ): Promise<Job> {
     try {
       console.log('[JobService] Fetching job:', id);
 
-      const response = await fetcher.get(`${this.baseUrl}/${id}`, jobSchema);
+      // Create authenticated fetcher with token
+      const authFetcher = createAuthenticatedFetcher(token);
+      const response = await authFetcher.get(`${this.baseUrl}/${id}`, jobSchema);
 
       console.log('[JobService] Successfully fetched job:', id);
+
+      // Audit log successful view operation
+      await auditJobView(session, id, response);
 
       return response;
     } catch (error) {
       if (error instanceof ApiException && error.status === 404) {
         throw new JobApiError('Job not found', 'JOB_NOT_FOUND', 404);
       }
+      // Audit error
+      await auditJobError(session, 'view', error, { id });
       return this.handleError(error);
     }
   }
@@ -160,7 +189,7 @@ export class JobService {
    * B4: PUT /job/:id
    */
   async updateJob(
-    session: AuthSession,
+    session: UserSession,
     token: string,
     id: string,
     patch: UpdateJobRequest
@@ -178,7 +207,9 @@ export class JobService {
         }
       });
 
-      const response = await fetcher.put(
+      // Create authenticated fetcher with token
+      const authFetcher = createAuthenticatedFetcher(token);
+      const response = await authFetcher.put(
         `${this.baseUrl}/${id}`,
         apiPatch,
         jobSchema
@@ -186,11 +217,16 @@ export class JobService {
 
       console.log('[JobService] Successfully updated job:', id);
 
+      // Audit log successful update
+      await auditJobUpdate(session, id, patch);
+
       return response;
     } catch (error) {
       if (error instanceof ApiException && error.status === 404) {
         throw new JobApiError('Job not found', 'JOB_NOT_FOUND', 404);
       }
+      // Audit error
+      await auditJobError(session, 'update', error, { id, patch });
       return this.handleError(error);
     }
   }
@@ -200,14 +236,16 @@ export class JobService {
    * B5: DELETE /job/:id
    */
   async deleteJob(
-    session: AuthSession,
+    session: UserSession,
     token: string,
     id: string
   ): Promise<DeleteJobResponse> {
     try {
       console.log('[JobService] Deleting job:', id);
 
-      const response = await fetcher.delete(
+      // Create authenticated fetcher with token
+      const authFetcher = createAuthenticatedFetcher(token);
+      const response = await authFetcher.delete(
         `${this.baseUrl}/${id}`,
         deleteJobResponseSchema
       );
@@ -216,11 +254,16 @@ export class JobService {
         cascade: response.cascade_info,
       });
 
+      // Audit log successful deletion
+      await auditJobDelete(session, id, undefined, response.cascade_info);
+
       return response;
     } catch (error) {
       if (error instanceof ApiException && error.status === 404) {
         throw new JobApiError('Job not found', 'JOB_NOT_FOUND', 404);
       }
+      // Audit error
+      await auditJobError(session, 'delete', error, { id });
       return this.handleError(error);
     }
   }
@@ -230,7 +273,7 @@ export class JobService {
    * Returns information about what will be deleted
    */
   async getCascadeInfo(
-    session: AuthSession,
+    session: UserSession,
     token: string,
     id: string
   ): Promise<{ applications: number; interviews: number; feedback: number }> {

@@ -16,7 +16,7 @@ export default function JobNotFound() {
         <h1 className="mt-6 text-3xl font-bold text-gray-900">Job Not Found</h1>
 
         <p className="mt-3 text-base text-gray-600">
-          The job you're looking for doesn't exist or has been removed.
+          The job you&apos;re looking for doesn&apos;t exist or has been removed.
         </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">

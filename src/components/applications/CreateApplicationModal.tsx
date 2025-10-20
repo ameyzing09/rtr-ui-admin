@@ -137,7 +137,12 @@ export function CreateApplicationModal({
       } else {
         // Handle server-side errors
         if (result.fieldErrors) {
-          setFieldErrors(result.fieldErrors);
+          // Convert fieldErrors from Record<string, string[]> to Record<string, string>
+          const convertedErrors: Record<string, string> = {};
+          Object.entries(result.fieldErrors).forEach(([field, errors]) => {
+            convertedErrors[field] = Array.isArray(errors) ? errors.join(', ') : errors;
+          });
+          setFieldErrors(convertedErrors);
         }
 
         toast({

@@ -61,13 +61,6 @@ export function EditJobWizard({ job }: EditJobWizardProps) {
   };
 
   /**
-   * Set error for a specific field
-   */
-  const setFieldError = (field: string, error: string) => {
-    setFieldErrors((prev) => ({ ...prev, [field]: error }));
-  };
-
-  /**
    * Clear error for a specific field
    */
   const clearFieldError = (field: string) => {
@@ -144,7 +137,7 @@ export function EditJobWizard({ job }: EditJobWizardProps) {
       modifiedFields.forEach((field) => {
         const value = formData[field as keyof UpdateJobRequest];
         if (value !== undefined) {
-          updates[field as keyof UpdateJobRequest] = value as any;
+          (updates as Record<string, unknown>)[field] = value;
         }
       });
 
@@ -153,7 +146,7 @@ export function EditJobWizard({ job }: EditJobWizardProps) {
         toast({
           title: 'No changes detected',
           description: 'No fields were modified.',
-          variant: 'default',
+          variant: 'info',
         });
         router.push(`/dashboard/jobs/${job.id}`);
         return;
@@ -164,7 +157,7 @@ export function EditJobWizard({ job }: EditJobWizardProps) {
 
       // Submit to server action
       const result = await updateJobAction(job.id, validatedData);
-
+      console.log('Update job result:', result);
       if (result.success) {
         // Show success toast
         toast({

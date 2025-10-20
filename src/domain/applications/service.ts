@@ -1,5 +1,5 @@
-import { fetcher } from '@/lib/api/fetcher';
-import type { Session } from '@/domain/auth/schemas';
+import { createAuthenticatedFetcher } from '@/lib/api/fetcher';
+import type { UserSession } from '@/lib/rbac/guard';
 import {
   applicationSchema,
   applicationListResponseSchema,
@@ -8,6 +8,14 @@ import {
   type CreateApplicationRequest,
   type UpdateApplicationRequest,
 } from './schemas';
+import {
+  auditApplicationCreate,
+  auditApplicationUpdate,
+  auditApplicationDelete,
+  auditApplicationList,
+  auditApplicationView,
+  auditApplicationError,
+} from './audit';
 
 // ============================================================================
 // Error Classes
@@ -40,7 +48,7 @@ export class ApplicationService {
    * Optionally filter by jobId
    */
   async listApplications(
-    session: Session,
+    session: UserSession,
     token: string,
     jobId?: string
   ): Promise<ApplicationListResponse> {
@@ -51,9 +59,18 @@ export class ApplicationService {
         url += `?jobId=${encodeURIComponent(jobId)}`;
       }
 
-      const data = await fetcher.get(url, applicationListResponseSchema);
+      // Create authenticated fetcher with token
+      const authFetcher = createAuthenticatedFetcher(token);
+      const data = await authFetcher.get(url, applicationListResponseSchema);
+
+      // Audit log successful list operation
+      await auditApplicationList(session, { jobId });
+
       return data;
     } catch (error) {
+      // Audit error
+      await auditApplicationError(session, 'list', error, { jobId });
+
       if (error instanceof Error) {
         throw new ApplicationApiError(
           error.message,
@@ -69,7 +86,7 @@ export class ApplicationService {
    * Create a new application
    */
   async createApplication(
-    session: Session,
+    session: UserSession,
     token: string,
     payload: CreateApplicationRequest
   ): Promise<Application> {
@@ -79,9 +96,18 @@ export class ApplicationService {
         ...payload,
       };
 
-      const data = await fetcher.post(this.baseUrl, apiPayload, applicationSchema);
+      // Create authenticated fetcher with token
+      const authFetcher = createAuthenticatedFetcher(token);
+      const data = await authFetcher.post(this.baseUrl, apiPayload, applicationSchema);
+
+      // Audit log successful creation
+      await auditApplicationCreate(session, data);
+
       return data;
     } catch (error) {
+      // Audit error
+      await auditApplicationError(session, 'create', error, { payload });
+
       if (error instanceof Error) {
         throw new ApplicationApiError(
           error.message,
@@ -97,15 +123,25 @@ export class ApplicationService {
    * Get a single application by ID
    */
   async getApplication(
-    session: Session,
+    session: UserSession,
     token: string,
     applicationId: string
   ): Promise<Application> {
     try {
       const url = `${this.baseUrl}/${applicationId}`;
-      const data = await fetcher.get(url, applicationSchema);
+
+      // Create authenticated fetcher with token
+      const authFetcher = createAuthenticatedFetcher(token);
+      const data = await authFetcher.get(url, applicationSchema);
+
+      // Audit log successful view operation
+      await auditApplicationView(session, applicationId, data);
+
       return data;
     } catch (error) {
+      // Audit error
+      await auditApplicationError(session, 'view', error, { applicationId });
+
       if (error instanceof Error) {
         if (error.message.includes('404') || error.message.includes('not found')) {
           throw new ApplicationApiError(
@@ -128,7 +164,7 @@ export class ApplicationService {
    * Update an existing application (partial update)
    */
   async updateApplication(
-    session: Session,
+    session: UserSession,
     token: string,
     applicationId: string,
     payload: UpdateApplicationRequest
@@ -141,9 +177,18 @@ export class ApplicationService {
         ...payload,
       };
 
-      const data = await fetcher.put(url, apiPayload, applicationSchema);
+      // Create authenticated fetcher with token
+      const authFetcher = createAuthenticatedFetcher(token);
+      const data = await authFetcher.put(url, apiPayload, applicationSchema);
+
+      // Audit log successful update
+      await auditApplicationUpdate(session, applicationId, payload);
+
       return data;
     } catch (error) {
+      // Audit error
+      await auditApplicationError(session, 'update', error, { applicationId, payload });
+
       if (error instanceof Error) {
         if (error.message.includes('404') || error.message.includes('not found')) {
           throw new ApplicationApiError(
@@ -166,14 +211,23 @@ export class ApplicationService {
    * Delete an application
    */
   async deleteApplication(
-    session: Session,
+    session: UserSession,
     token: string,
     applicationId: string
   ): Promise<void> {
     try {
       const url = `${this.baseUrl}/${applicationId}`;
-      await fetcher.delete(url);
+
+      // Create authenticated fetcher with token
+      const authFetcher = createAuthenticatedFetcher(token);
+      await authFetcher.delete(url);
+
+      // Audit log successful deletion
+      await auditApplicationDelete(session, applicationId);
     } catch (error) {
+      // Audit error
+      await auditApplicationError(session, 'delete', error, { applicationId });
+
       if (error instanceof Error) {
         if (error.message.includes('404') || error.message.includes('not found')) {
           throw new ApplicationApiError(

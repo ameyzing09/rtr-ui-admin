@@ -1,7 +1,7 @@
 'use client';
 
 import type { CreateJobRequest } from '@/domain/jobs/schemas';
-import { Card } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 
 interface JobVisibilityStepProps {
   formData: Partial<CreateJobRequest>;

@@ -95,7 +95,7 @@ export function UpdateApplicationModal({
       toast({
         title: 'No changes detected',
         description: 'No fields were modified.',
-        variant: 'default',
+        variant: 'info',
       });
       onClose();
       return;
@@ -104,10 +104,13 @@ export function UpdateApplicationModal({
     setIsSubmitting(true);
 
     try {
-      // Only send modified fields
+      // Only send modified fields (exclude null/undefined values)
       const updates: Partial<UpdateApplicationRequest> = {};
       modifiedFields.forEach((field) => {
-        updates[field as keyof UpdateApplicationRequest] = formData[field as keyof UpdateApplicationRequest];
+        const value = formData[field as keyof UpdateApplicationRequest];
+        if (value !== undefined && value !== null) {
+          (updates as Record<string, unknown>)[field] = value;
+        }
       });
 
       const result = await updateApplicationAction(application.id, updates);
@@ -133,7 +136,12 @@ export function UpdateApplicationModal({
       } else {
         // Handle server-side errors
         if (result.fieldErrors) {
-          setFieldErrors(result.fieldErrors);
+          // Convert fieldErrors from Record<string, string[]> to Record<string, string>
+          const convertedErrors: Record<string, string> = {};
+          Object.entries(result.fieldErrors).forEach(([field, errors]) => {
+            convertedErrors[field] = Array.isArray(errors) ? errors.join(', ') : errors;
+          });
+          setFieldErrors(convertedErrors);
         }
 
         toast({

@@ -163,7 +163,7 @@ export function CustomFieldsEditor({
           </h4>
           <p className="mt-1 text-sm text-blue-700">
             Add tenant-specific custom fields for this job. These fields are validated against
-            your organization's schema. Common examples: salary range, experience years, remote
+            your organization&apos;s schema. Common examples: salary range, experience years, remote
             allowed, etc.
           </p>
         </div>
@@ -300,7 +300,7 @@ export function CustomFieldsEditor({
       {fields.length === 0 && (
         <div className="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
           <p className="text-sm text-gray-500">
-            No custom fields added yet. Click "Add Custom Field" to get started.
+            No custom fields added yet. Click &quot;Add Custom Field&quot; to get started.
           </p>
         </div>
       )}

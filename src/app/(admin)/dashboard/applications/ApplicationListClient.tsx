@@ -1,8 +1,6 @@
-'use client';
-
+'use client';;
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Search, Plus, MoreVertical, Edit, Trash2, FileText } from 'lucide-react';
 import type { Application, ApplicationListResponse } from '@/domain/applications/schemas';
 import type { JobListItem } from '@/domain/jobs/schemas';
@@ -10,7 +8,7 @@ import { ApplicationStatusBadge } from '@/components/applications/ApplicationSta
 import { CreateApplicationModal } from '@/components/applications/CreateApplicationModal';
 import { UpdateApplicationModal } from '@/components/applications/UpdateApplicationModal';
 import { DeleteApplicationModal } from '@/components/applications/DeleteApplicationModal';
-import { Card } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { hasApplicationPermission, APPLICATION_PERMISSIONS } from '@/domain/applications/permissions';
 

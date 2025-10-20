@@ -35,6 +35,9 @@ export function DeleteJobModal({ job, isOpen, onClose, onSuccess }: DeleteJobMod
     if (isOpen) {
       loadCascadeInfo();
     }
+    // loadCascadeInfo is intentionally excluded from dependencies as it's defined below
+    // and would cause infinite loops if included. It only depends on job.id which is already tracked.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, job.id]);
 
   const loadCascadeInfo = async () => {

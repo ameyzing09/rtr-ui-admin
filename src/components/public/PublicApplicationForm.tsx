@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, CheckCircle, Upload } from 'lucide-react';
-import { Card } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 import { CaptchaWidget } from './CaptchaWidget';
 import { FileUploadButton } from '@/components/shared/FileUploadButton';
 import type { ApplicationFormData } from '@/domain/public/schemas';
@@ -142,7 +142,7 @@ export function PublicApplicationForm({ jobId, jobTitle }: PublicApplicationForm
           Application Submitted!
         </h3>
         <p className="mt-2 text-sm text-gray-600">
-          Thank you for applying to {jobTitle}. We've received your application and will review it shortly.
+          Thank you for applying to {jobTitle}. We&apos;ve received your application and will review it shortly.
         </p>
         <div className="mt-6 flex items-center justify-center gap-3">
           <button

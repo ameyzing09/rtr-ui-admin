@@ -1,7 +1,7 @@
 'use client';
 
 import type { CreateJobRequest } from '@/domain/jobs/schemas';
-import { Card } from '@/components/ui/Card';
+import Card from '@/components/ui/Card';
 
 interface JobBasicsStepProps {
   formData: Partial<CreateJobRequest>;
@@ -94,31 +94,6 @@ export function JobBasicsStep({
           )}
         </div>
 
-        {/* Number of Openings (Client-side only) */}
-        <div>
-          <label htmlFor="openings" className="block text-sm font-medium text-gray-700">
-            Number of Openings
-          </label>
-          <input
-            type="number"
-            id="openings"
-            min="1"
-            value={formData.openings || ''}
-            onChange={(e) => {
-              const value = e.target.value ? parseInt(e.target.value) : undefined;
-              updateFormData({ openings: value });
-              clearFieldError('openings');
-            }}
-            placeholder="1"
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          {fieldErrors.openings && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.openings}</p>
-          )}
-          <p className="mt-1 text-xs text-gray-500">
-            How many positions are available for this role
-          </p>
-        </div>
       </div>
     </Card>
   );

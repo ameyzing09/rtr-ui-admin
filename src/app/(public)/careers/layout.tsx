@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Briefcase } from 'lucide-react';
 
 export const metadata = {
@@ -28,9 +29,11 @@ export default function CareersLayout({
             {/* Logo */}
             <Link href="/careers" className="flex items-center gap-2">
               {tenantLogo ? (
-                <img
+                <Image
                   src={tenantLogo}
                   alt={tenantName}
+                  width={32}
+                  height={32}
                   className="h-8 w-auto"
                 />
               ) : (

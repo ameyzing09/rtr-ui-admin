@@ -121,7 +121,7 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 pointer-events-none">
+    <div className="fixed top-4 left-4 right-4 lg:left-auto lg:right-4 z-[100] flex flex-col gap-2 pointer-events-none">
       <AnimatePresence mode="popLayout">
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
@@ -172,7 +172,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
         damping: 30,
       }}
       className={`
-        pointer-events-auto w-96 max-w-sm border rounded-lg shadow-lg p-4
+        pointer-events-auto w-full sm:w-96 border rounded-lg shadow-lg p-4
         ${colors[toast.type]}
       `}
     >

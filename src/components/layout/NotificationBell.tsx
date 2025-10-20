@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Check, X } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import Link from 'next/link';
 
 interface Notification {
@@ -76,18 +76,18 @@ export default function NotificationBell() {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
-  const getTypeStyles = (type?: string) => {
-    switch (type) {
-      case 'success':
-        return 'bg-green-50 border-green-200';
-      case 'warning':
-        return 'bg-yellow-50 border-yellow-200';
-      case 'error':
-        return 'bg-red-50 border-red-200';
-      default:
-        return 'bg-blue-50 border-blue-200';
-    }
-  };
+  // const getTypeStyles = (type?: string) => {
+  //   switch (type) {
+  //     case 'success':
+  //       return 'bg-green-50 border-green-200';
+  //     case 'warning':
+  //       return 'bg-yellow-50 border-yellow-200';
+  //     case 'error':
+  //       return 'bg-red-50 border-red-200';
+  //     default:
+  //       return 'bg-blue-50 border-blue-200';
+  //   }
+  // };
 
   return (
     <div className="relative" ref={dropdownRef}>

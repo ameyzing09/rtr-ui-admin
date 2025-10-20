@@ -129,7 +129,8 @@ export function ProtectedButton({
   required,
   children,
   deniedTitle = 'Permission Denied',
-  deniedDescription,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  deniedDescription, // Reserved for future use in tooltip/popover enhancements
   checkType = 'all',
   disabled,
   title,
@@ -302,7 +303,7 @@ export function RestrictedSection({
             {title ? `${title} - Permission Denied` : 'Permission Denied'}
           </h3>
           <p className="mt-1 text-sm text-yellow-800">
-            You don't have permission to view this content. Contact your administrator if you
+            You don&apos;t have permission to view this content. Contact your administrator if you
             believe this is an error.
           </p>
         </div>

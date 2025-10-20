@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { listJobsAction } from '@/lib/actions/job';
 import { JobListClient } from './JobListClient';
-import { Skeleton } from '@/components/ui/Skeleton';
+import Skeleton from '@/components/ui/Skeleton';
 
 export const metadata = {
   title: 'Job Postings | Dashboard',

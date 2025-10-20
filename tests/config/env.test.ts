@@ -66,8 +66,8 @@ describe('Environment Configuration', () => {
   });
 
   it('should validate URL format for API URLs', async () => {
-    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'not-a-url');
-    
+    mockEnvVar('NEXT_PUBLIC_JOB_API_BASE_URL', 'not-a-url');
+
     // This should throw an error due to invalid URL format
     await expect(async () => {
       jest.resetModules();
@@ -77,22 +77,23 @@ describe('Environment Configuration', () => {
 
   it('should provide helper functions', async () => {
     mockEnvVar('NODE_ENV', 'local');
-    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:8082');
-    
+    mockEnvVar('NEXT_PUBLIC_JOB_API_BASE_URL', 'http://localhost:8080');
+
     jest.resetModules();
     const { isDevelopment, isProduction } = await import('@/config/env');
-    
+
     expect(isDevelopment).toBe(true);
     expect(isProduction).toBe(false);
   });
 
   it('should handle production environment correctly', async () => {
     mockEnvVar('NODE_ENV', 'production');
-    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'https://api.example.com');
-    
+    mockEnvVar('NEXT_PUBLIC_JOB_API_BASE_URL', 'https://api.example.com');
+    mockEnvVar('NEXT_PUBLIC_USER_AUTH_API_BASE_URL', 'https://auth.example.com');
+
     jest.resetModules();
     const { isDevelopment, isProduction, isTest } = await import('@/config/env');
-    
+
     expect(isDevelopment).toBe(false);
     expect(isProduction).toBe(true);
     expect(isTest).toBe(false);
@@ -100,11 +101,12 @@ describe('Environment Configuration', () => {
 
   it('should handle test environment correctly', async () => {
     mockEnvVar('NODE_ENV', 'test');
-    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:8082');
-    
+    mockEnvVar('NEXT_PUBLIC_JOB_API_BASE_URL', 'http://localhost:8080');
+    mockEnvVar('NEXT_PUBLIC_USER_AUTH_API_BASE_URL', 'http://localhost:8082');
+
     jest.resetModules();
     const { isDevelopment, isProduction, isTest } = await import('@/config/env');
-    
+
     expect(isDevelopment).toBe(false);
     expect(isProduction).toBe(false);
     expect(isTest).toBe(true);
@@ -114,11 +116,11 @@ describe('Environment Configuration', () => {
     mockEnvVar('NEXT_PUBLIC_ENABLE_ANALYTICS', 'true');
     mockEnvVar('NEXT_PUBLIC_ENABLE_BILLING', 'false');
     mockEnvVar('NEXT_PUBLIC_DEBUG_MODE', 'true');
-    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:8082');
-    
+    mockEnvVar('NEXT_PUBLIC_JOB_API_BASE_URL', 'http://localhost:8080');
+
     jest.resetModules();
     const { env, isAnalyticsEnabled } = await import('@/config/env');
-    
+
     expect(env.NEXT_PUBLIC_ENABLE_ANALYTICS).toBe(true);
     expect(env.NEXT_PUBLIC_ENABLE_BILLING).toBe(false);
     expect(env.NEXT_PUBLIC_DEBUG_MODE).toBe(true);
@@ -127,26 +129,26 @@ describe('Environment Configuration', () => {
 
   it('should handle optional environment variables', async () => {
     mockEnvVar('NEXT_PUBLIC_APP_URL', undefined);
-    mockEnvVar('AUTH_API_BASE', undefined);
+    mockEnvVar('NEXT_PUBLIC_USER_AUTH_API_BASE_URL', undefined);
     mockEnvVar('API_SECRET_KEY', undefined);
-    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:8082');
-    
+    mockEnvVar('NEXT_PUBLIC_JOB_API_BASE_URL', 'http://localhost:8080');
+
     jest.resetModules();
     const { env } = await import('@/config/env');
-    
+
     expect(env.NEXT_PUBLIC_APP_URL).toBeUndefined();
-    expect(env.AUTH_API_BASE).toBeUndefined();
+    expect(env.NEXT_PUBLIC_USER_AUTH_API_BASE_URL).toBeUndefined();
     expect(env.API_SECRET_KEY).toBeUndefined();
   });
 
   it('should handle NEXT_PUBLIC_TENANT_ID in local environment', async () => {
     mockEnvVar('NODE_ENV', 'local');
     mockEnvVar('NEXT_PUBLIC_TENANT_ID', 'test-tenant-123');
-    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:8082');
-    
+    mockEnvVar('NEXT_PUBLIC_JOB_API_BASE_URL', 'http://localhost:8080');
+
     jest.resetModules();
     const { env, isLocal, getTenantId } = await import('@/config/env');
-    
+
     expect(env.NEXT_PUBLIC_TENANT_ID).toBe('test-tenant-123');
     expect(isLocal).toBe(true);
     expect(getTenantId()).toBe('test-tenant-123');
@@ -155,11 +157,11 @@ describe('Environment Configuration', () => {
   it('should return undefined for tenant ID in production environment', async () => {
     mockEnvVar('NODE_ENV', 'production');
     mockEnvVar('NEXT_PUBLIC_TENANT_ID', 'test-tenant-123');
-    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'https://api.example.com');
-    
+    mockEnvVar('NEXT_PUBLIC_JOB_API_BASE_URL', 'https://api.example.com');
+
     jest.resetModules();
     const { env, isLocal, getTenantId } = await import('@/config/env');
-    
+
     expect(env.NEXT_PUBLIC_TENANT_ID).toBe('test-tenant-123');
     expect(isLocal).toBe(false);
     expect(getTenantId()).toBeUndefined();
@@ -168,11 +170,11 @@ describe('Environment Configuration', () => {
   it('should return undefined when NEXT_PUBLIC_TENANT_ID is not set in local environment', async () => {
     mockEnvVar('NODE_ENV', 'local');
     mockEnvVar('NEXT_PUBLIC_TENANT_ID', undefined);
-    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:8082');
-    
+    mockEnvVar('NEXT_PUBLIC_JOB_API_BASE_URL', 'http://localhost:8080');
+
     jest.resetModules();
     const { env, isLocal, getTenantId } = await import('@/config/env');
-    
+
     expect(env.NEXT_PUBLIC_TENANT_ID).toBeUndefined();
     expect(isLocal).toBe(true);
     expect(getTenantId()).toBeUndefined();
@@ -181,11 +183,11 @@ describe('Environment Configuration', () => {
   it('should handle NEXT_PUBLIC_TENANT_ID in development environment', async () => {
     mockEnvVar('NODE_ENV', 'development');
     mockEnvVar('NEXT_PUBLIC_TENANT_ID', 'dev-tenant-456');
-    mockEnvVar('NEXT_PUBLIC_API_BASE_URL', 'http://localhost:8082');
-    
+    mockEnvVar('NEXT_PUBLIC_JOB_API_BASE_URL', 'http://localhost:8080');
+
     jest.resetModules();
     const { env, isLocal, getTenantId } = await import('@/config/env');
-    
+
     expect(env.NEXT_PUBLIC_TENANT_ID).toBe('dev-tenant-456');
     expect(isLocal).toBe(true);
     expect(getTenantId()).toBe('dev-tenant-456');

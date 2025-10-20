@@ -1,5 +1,3 @@
-import { getServerSession } from '@/lib/auth/session';
-import { UnauthorizedError } from '@/lib/errors';
 
 // ============================================================================
 // Permission Constants
@@ -40,77 +38,17 @@ export function canManageApplications(userPermissions: string[]): boolean {
 }
 
 // ============================================================================
-// Permission Guards
+// Permission Guards (See permissions.server.ts)
 // ============================================================================
 
 /**
- * Require permission to list applications
- * Throws UnauthorizedError if user lacks permission
+ * NOTE: Server-side application permission checks have been moved to permissions.server.ts
+ *
+ * Server-only functions (require authentication):
+ * - requireCanListApplications()
+ * - requireCanCreateApplications()
+ * - requireCanUpdateApplications()
+ * - requireCanDeleteApplications()
+ *
+ * Import from permissions.server.ts in server-only contexts (server components, actions).
  */
-export async function requireCanListApplications() {
-  const session = await getServerSession();
-
-  if (!session) {
-    throw new UnauthorizedError('Authentication required to view applications');
-  }
-
-  if (!hasApplicationPermission(session.user.permissions, APPLICATION_PERMISSIONS.VIEW)) {
-    throw new UnauthorizedError('You do not have permission to view applications');
-  }
-
-  return session;
-}
-
-/**
- * Require permission to create applications
- * Throws UnauthorizedError if user lacks permission
- */
-export async function requireCanCreateApplications() {
-  const session = await getServerSession();
-
-  if (!session) {
-    throw new UnauthorizedError('Authentication required to create applications');
-  }
-
-  if (!hasApplicationPermission(session.user.permissions, APPLICATION_PERMISSIONS.CREATE)) {
-    throw new UnauthorizedError('You do not have permission to create applications');
-  }
-
-  return session;
-}
-
-/**
- * Require permission to update applications
- * Throws UnauthorizedError if user lacks permission
- */
-export async function requireCanUpdateApplications() {
-  const session = await getServerSession();
-
-  if (!session) {
-    throw new UnauthorizedError('Authentication required to update applications');
-  }
-
-  if (!hasApplicationPermission(session.user.permissions, APPLICATION_PERMISSIONS.UPDATE)) {
-    throw new UnauthorizedError('You do not have permission to update applications');
-  }
-
-  return session;
-}
-
-/**
- * Require permission to delete applications
- * Throws UnauthorizedError if user lacks permission
- */
-export async function requireCanDeleteApplications() {
-  const session = await getServerSession();
-
-  if (!session) {
-    throw new UnauthorizedError('Authentication required to delete applications');
-  }
-
-  if (!hasApplicationPermission(session.user.permissions, APPLICATION_PERMISSIONS.DELETE)) {
-    throw new UnauthorizedError('You do not have permission to delete applications');
-  }
-
-  return session;
-}
