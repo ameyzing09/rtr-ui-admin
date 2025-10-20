@@ -1,4 +1,5 @@
-import type { Permission } from '@/lib/auth/types';
+import type { Permission } from '@/lib/rbac/permissions';
+import { PERMISSIONS } from '@/lib/rbac/permissions';
 import type { UserRole } from '@/lib/auth/types';
 
 export type UserNavLink = {
@@ -27,21 +28,21 @@ export function getUserNavConfig(user?: UserConfigInput): UserNavConfig {
       href: '/dashboard',
       icon: 'dashboard',
       match: 'exact',
-      permissions: ['platform:overview:view'],
+      permissions: [PERMISSIONS.ANALYTICS_READ],
     },
     {
       id: 'notifications',
       label: 'Notifications',
       href: '/dashboard/notifications',
       icon: 'notifications',
-      permissions: ['platform:ops:view'],
+      permissions: [PERMISSIONS.OPS_SUPPORT_READ],
     },
     {
       id: 'settings',
       label: 'Settings',
       href: '/dashboard/settings',
       icon: 'settings',
-      permissions: ['platform:settings:manage'],
+      permissions: [PERMISSIONS.SETTINGS_GLOBAL],
     },
     { id: 'help', label: 'Help', href: '/help', icon: 'help' },
   ];
@@ -53,7 +54,7 @@ export function getUserNavConfig(user?: UserConfigInput): UserNavConfig {
           label: 'Control Center',
           href: '/dashboard/control-center',
           icon: 'settings',
-          permissions: ['platform:overview:view', 'platform:ops:view'],
+          permissions: [PERMISSIONS.ANALYTICS_READ, PERMISSIONS.OPS_SUPPORT_READ],
         },
       ]
     : [];

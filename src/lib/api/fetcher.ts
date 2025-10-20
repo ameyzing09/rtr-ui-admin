@@ -115,6 +115,18 @@ export class Fetcher {
       }
     }
 
+    // Verification logging (development only)
+    if (env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      const hasAuth = requestHeaders.Authorization?.startsWith('Bearer ');
+      const hasTenantId = !!requestHeaders['X-Tenant-ID'];
+      console.log(`[Fetcher] ${method} ${endpoint}`, {
+        hasAuthToken: hasAuth,
+        authTokenPreview: hasAuth ? requestHeaders.Authorization?.substring(0, 20) + '...' : 'MISSING',
+        hasTenantId,
+        tenantId: requestHeaders['X-Tenant-ID'] || 'N/A',
+      });
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
     try {
@@ -308,6 +320,16 @@ export class Fetcher {
     delete this.defaultHeaders['X-Tenant-ID'];
   }
 
+  // Get all default headers (for internal use)
+  getHeaders(): Record<string, string> {
+    return { ...this.defaultHeaders };
+  }
+
+  // Get a specific header value
+  getHeader(name: string): string | undefined {
+    return this.defaultHeaders[name];
+  }
+
   // Update headers
   updateHeaders(headers: Record<string, string>) {
     this.defaultHeaders = { ...this.defaultHeaders, ...headers };
@@ -333,5 +355,36 @@ export function createAuthenticatedFetcher(token: string, config?: FetcherConfig
   }
 
   return authFetcher;
+}
+
+// Token availability helpers
+/**
+ * Check if an Authorization header with Bearer token is set on the default fetcher instance
+ * Note: This only checks for the presence of the Authorization header with 'Bearer ' prefix.
+ * It does NOT validate JWT structure, signature, or expiration.
+ * For full JWT validation, use the backend or a dedicated JWT validation library.
+ * @returns true if Authorization header with 'Bearer ' prefix is set
+ */
+export function hasBearerToken(): boolean {
+  return fetcher.getHeader('Authorization')?.startsWith('Bearer ') ?? false;
+}
+
+/**
+ * Get the current JWT token from the default fetcher instance
+ * @returns JWT token string or null if not set
+ */
+export function getToken(): string | null {
+  const authHeader = fetcher.getHeader('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  return authHeader.substring(7); // Remove 'Bearer ' prefix
+}
+
+/**
+ * Check if the fetcher is configured for authenticated requests
+ * Useful for protecting service calls that require authentication
+ * Note: This only checks if a Bearer token header is present, not if it's valid
+ */
+export function isAuthenticated(): boolean {
+  return hasBearerToken();
 }
 
