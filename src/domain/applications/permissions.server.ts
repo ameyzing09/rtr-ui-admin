@@ -25,7 +25,7 @@ export async function requireCanListApplications(): Promise<UserSession> {
     throw new UnauthorizedError('Authentication required to view applications');
   }
 
-  if (!hasApplicationPermission(session.permissions, APPLICATION_PERMISSIONS.VIEW)) {
+  if (!hasApplicationPermission(session.permissions, APPLICATION_PERMISSIONS.LIST)) {
     throw new UnauthorizedError('You do not have permission to view applications');
   }
 

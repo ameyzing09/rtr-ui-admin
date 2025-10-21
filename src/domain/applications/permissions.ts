@@ -1,17 +1,20 @@
+import { PERMISSIONS, can } from '@/lib/rbac/permissions';
+import type { Permission } from '@/lib/rbac/permissions';
 
 // ============================================================================
 // Permission Constants
 // ============================================================================
 
 /**
- * Application-related permissions
- * These should match the permission strings in your RBAC system
+ * Application-related permissions from RBAC system
+ * Aligned with backend permission definitions
  */
 export const APPLICATION_PERMISSIONS = {
-  VIEW: 'applications:view',
-  CREATE: 'applications:create',
-  UPDATE: 'applications:update',
-  DELETE: 'applications:delete',
+  LIST: PERMISSIONS.APPLICATION_LIST,
+  CREATE: PERMISSIONS.APPLICATION_CREATE,
+  READ: PERMISSIONS.APPLICATION_READ,
+  UPDATE: PERMISSIONS.APPLICATION_UPDATE,
+  DELETE: PERMISSIONS.APPLICATION_DELETE,
 } as const;
 
 // ============================================================================
@@ -22,18 +25,18 @@ export const APPLICATION_PERMISSIONS = {
  * Check if user has a specific application permission
  */
 export function hasApplicationPermission(
-  userPermissions: string[],
-  requiredPermission: string
+  userPermissions: Permission[],
+  requiredPermission: Permission
 ): boolean {
-  return userPermissions.includes(requiredPermission);
+  return can(userPermissions, requiredPermission);
 }
 
 /**
  * Check if user can perform any application operation
  */
-export function canManageApplications(userPermissions: string[]): boolean {
+export function canManageApplications(userPermissions: Permission[]): boolean {
   return Object.values(APPLICATION_PERMISSIONS).some((perm) =>
-    userPermissions.includes(perm)
+    can(userPermissions, perm)
   );
 }
 

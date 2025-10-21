@@ -72,6 +72,9 @@ export type AuditEventType =
   | 'pipeline.update'
   | 'pipeline.delete'
   | 'pipeline.stage_change'
+  | 'pipeline.assign'
+  | 'pipeline.list'
+  | 'pipeline.view'
 
   // Interview Management
   | 'interview.schedule'

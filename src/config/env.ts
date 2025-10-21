@@ -42,6 +42,8 @@ const envSchema = z.object({
   NEXT_PUBLIC_JOB_API_BASE_URL: z.string().url().optional(),
   // User-Auth service (client + server) - needed for browser login + server tenant ops
   NEXT_PUBLIC_USER_AUTH_API_BASE_URL: z.string().url().optional(),
+  // Pipeline-Engine service (client + server) - handles interview pipelines
+  NEXT_PUBLIC_PIPELINE_API_BASE_URL: z.string().url().optional(),
 
   // Deprecated: Use NEXT_PUBLIC_JOB_API_BASE_URL and NEXT_PUBLIC_USER_AUTH_API_BASE_URL instead
   NEXT_PUBLIC_API_BASE_URL: z.string().url().optional(),

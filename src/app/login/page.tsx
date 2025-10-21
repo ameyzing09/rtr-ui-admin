@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Mail, Lock, ArrowLeft } from 'lucide-react';
 import Input from '@/components/atoms/Input';
 import Button from '@/components/atoms/Button';
+import Spinner from '@/components/ui/Spinner';
 import type { LoginAudience } from '@/lib/auth/types';
 import { useAuth } from '@/components/auth';
 import { siteConfig } from '@/config/site';
@@ -59,6 +60,24 @@ export default function LoginPage() {
   };
 
   const feedback = formError || (!submitting && error ? error : null);
+
+  // Show loading state while AuthProvider initializes
+  // This prevents hydration mismatches and blank screens during initial load
+  if (isLoading && !isAuthenticated) {
+    return (
+      <main className="relative flex min-h-screen items-center justify-center bg-slate-950 px-6 py-12 text-slate-100">
+        <div className="absolute inset-0 overflow-hidden" aria-hidden>
+          <div className="absolute left-[55%] top-[15%] h-96 w-96 -translate-x-1/2 rounded-full bg-cyan-500/20 blur-3xl" />
+          <div className="absolute right-[10%] bottom-[10%] h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
+          <div className="absolute left-[8%] bottom-[12%] h-64 w-64 rounded-full bg-slate-900/80 blur-2xl" />
+        </div>
+        <div className="relative z-10 flex flex-col items-center gap-4">
+          <Spinner size="lg" className="text-cyan-400" />
+          <p className="text-sm text-slate-400">Loading...</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative flex min-h-screen items-center justify-center bg-slate-950 px-6 py-12 text-slate-100">
