@@ -119,7 +119,7 @@ export async function auditPipelineAssign(
 export async function auditPipelineList(
   session: UserSession
 ): Promise<void> {
-  await audit('pipeline.list' as unknown as Parameters<typeof audit>[0], {
+  await audit('pipeline.list', {
     actorId: session.userId,
     actorEmail: session.email,
     actorRole: session.role,
