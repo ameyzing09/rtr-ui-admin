@@ -79,7 +79,6 @@ export class Fetcher {
   constructor(config: FetcherConfig = {}) {
     // Use NEXT_PUBLIC_JOB_API_BASE_URL for job-application service
     // Fallback to NEXT_PUBLIC_API_BASE_URL for backward compatibility
-    console.log('Initializing Fetcher with config:', config);
     this.baseUrl = config.baseUrl || env.NEXT_PUBLIC_JOB_API_BASE_URL || env.NEXT_PUBLIC_API_BASE_URL || '';
     this.defaultHeaders = {
       'Content-Type': 'application/json',
@@ -349,9 +348,6 @@ export function createAuthenticatedFetcher(token: string, config?: FetcherConfig
   const extractedTenantId = extractTenantIdFromToken(token);
   if (extractedTenantId) {
     authFetcher.setTenantId(extractedTenantId);
-    console.log('[createAuthenticatedFetcher] Automatically set X-Tenant-ID header from token');
-  } else {
-    console.warn('[createAuthenticatedFetcher] Could not extract tenantId from token');
   }
 
   return authFetcher;

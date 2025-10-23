@@ -1,6 +1,8 @@
+import { Suspense } from 'react';
 import { listApplicationsAction } from '@/lib/actions/application';
 import { listJobsAction } from '@/lib/actions/job';
 import { ApplicationListClient } from './ApplicationListClient';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 
 export const metadata = {
   title: 'Applications | Dashboard',
@@ -48,9 +50,41 @@ export default async function ApplicationsPage() {
   }
 
   return (
-    <ApplicationListClient
-      initialApplications={applicationsResult.data}
-      jobs={jobsResult.data.jobs}
-    />
+    <div className="flex h-full flex-col">
+      {/* Page Header */}
+      <div className="border-b border-gray-200 bg-white px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              Manage and track job applications
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Application List Client Component */}
+      <Suspense fallback={<ApplicationListSkeleton />}>
+        <ApplicationListClient
+          initialApplications={applicationsResult.data}
+          jobs={jobsResult.data.jobs}
+        />
+      </Suspense>
+    </div>
+  );
+}
+
+/**
+ * Loading skeleton for application list
+ */
+function ApplicationListSkeleton() {
+  return (
+    <div className="flex-1 p-6">
+      <div className="space-y-4">
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <SkeletonTable rows={8} columns={6} />
+        </div>
+      </div>
+    </div>
   );
 }
