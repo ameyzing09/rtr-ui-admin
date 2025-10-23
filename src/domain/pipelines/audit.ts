@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { audit } from '@/lib/audit/log';
+import { audit, AuditEventType } from '@/lib/audit/log';
 import type { UserSession } from '@/lib/rbac/guard';
-import type { Pipeline, CreatePipelineRequest, AssignPipelineRequest } from './schemas';
+import type { Pipeline, CreatePipelineRequest } from './schemas';
 import { getStageCount } from './schemas';
 
 /**
@@ -141,7 +141,7 @@ export async function auditPipelineView(
   pipelineId: string,
   pipeline?: Pipeline
 ): Promise<void> {
-  await audit('pipeline.view' as unknown as Parameters<typeof audit>[0], {
+  await audit('pipeline.view', {
     actorId: session.userId,
     actorEmail: session.email,
     actorRole: session.role,
@@ -163,11 +163,22 @@ export async function auditPipelineView(
  */
 export async function auditPipelineError(
   session: UserSession,
-  operation: string,
+  operation: 'list' | 'view' | 'create' | 'update' | 'assign',
   error: unknown,
   details?: Record<string, unknown>
 ): Promise<void> {
-  await audit(`pipeline.${operation}.error` as unknown as Parameters<typeof audit>[0], {
+  // Type-safe mapping without type assertion
+  const actionMap: Record<typeof operation, AuditEventType> = {
+    'list': 'pipeline.list.error',
+    'view': 'pipeline.view.error',
+    'create': 'pipeline.create.error',
+    'update': 'pipeline.update.error',
+    'assign': 'pipeline.assign.error',
+  };
+
+  const action = actionMap[operation];
+
+  await audit(action, {
     actorId: session.userId,
     actorEmail: session.email,
     actorRole: session.role,
