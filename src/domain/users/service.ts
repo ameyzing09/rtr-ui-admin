@@ -38,7 +38,12 @@ class UserService {
    * @returns List of users with pagination
    */
   async listUsers(session: UserSession, token: string, params: ListUsersParams): Promise<UserListResponse> {
+    console.log('[UserService.listUsers] Raw params:', JSON.stringify(params));
+    console.log('[UserService.listUsers] params.tenant_id:', params.tenant_id, typeof params.tenant_id);
+    console.log('[UserService.listUsers] params.search:', params.search, typeof params.search);
+
     const validated = listUsersParamsSchema.parse(params);
+    console.log('[UserService.listUsers] After Zod validation:', JSON.stringify(validated));
 
     const queryParams = new URLSearchParams();
     if (validated.tenant_id) queryParams.append('tenant_id', validated.tenant_id);
@@ -47,10 +52,13 @@ class UserService {
     queryParams.append('page', String(validated.page));
     queryParams.append('limit', String(validated.limit));
 
+    const finalUrl = `/admin/users?${queryParams.toString()}`;
+    console.log('[UserService.listUsers] Final URL:', finalUrl);
+
     // Create authenticated fetcher with token and correct baseUrl
     const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
     return authFetcher.get(
-      `/admin/users?${queryParams.toString()}`,
+      finalUrl,
       userListResponseSchema
     );
   }
@@ -90,6 +98,10 @@ class UserService {
     userId: string,
     request: ResetPasswordRequest = { force_change: true }
   ): Promise<ResetPasswordResponse> {
+    console.log('[UserService.resetPassword] userId:', userId);
+    console.log('[UserService.resetPassword] request:', JSON.stringify(request));
+    console.log('[UserService.resetPassword] request keys:', Object.keys(request));
+
     // Create authenticated fetcher with token and correct baseUrl
     const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
     return authFetcher.post(

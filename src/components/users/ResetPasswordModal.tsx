@@ -44,10 +44,22 @@ export default function ResetPasswordModal({
     setError(null);
 
     try {
-      const result = await resetPasswordAction(userId, {
-        new_password: passwordMethod === 'custom' ? customPassword : undefined,
+      // Build request object - only include new_password if custom password was chosen
+      // to avoid Next.js Server Actions serializing undefined as "$undefined" string
+      const request: { new_password?: string; force_change: boolean } = {
         force_change: forceChange,
-      });
+      };
+      if (passwordMethod === 'custom' && customPassword) {
+        request.new_password = customPassword;
+      }
+
+      console.log('[ResetPasswordModal] userId:', userId);
+      console.log('[ResetPasswordModal] passwordMethod:', passwordMethod);
+      console.log('[ResetPasswordModal] Built request:', JSON.stringify(request));
+      console.log('[ResetPasswordModal] request keys:', Object.keys(request));
+
+      const result = await resetPasswordAction(userId, request);
+      console.log('[ResetPasswordModal] Result:', result.success ? 'success' : result.error);
 
       if (result.success) {
         setSuccessData(result.data);

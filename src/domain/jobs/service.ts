@@ -127,6 +127,8 @@ export class JobService {
   ): Promise<Job> {
     try {
       console.log('[JobService] Creating job:', { title: payload.title });
+      console.log('[JobService] Payload type:', typeof payload, Array.isArray(payload));
+      console.log('[JobService] Payload:', JSON.stringify(payload));
 
       // Transform dates to ISO strings for API
       const apiPayload = {
@@ -134,6 +136,9 @@ export class JobService {
         publishAt: payload.publishAt ? payload.publishAt.toISOString() : null,
         expireAt: payload.expireAt ? payload.expireAt.toISOString() : null,
       };
+
+      console.log('[JobService] apiPayload type:', typeof apiPayload, Array.isArray(apiPayload));
+      console.log('[JobService] apiPayload:', JSON.stringify(apiPayload));
 
       // Create authenticated fetcher with token
       const authFetcher = createAuthenticatedFetcher(token);

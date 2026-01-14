@@ -161,6 +161,8 @@ export async function createJobAction(
 ): Promise<ActionResult<Job>> {
   try {
     console.log('🔄 [createJobAction] Creating job:', { title: payload.title });
+    console.log('🔄 [createJobAction] Payload type:', typeof payload, Array.isArray(payload));
+    console.log('🔄 [createJobAction] Payload:', JSON.stringify(payload));
 
     const session = await requireCanCreateJobs();
     const job = await jobService.createJob(session, session.token, payload);

@@ -4,22 +4,34 @@ import { z } from 'zod';
 export const userRoleSchema = z.enum(['SUPERADMIN', 'ADMIN', 'HR', 'INTERVIEWER', 'CANDIDATE']);
 export type UserRole = z.infer<typeof userRoleSchema>;
 
-// User schema - representing a single user
+// User schema - representing a single user from GET /admin/users API
 export const userSchema = z.object({
   id: z.string(),
   tenant_id: z.string(),
   name: z.string(),
-  email: z.string().email(),
+  email: z.string().email().optional(), // Not returned in list response
   role: z.string(),
-  must_change_password: z.boolean().default(false),
+  is_owner: z.boolean().optional(),
+  is_active: z.boolean().optional(),
+  force_password_reset: z.boolean().default(false),
+  phone: z.string().nullable().optional(),
+  avatar_url: z.string().nullable().optional(),
+  email_verified: z.boolean().optional(),
   created_at: z.string().transform((val) => new Date(val)),
-  last_login: z.union([z.string().transform((val) => new Date(val)), z.null()]).optional(),
   updated_at: z.string().transform((val) => new Date(val)).optional(),
+  deleted_at: z.string().nullable().optional(),
+  last_login_at: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
+  // Legacy field mappings for UI compatibility
+  must_change_password: z.boolean().default(false).optional(),
+  last_login: z.union([z.string().transform((val) => new Date(val)), z.null()]).optional(),
 });
 export type User = z.infer<typeof userSchema>;
 
 // List users response schema
+// API returns wrapper fields (success, code) alongside data fields
 export const userListResponseSchema = z.object({
+  success: z.boolean().optional(),
+  code: z.number().optional(),
   users: z.array(userSchema),
   total: z.number(),
   page: z.number().optional(),
@@ -39,12 +51,28 @@ export const resetPasswordRequestSchema = z.object({
 export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
 
 // Reset password response schema
+// API may return different field names, so we handle variations
 export const resetPasswordResponseSchema = z.object({
-  user_id: z.string(),
-  temporary_password: z.string().describe('Generated temporary password (if no password was provided)'),
-  must_change_password: z.boolean(),
+  // user_id or userId
+  user_id: z.string().optional(),
+  userId: z.string().optional(),
+  // temporary_password - optional because it may not be returned if custom password was provided
+  temporary_password: z.string().optional().describe('Generated temporary password (if no password was provided)'),
+  temp_password: z.string().optional(),
+  // must_change_password or force_password_reset
+  must_change_password: z.boolean().optional(),
+  force_password_reset: z.boolean().optional(),
+  // success/message from API
+  success: z.boolean().optional(),
+  code: z.number().optional(),
   message: z.string().optional(),
-});
+}).transform((data) => ({
+  // Normalize response to expected format
+  user_id: data.user_id || data.userId || '',
+  temporary_password: data.temporary_password || data.temp_password || '',
+  must_change_password: data.must_change_password ?? data.force_password_reset ?? true,
+  message: data.message,
+}));
 export type ResetPasswordResponse = z.infer<typeof resetPasswordResponseSchema>;
 
 // Change password request schema (user-facing)

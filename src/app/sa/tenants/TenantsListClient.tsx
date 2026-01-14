@@ -35,21 +35,30 @@ export default function TenantsListClient() {
   const [statusFilter, setStatusFilter] = useState<TenantStatus | ''>('');
   const [planFilter, setPlanFilter] = useState<Plan | ''>('');
 
-  // Use Server Actions (BFF) - no HTTP hop, direct server-side call
-  // Memoize params to prevent infinite loop - only recreate when filters change
-  const params = useMemo(() => ({
-    limit: 100,
-    status: statusFilter || undefined,
-    plan: planFilter || undefined,
-    search: searchTerm || undefined,
-  }), [statusFilter, planFilter, searchTerm]);
-
+  // Fetch all tenants - filtering is done client-side since backend doesn't support filter params
+  const fetchParams = useMemo(() => ({ limit: 100 }), []);
   const {
-    tenants,
+    tenants: allTenants,
     loading: isLoading,
     error,
     refetch
-  } = useTenantList(params);
+  } = useTenantList(fetchParams);
+
+  // Client-side filtering since backend doesn't support filter params
+  const tenants = useMemo(() => {
+    return allTenants.filter(tenant => {
+      if (statusFilter && tenant.status !== statusFilter) return false;
+      if (planFilter && tenant.plan !== planFilter) return false;
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        const matchesName = tenant.name.toLowerCase().includes(search);
+        const matchesDomain = tenant.domain.toLowerCase().includes(search);
+        const matchesEmail = tenant.admin_email?.toLowerCase().includes(search) ?? false;
+        if (!matchesName && !matchesDomain && !matchesEmail) return false;
+      }
+      return true;
+    });
+  }, [allTenants, statusFilter, planFilter, searchTerm]);
 
   const handleDelete = async () => {
     await refetch();

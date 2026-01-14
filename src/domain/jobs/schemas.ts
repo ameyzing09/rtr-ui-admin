@@ -45,7 +45,7 @@ export const jobSchema = z.object({
   isPublic: z.boolean().default(true),
   publishAt: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
   expireAt: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
-  externalApplyUrl: z.string().url().nullable().optional(),
+  externalApplyUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
 
   // Custom fields (EPIC E - driven by tenant schema)
   extra: z.record(z.string(), z.unknown()).nullable().optional(),
@@ -127,7 +127,7 @@ export const jobListItemSchema = z.object({
   isPublic: z.boolean(),
   publishAt: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
   expireAt: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
-  externalApplyUrl: z.string().url().nullable().optional(),
+  externalApplyUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
   extra: z.record(z.string(), z.unknown()).nullable().optional(),
   createdAt: z.string().transform((val) => new Date(val)),
   updatedAt: z.string().transform((val) => new Date(val)),

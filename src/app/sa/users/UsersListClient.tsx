@@ -40,12 +40,22 @@ export default function UsersListClient({ tenantId }: UsersListClientProps) {
     setError(null);
 
     try {
-      const result = await listUsersAction({
-        tenant_id: tenantId as string | undefined,
-        search: search || undefined,
+      // Build params object - only include properties with actual values
+      // to avoid Next.js Server Actions serializing undefined as "$undefined" string
+      const params: { tenant_id?: string; search?: string; page: number; limit: number } = {
         page,
         limit,
-      });
+      };
+      if (tenantId) params.tenant_id = tenantId;
+      if (search) params.search = search;
+
+      console.log('[UsersListClient] tenantId prop:', tenantId, typeof tenantId);
+      console.log('[UsersListClient] search state:', search, typeof search);
+      console.log('[UsersListClient] Built params:', JSON.stringify(params));
+      console.log('[UsersListClient] params keys:', Object.keys(params));
+
+      const result = await listUsersAction(params);
+      console.log('[UsersListClient] Result:', result.success ? 'success' : result.error);
 
       if (result.success) {
         setUsers(result.data.users);
@@ -192,7 +202,7 @@ export default function UsersListClient({ tenantId }: UsersListClientProps) {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        {user.must_change_password ? (
+                        {user.force_password_reset ? (
                           <span className="flex items-center gap-2 text-yellow-600">
                             <AlertCircle className="w-4 h-4" />
                             Must change
@@ -202,14 +212,14 @@ export default function UsersListClient({ tenantId }: UsersListClientProps) {
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-600">
-                        {user.last_login
+                        {user.last_login_at
                           ? new Intl.DateTimeFormat('en-US', {
                               month: 'short',
                               day: 'numeric',
                               year: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit',
-                            }).format(new Date(user.last_login))
+                            }).format(new Date(user.last_login_at))
                           : 'Never'}
                       </td>
                       <td className="px-6 py-4 text-sm">
@@ -277,7 +287,7 @@ export default function UsersListClient({ tenantId }: UsersListClientProps) {
             key="reset-modal"
             userId={selectedUser.id}
             userName={selectedUser.name}
-            userEmail={selectedUser.email}
+            userEmail={selectedUser.email || ''}
             onClose={() => setShowResetModal(false)}
             onSuccess={handleResetSuccess}
           />

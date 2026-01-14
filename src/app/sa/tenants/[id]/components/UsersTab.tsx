@@ -174,7 +174,7 @@ export default function UsersTab({ tenantId }: UsersTabProps) {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm">
-                        {user.must_change_password ? (
+                        {user.force_password_reset ? (
                           <span className="flex items-center gap-2 text-yellow-600">
                             <AlertCircle className="w-4 h-4" />
                             Must change
@@ -217,7 +217,7 @@ export default function UsersTab({ tenantId }: UsersTabProps) {
             key="reset-modal"
             userId={selectedUser.id}
             userName={selectedUser.name}
-            userEmail={selectedUser.email}
+            userEmail={selectedUser.email || ''}
             onClose={() => setShowResetModal(false)}
             onSuccess={handleResetSuccess}
           />

@@ -216,8 +216,14 @@ export class Fetcher {
       }
 
       if (responseSchema) {
+        console.log('[Fetcher] Raw API response data:', JSON.stringify(data));
         const parsed = responseSchema.safeParse(data);
         if (!parsed.success) {
+          console.error('[Fetcher] Schema validation failed:', parsed.error);
+          console.error('[Fetcher] Expected schema fields vs received:', {
+            receivedKeys: Object.keys(data as object),
+            receivedData: data,
+          });
           throw new ApiException(
             'Invalid response format',
             'INVALID_RESPONSE',
@@ -255,6 +261,10 @@ export class Fetcher {
     data?: unknown,
     responseSchema?: z.ZodType<T>
   ): Promise<T> {
+    console.log('[Fetcher.post] endpoint:', endpoint);
+    console.log('[Fetcher.post] data type:', typeof data, Array.isArray(data));
+    console.log('[Fetcher.post] data:', JSON.stringify(data));
+
     return this.request(
       endpoint,
       {

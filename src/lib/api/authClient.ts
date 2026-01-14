@@ -33,8 +33,8 @@ const loginResponseSchema = z.object({
   Token: z.string(),
   ExpiresAt: z.string(),
   User: apiUserSchema,
-  TenantBranding: brandingSchema.optional(),
-  PlatformBranding: brandingSchema.optional(),
+  TenantBranding: brandingSchema.nullable(),
+  PlatformBranding: brandingSchema.nullable(),
 });
 
 type LoginApiResponse = z.infer<typeof loginResponseSchema>;
@@ -53,7 +53,8 @@ function mapUser(user: LoginApiResponse['User']): AuthUser {
 
 function mapSession(payload: LoginApiResponse): AuthSession {
   // Use TenantBranding for tenant users, PlatformBranding for superadmins
-  const branding = payload.TenantBranding || payload.PlatformBranding;
+  // Handle null values from API
+  const branding = payload.TenantBranding || payload.PlatformBranding || undefined;
 
   return {
     token: payload.Token,
@@ -69,12 +70,12 @@ export class AuthClient {
   constructor() {
     // Create dedicated fetcher for User-Auth service
     // NEXT_PUBLIC_ prefix allows browser access (needed for login forms)
-    const baseUrl = env.NEXT_PUBLIC_USER_AUTH_API_BASE_URL ||
+    const baseUrl = process.env.NEXT_PUBLIC_USER_AUTH_API_BASE_URL ||
                     process.env.USER_AUTH_API_BASE_URL ||
                     process.env.AUTH_API_BASE ||
                     env.NEXT_PUBLIC_API_BASE_URL ||
                     'http://localhost:8082';
-
+    console.log(`AuthClient initialized with baseUrl: ${baseUrl}`);
     this.fetcher = new Fetcher({ baseUrl });
   }
 

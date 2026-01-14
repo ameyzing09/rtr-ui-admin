@@ -20,9 +20,10 @@ function isValidDateString(dateStr: string): boolean {
     return false;
   }
 
-  // ISO 8601 format: YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss
+  // ISO 8601 format: YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss (also accepts PostgreSQL format with space separator)
   // Note: Matches format only, not value ranges (month 1-12, day 1-31, etc.)
-  const iso8601Pattern = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?)?$/;
+  // Accepts: 2024-01-15, 2024-01-15T10:30:00, 2024-01-15 10:30:00+00, 2024-01-15T10:30:00.123Z
+  const iso8601Pattern = /^\d{4}-\d{2}-\d{2}([T ]\d{2}:\d{2}:\d{2}(\.\d{1,6})?(Z|[+-]\d{2}(:\d{2})?)?)?$/;
 
   // Common timestamp formats
   const timestampPattern = /^\d+$/; // Unix timestamp

@@ -21,6 +21,7 @@ export default function Badge({
   const baseStyles = `
     inline-flex items-center justify-center gap-1 rounded-full font-medium
     transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
+    cursor-default select-none
   `;
 
   const variants = {
@@ -37,16 +38,13 @@ export default function Badge({
       focus:ring-[var(--secondary)]
     `,
     success: `
-      bg-green-100 text-green-800 border border-green-200
-      dark:bg-green-900/30 dark:text-green-400 dark:border-green-800
+      bg-green-100 text-green-700 border border-green-300
     `,
     warning: `
-      bg-yellow-100 text-yellow-800 border border-yellow-200
-      dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800
+      bg-amber-100 text-amber-700 border border-amber-300
     `,
     danger: `
-      bg-red-100 text-red-800 border border-red-200
-      dark:bg-red-900/30 dark:text-red-400 dark:border-red-800
+      bg-red-100 text-red-700 border border-red-300
     `,
     outline: `
       bg-transparent text-[var(--app-fg)] border border-[var(--border)]

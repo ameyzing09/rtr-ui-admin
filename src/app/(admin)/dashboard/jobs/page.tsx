@@ -8,6 +8,14 @@ export const metadata = {
   description: 'Manage job postings and openings',
 };
 
+interface PageProps {
+  searchParams: Promise<{
+    search?: string;
+    department?: string;
+    location?: string;
+  }>;
+}
+
 /**
  * Job List Page (Server Component)
  * B1: List Jobs - GET /job
@@ -19,9 +27,14 @@ export const metadata = {
  * - Shows only current tenant's jobs
  * - Empty state + shimmer loaders
  */
-export default async function JobsPage() {
-  // Initial data fetch (server-side)
+export default async function JobsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+
+  // Initial data fetch (server-side) with filter params
   const result = await listJobsAction({
+    title: params.search,
+    department: params.department,
+    location: params.location,
     sortBy: 'createdAt',
     sortOrder: 'desc',
     limit: 50,

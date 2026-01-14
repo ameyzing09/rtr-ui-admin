@@ -67,7 +67,6 @@ export async function listTenantsAction(
   params: TenantListParams = { limit: 50 }
 ): Promise<ActionResult<TenantListResponse>> {
   try {
-    console.log('🔄 Attempting to list tenants with params:', params);
     const session = await requireSuperadmin();
     const tenants = await tenantService.listTenants(session, session.token, params);
 

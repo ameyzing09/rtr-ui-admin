@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Plus, MoreVertical, Edit, Trash2, Eye } from 'lucide-react';
+import { Search, Plus, MoreVertical, Edit, Trash2, Eye, Clock } from 'lucide-react';
 import type { JobListResponse, JobListItem } from '@/domain/jobs/schemas';
 import { getJobStatusBadge, isJobActive } from '@/domain/jobs/schemas';
 import Badge from '@/components/ui/Badge';
@@ -18,38 +19,54 @@ interface JobListClientProps {
 
 export function JobListClient({ initialData }: JobListClientProps) {
   const { session } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [departmentFilter, setDepartmentFilter] = useState('');
-  const [locationFilter, setLocationFilter] = useState('');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  // Read current filters from URL
+  const searchQuery = searchParams.get('search') || '';
+  const departmentFilter = searchParams.get('department') || '';
+  const locationFilter = searchParams.get('location') || '';
+
+  // Local state for search input (for debouncing)
+  const [searchInput, setSearchInput] = useState(searchQuery);
+
+  // Update URL when filters change
+  const updateFilters = useCallback((updates: Record<string, string>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    });
+    const queryString = params.toString();
+    router.push(queryString ? `${pathname}?${queryString}` : pathname);
+  }, [searchParams, pathname, router]);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchInput !== searchQuery) {
+        updateFilters({ search: searchInput });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput, searchQuery, updateFilters]);
+
+  // Sync search input with URL when URL changes externally
+  useEffect(() => {
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
 
   // Check permissions
   const canCreate = session ? hasJobPermission(session.user.permissions, JOB_PERMISSIONS.CREATE) : false;
   const canEdit = session ? hasJobPermission(session.user.permissions, JOB_PERMISSIONS.UPDATE) : false;
   const canDelete = session ? hasJobPermission(session.user.permissions, JOB_PERMISSIONS.DELETE) : false;
 
-  // Filter jobs based on search and filters
-  const filteredJobs = useMemo(() => {
-    let jobs = initialData.jobs || [];
-
-    // Search by title
-    if (searchQuery) {
-      jobs = jobs.filter((job) =>
-        job.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Filter by department
-    if (departmentFilter) {
-      jobs = jobs.filter((job) => job.department === departmentFilter);
-    }
-
-    // Filter by location
-    if (locationFilter) {
-      jobs = jobs.filter((job) => job.location === locationFilter);
-    }
-
-    return jobs;
-  }, [initialData.jobs, searchQuery, departmentFilter, locationFilter]);
+  // Jobs are already filtered by the server
+  const filteredJobs = initialData.jobs || [];
 
   // Get unique departments and locations for filters
   const departments = useMemo(() => {
@@ -117,9 +134,9 @@ export function JobListClient({ initialData }: JobListClientProps) {
             <input
               type="text"
               placeholder="Search jobs by title..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 pl-10 pr-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="h-10 w-full rounded-lg border border-gray-300 pl-10 pr-4 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
@@ -129,8 +146,8 @@ export function JobListClient({ initialData }: JobListClientProps) {
             {departments.length > 0 && (
               <select
                 value={departmentFilter}
-                onChange={(e) => setDepartmentFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onChange={(e) => updateFilters({ department: e.target.value })}
+                className="h-10 rounded-lg border border-gray-300 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="">All Departments</option>
                 {departments.map((dept) => (
@@ -145,8 +162,8 @@ export function JobListClient({ initialData }: JobListClientProps) {
             {locations.length > 0 && (
               <select
                 value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onChange={(e) => updateFilters({ location: e.target.value })}
+                className="h-10 rounded-lg border border-gray-300 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
                 <option value="">All Locations</option>
                 {locations.map((loc) => (
@@ -161,7 +178,7 @@ export function JobListClient({ initialData }: JobListClientProps) {
             {canCreate && (
               <Link
                 href="/dashboard/jobs/create"
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                className="h-10 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
               >
                 <Plus className="h-4 w-4" />
                 Create Job
@@ -172,7 +189,7 @@ export function JobListClient({ initialData }: JobListClientProps) {
 
         {/* Results Count */}
         <div className="mt-3 text-sm text-gray-500">
-          Showing {filteredJobs.length} of {initialData.jobs.length} jobs
+          Showing {filteredJobs.length} job{filteredJobs.length !== 1 ? 's' : ''}
           {(searchQuery || departmentFilter || locationFilter) && ' (filtered)'}
         </div>
       </div>
@@ -215,29 +232,67 @@ function JobCard({ job, canEdit, canDelete }: JobCardProps) {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const active = isJobActive(job);
   const statusBadge = getJobStatusBadge(job);
 
+  // For Portal rendering
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close menu when clicking outside or scrolling
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setShowMenu(false);
+      }
+    }
+
+    function handleScroll() {
+      setShowMenu(false);
+    }
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true); // true = capture phase to catch all scroll events
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('scroll', handleScroll, true);
+      };
+    }
+  }, [showMenu]);
+
+  // Calculate menu position (fixed positioning = relative to viewport, no scroll offset)
+  const getMenuPosition = () => {
+    if (!buttonRef.current) return { top: 0, left: 0 };
+    const rect = buttonRef.current.getBoundingClientRect();
+    return {
+      top: rect.bottom + 8,
+      left: rect.right - 192, // 192px = w-48
+    };
+  };
+
   return (
     <Card className="p-6 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         {/* Job Info */}
         <div className="flex-1">
-          <div className="flex items-start gap-3">
-            <Link
-              href={`/dashboard/jobs/${job.id}`}
-              className="flex-1"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600">
-                {job.title}
-              </h3>
-            </Link>
-
-            {/* Status Badge */}
-            <Badge variant={active ? 'success' : 'default'}>
-              {statusBadge}
-            </Badge>
-          </div>
+          <Link
+            href={`/dashboard/jobs/${job.id}`}
+            className="inline-block"
+          >
+            <h3 className="text-lg font-semibold text-gray-900 hover:text-blue-600">
+              {job.title}
+            </h3>
+          </Link>
 
           {/* Metadata */}
           <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-gray-500">
@@ -260,7 +315,8 @@ function JobCard({ job, canEdit, canDelete }: JobCardProps) {
               </span>
             )}
 
-            <span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
               Posted {formatRelativeDate(job.createdAt)}
             </span>
           </div>
@@ -282,57 +338,73 @@ function JobCard({ job, canEdit, canDelete }: JobCardProps) {
           )}
         </div>
 
-        {/* Actions Menu */}
-        {(canEdit || canDelete) && (
-          <div className="relative ml-4">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="rounded-lg p-2 hover:bg-gray-100"
-            >
-              <MoreVertical className="h-5 w-5 text-gray-400" />
-            </button>
+        {/* Right side: Badge + Actions Menu */}
+        <div className="flex items-center gap-4 ml-4">
+          {/* Status Badge */}
+          <Badge variant={active ? 'success' : 'default'}>
+            {statusBadge}
+          </Badge>
 
-            {showMenu && (
-              <div className="absolute right-0 z-10 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
-                <div className="py-1">
-                  <Link
-                    href={`/dashboard/jobs/${job.id}`}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    <Eye className="h-4 w-4" />
-                    View Details
-                  </Link>
+          {/* Actions Menu */}
+          {(canEdit || canDelete) && (
+            <div className="relative">
+              <button
+                ref={buttonRef}
+                onClick={() => setShowMenu(!showMenu)}
+                className="h-9 w-9 flex items-center justify-center rounded-lg hover:bg-gray-100"
+              >
+                <MoreVertical className="h-5 w-5 text-gray-400" />
+              </button>
 
-                  {canEdit && (
+              {showMenu && mounted && createPortal(
+                <div
+                  ref={menuRef}
+                  className="fixed z-[60] w-48 rounded-lg border border-gray-200 bg-white shadow-lg"
+                  style={getMenuPosition()}
+                >
+                  <div className="py-1">
                     <Link
-                      href={`/dashboard/jobs/${job.id}/edit`}
+                      href={`/dashboard/jobs/${job.id}`}
                       className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowMenu(false)}
                     >
-                      <Edit className="h-4 w-4" />
-                      Edit Job
+                      <Eye className="h-4 w-4" />
+                      View Details
                     </Link>
-                  )}
 
-                  {canDelete && (
-                    <>
-                      <div className="my-1 border-t border-gray-200" />
-                      <button
-                        onClick={() => {
-                          setShowMenu(false);
-                          setShowDeleteModal(true);
-                        }}
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    {canEdit && (
+                      <Link
+                        href={`/dashboard/jobs/${job.id}/edit`}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowMenu(false)}
                       >
-                        <Trash2 className="h-4 w-4" />
-                        Delete Job
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+                        <Edit className="h-4 w-4" />
+                        Edit Job
+                      </Link>
+                    )}
+
+                    {canDelete && (
+                      <>
+                        <div className="my-1 border-t border-gray-200" />
+                        <button
+                          onClick={() => {
+                            setShowMenu(false);
+                            setShowDeleteModal(true);
+                          }}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete Job
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>,
+                document.body
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Delete Modal */}

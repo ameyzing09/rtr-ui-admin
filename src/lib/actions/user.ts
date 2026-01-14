@@ -28,6 +28,10 @@ export type ActionResult<T> =
 export async function listUsersAction(
   params: ListUsersParams
 ): Promise<ActionResult<UserListResponse>> {
+  console.log('[Server Action listUsersAction] Received params:', JSON.stringify(params));
+  console.log('[Server Action listUsersAction] params.tenant_id:', params.tenant_id, typeof params.tenant_id);
+  console.log('[Server Action listUsersAction] params.search:', params.search, typeof params.search);
+
   try {
     // Require superadmin role
     const session = await requireSuperadmin();
@@ -121,6 +125,10 @@ export async function resetPasswordAction(
   userId: string,
   request: ResetPasswordRequest = { force_change: true }
 ): Promise<ActionResult<ResetPasswordResponse>> {
+  console.log('[Server Action resetPasswordAction] userId:', userId);
+  console.log('[Server Action resetPasswordAction] request:', JSON.stringify(request));
+  console.log('[Server Action resetPasswordAction] request.new_password:', request.new_password, typeof request.new_password);
+
   try {
     const session = await requireSuperadmin();
 
