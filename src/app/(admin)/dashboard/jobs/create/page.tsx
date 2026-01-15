@@ -1,4 +1,5 @@
 import { CreateJobWizard } from './CreateJobWizard';
+import { listPipelinesAction } from '@/lib/actions/pipeline';
 
 export const metadata = {
   title: 'Create Job | Dashboard',
@@ -18,10 +19,19 @@ export const metadata = {
  * - Validation (title required, expireAt > publishAt, URL validation)
  * - On success: toast + redirect to job detail
  */
-export default function CreateJobPage() {
+export default async function CreateJobPage() {
+  // Fetch available pipelines for selection
+  const pipelinesResult = await listPipelinesAction();
+  console.log('🔍 [CreateJobPage] Pipelines result:', {
+    success: pipelinesResult.success,
+    count: pipelinesResult.success ? pipelinesResult.data.length : 0,
+    error: !pipelinesResult.success ? pipelinesResult.error : null,
+  });
+  const pipelines = pipelinesResult.success ? pipelinesResult.data : [];
+
   return (
     <div className="flex h-full flex-col">
-      <CreateJobWizard />
+      <CreateJobWizard pipelines={pipelines} />
     </div>
   );
 }

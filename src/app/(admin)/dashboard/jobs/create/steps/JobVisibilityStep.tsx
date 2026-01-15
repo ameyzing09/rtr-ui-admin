@@ -1,6 +1,7 @@
 'use client';
 
 import type { CreateJobRequest } from '@/domain/jobs/schemas';
+import type { Pipeline } from '@/domain/pipelines/schemas';
 import Card from '@/components/ui/Card';
 
 interface JobVisibilityStepProps {
@@ -8,6 +9,7 @@ interface JobVisibilityStepProps {
   updateFormData: (updates: Partial<CreateJobRequest>) => void;
   fieldErrors: Record<string, string>;
   clearFieldError: (field: string) => void;
+  pipelines: Pipeline[];
 }
 
 /**
@@ -22,7 +24,13 @@ export function JobVisibilityStep({
   updateFormData,
   fieldErrors,
   clearFieldError,
+  pipelines,
 }: JobVisibilityStepProps) {
+  console.log('🔍 [JobVisibilityStep] Pipelines prop:', {
+    length: pipelines.length,
+    items: pipelines.map(p => ({ id: p.id, name: p.name, is_active: p.is_active })),
+  });
+
   const handlePublishDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value ? new Date(e.target.value) : null;
     updateFormData({ publishAt: value });
@@ -140,6 +148,41 @@ export function JobVisibilityStep({
             Redirect applicants to an external application form (e.g., on your company website)
           </p>
         </div>
+
+        {/* Pipeline Selection */}
+        {pipelines.length > 0 && (
+          <div>
+            <label htmlFor="pipelineId" className="block text-sm font-medium text-gray-700">
+              Interview Pipeline (Optional)
+            </label>
+            <select
+              id="pipelineId"
+              value={formData.pipelineId || ''}
+              onChange={(e) => {
+                updateFormData({ pipelineId: e.target.value || undefined });
+                clearFieldError('pipelineId');
+              }}
+              className={`mt-1 block w-full rounded-lg border ${
+                fieldErrors.pipelineId ? 'border-red-300' : 'border-gray-300'
+              } px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500`}
+            >
+              <option value="">Select a pipeline...</option>
+              {pipelines
+                .filter((p) => p.is_active)
+                .map((pipeline) => (
+                  <option key={pipeline.id} value={pipeline.id}>
+                    {pipeline.name}
+                  </option>
+                ))}
+            </select>
+            {fieldErrors.pipelineId && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.pipelineId}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              Select an interview pipeline for this job, or leave empty to use the default
+            </p>
+          </div>
+        )}
       </div>
     </Card>
   );

@@ -10,16 +10,18 @@ import { JobVisibilityStep } from '../../create/steps/JobVisibilityStep';
 import { JobCustomFieldsStep } from '../../create/steps/JobCustomFieldsStep';
 import { updateJobRequestSchema, type Job, type UpdateJobRequest } from '@/domain/jobs/schemas';
 import { toast } from '@/components/ui/ToastProvider';
+import type { Pipeline } from '@/domain/pipelines/schemas';
 
 interface EditJobWizardProps {
   job: Job;
+  pipelines: Pipeline[];
 }
 
 /**
  * Edit Job Wizard Component
  * B4: Reuses create wizard with pre-filled data
  */
-export function EditJobWizard({ job }: EditJobWizardProps) {
+export function EditJobWizard({ job, pipelines }: EditJobWizardProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -251,6 +253,7 @@ export function EditJobWizard({ job }: EditJobWizardProps) {
           updateFormData={updateFormData}
           fieldErrors={fieldErrors}
           clearFieldError={clearFieldError}
+          pipelines={pipelines}
         />
       ),
       validate: validateStep3,

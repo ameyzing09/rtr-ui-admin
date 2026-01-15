@@ -10,12 +10,18 @@ import { JobVisibilityStep } from './steps/JobVisibilityStep';
 import { JobCustomFieldsStep } from './steps/JobCustomFieldsStep';
 import { createJobRequestSchema, type CreateJobRequest } from '@/domain/jobs/schemas';
 import { toast } from '@/components/ui/ToastProvider';
+import type { Pipeline } from '@/domain/pipelines/schemas';
+
+interface CreateJobWizardProps {
+  pipelines: Pipeline[];
+}
 
 /**
  * Create Job Wizard Component
  * B2: Multi-step form for creating a new job
  */
-export function CreateJobWizard() {
+export function CreateJobWizard({ pipelines }: CreateJobWizardProps) {
+  console.log('🔍 [CreateJobWizard] Received pipelines:', pipelines.length, pipelines);
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -218,6 +224,7 @@ export function CreateJobWizard() {
           updateFormData={updateFormData}
           fieldErrors={fieldErrors}
           clearFieldError={clearFieldError}
+          pipelines={pipelines}
         />
       ),
       validate: validateStep3,

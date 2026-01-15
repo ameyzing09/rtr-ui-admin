@@ -13,6 +13,10 @@ export const jobStatusSchema = z.enum([
 ]);
 export type JobStatus = z.infer<typeof jobStatusSchema>;
 
+// Backend status (returned from API, different from computed JobStatus)
+export const JOB_BACKEND_STATUS = ['DRAFT', 'ACTIVE', 'ARCHIVED'] as const;
+export type JobBackendStatus = (typeof JOB_BACKEND_STATUS)[number];
+
 export const JOB_STATUS_OPTIONS = [
   { value: 'DRAFT', label: 'Draft', description: 'Not yet published' },
   { value: 'PUBLISHED', label: 'Published', description: 'Active and accepting applications' },
@@ -49,6 +53,9 @@ export const jobSchema = z.object({
 
   // Custom fields (EPIC E - driven by tenant schema)
   extra: z.record(z.string(), z.unknown()).nullable().optional(),
+
+  // Backend status (pipeline state)
+  status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
 
   // Status and metadata
   createdAt: z.string().transform((val) => new Date(val)),
@@ -88,6 +95,9 @@ export const createJobRequestSchema = z.object({
 
   // Step 4: Custom fields (EPIC E)
   extra: z.record(z.string(), z.unknown()).optional(),
+
+  // Optional pipeline selection
+  pipelineId: z.string().uuid().optional(),
 }).refine(
   (data) => {
     // Validation: expireAt must be after publishAt when both are set
@@ -129,6 +139,7 @@ export const jobListItemSchema = z.object({
   expireAt: z.string().nullable().optional().transform((val) => val ? new Date(val) : null),
   externalApplyUrl: z.union([z.string().url(), z.literal(''), z.null()]).optional(),
   extra: z.record(z.string(), z.unknown()).nullable().optional(),
+  status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
   createdAt: z.string().transform((val) => new Date(val)),
   updatedAt: z.string().transform((val) => new Date(val)),
 });
@@ -272,4 +283,43 @@ export function getJobStatusBadge(job: Job | JobListItem): string {
 
   // Otherwise, it's active
   return 'Active';
+}
+
+/**
+ * Get badge variant for backend status
+ */
+export function getBackendStatusBadgeVariant(status?: JobBackendStatus): 'warning' | 'success' | 'default' {
+  if (!status) return 'default';
+  const variants: Record<JobBackendStatus, 'warning' | 'success' | 'default'> = {
+    DRAFT: 'warning',
+    ACTIVE: 'success',
+    ARCHIVED: 'default',
+  };
+  return variants[status];
+}
+
+/**
+ * Get merged job status combining backend status with computed status
+ * Backend status is primary, computed status provides additional context
+ */
+export function getMergedJobStatus(job: Job | JobListItem): { primary: string; secondary?: string } {
+  const computed = getJobStatusBadge(job);
+  const backend = job.status;
+
+  // If no backend status or ACTIVE, show computed status
+  if (!backend || backend === 'ACTIVE') {
+    return { primary: computed };
+  }
+
+  // DRAFT shows pipeline pending warning
+  if (backend === 'DRAFT') {
+    return { primary: 'Draft', secondary: 'Pipeline pending' };
+  }
+
+  // ARCHIVED shows archived status
+  if (backend === 'ARCHIVED') {
+    return { primary: 'Archived' };
+  }
+
+  return { primary: computed };
 }

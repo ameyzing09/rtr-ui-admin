@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getJobAction } from '@/lib/actions/job';
+import { listPipelinesAction } from '@/lib/actions/pipeline';
 import { EditJobWizard } from './EditJobWizard';
 
 interface EditJobPageProps {
@@ -35,7 +36,13 @@ export async function generateMetadata({ params }: EditJobPageProps) {
  */
 export default async function EditJobPage({ params }: EditJobPageProps) {
   const { id } = await params;
-  const result = await getJobAction(id);
+
+  // Fetch job and pipelines in parallel
+  const [result, pipelinesResult] = await Promise.all([
+    getJobAction(id),
+    listPipelinesAction(),
+  ]);
+  const pipelines = pipelinesResult.success ? pipelinesResult.data : [];
 
   // Handle 404
   if (!result.success) {
@@ -56,7 +63,7 @@ export default async function EditJobPage({ params }: EditJobPageProps) {
 
   return (
     <div className="flex h-full flex-col">
-      <EditJobWizard job={result.data} />
+      <EditJobWizard job={result.data} pipelines={pipelines} />
     </div>
   );
 }
