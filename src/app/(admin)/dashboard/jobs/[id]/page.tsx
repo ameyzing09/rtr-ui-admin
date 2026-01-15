@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getJobAction } from '@/lib/actions/job';
 import { listApplicationsAction } from '@/lib/actions/application';
+import { getPipelineByJobIdAction } from '@/lib/actions/pipeline';
 import { JobDetailClient } from './JobDetailClient';
 
 interface JobDetailPageProps {
@@ -55,13 +56,17 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
     );
   }
 
-  // Fetch applications for this job
-  const applicationsResult = await listApplicationsAction(id);
+  // Fetch applications and pipeline for this job in parallel
+  const [applicationsResult, pipelineResult] = await Promise.all([
+    listApplicationsAction(id),
+    getPipelineByJobIdAction(id),
+  ]);
 
   return (
     <JobDetailClient
       job={result.data}
       applications={applicationsResult.success ? applicationsResult.data : []}
+      pipeline={pipelineResult.success ? pipelineResult.data : null}
     />
   );
 }

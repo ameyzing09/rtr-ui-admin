@@ -4,9 +4,9 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Search, Plus, MoreVertical, Edit, Trash2, Eye, Clock } from 'lucide-react';
+import { Search, Plus, MoreVertical, Edit, Trash2, Eye, Clock, AlertTriangle } from 'lucide-react';
 import type { JobListResponse, JobListItem } from '@/domain/jobs/schemas';
-import { getJobStatusBadge, isJobActive } from '@/domain/jobs/schemas';
+import { getMergedJobStatus, getBackendStatusBadgeVariant } from '@/domain/jobs/schemas';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -235,8 +235,8 @@ function JobCard({ job, canEdit, canDelete }: JobCardProps) {
   const [mounted, setMounted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const active = isJobActive(job);
-  const statusBadge = getJobStatusBadge(job);
+  const mergedStatus = getMergedJobStatus(job);
+  const badgeVariant = getBackendStatusBadgeVariant(job.status);
 
   // For Portal rendering
   useEffect(() => {
@@ -281,7 +281,7 @@ function JobCard({ job, canEdit, canDelete }: JobCardProps) {
   };
 
   return (
-    <Card className="p-6 hover:shadow-md transition-shadow">
+    <Card className={`p-6 hover:shadow-md transition-shadow ${job.status === 'ARCHIVED' ? 'opacity-60' : ''}`}>
       <div className="flex items-center justify-between">
         {/* Job Info */}
         <div className="flex-1">
@@ -341,9 +341,15 @@ function JobCard({ job, canEdit, canDelete }: JobCardProps) {
         {/* Right side: Badge + Actions Menu */}
         <div className="flex items-center gap-4 ml-4">
           {/* Status Badge */}
-          <Badge variant={active ? 'success' : 'default'}>
-            {statusBadge}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {job.status === 'DRAFT' && <AlertTriangle className="h-4 w-4 text-amber-500" />}
+            <Badge variant={badgeVariant}>
+              {mergedStatus.primary}
+            </Badge>
+            {mergedStatus.secondary && (
+              <span className="text-xs text-amber-600">{mergedStatus.secondary}</span>
+            )}
+          </div>
 
           {/* Actions Menu */}
           {(canEdit || canDelete) && (

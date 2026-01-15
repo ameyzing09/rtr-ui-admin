@@ -21,6 +21,7 @@ import {
 import type { Job } from '@/domain/jobs/schemas';
 import { getJobStatusBadge, isJobActive } from '@/domain/jobs/schemas';
 import type { ApplicationListResponse, Application } from '@/domain/applications/schemas';
+import type { Pipeline } from '@/domain/pipelines/schemas';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -35,11 +36,12 @@ import { ApplicationStatusBadge } from '@/components/applications/ApplicationSta
 interface JobDetailClientProps {
   job: Job;
   applications: ApplicationListResponse;
+  pipeline: Pipeline | null;
 }
 
 type TabType = 'overview' | 'pipeline' | 'applicants' | 'activity' | 'settings';
 
-export function JobDetailClient({ job, applications }: JobDetailClientProps) {
+export function JobDetailClient({ job, applications, pipeline }: JobDetailClientProps) {
   const { session } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [showMenu, setShowMenu] = useState(false);
@@ -219,7 +221,7 @@ export function JobDetailClient({ job, applications }: JobDetailClientProps) {
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto bg-gray-50 p-6">
         {activeTab === 'overview' && <OverviewTab job={job} />}
-        {activeTab === 'pipeline' && <PipelineTab job={job} />}
+        {activeTab === 'pipeline' && <PipelineTab job={job} pipeline={pipeline} />}
         {activeTab === 'applicants' && <ApplicantsTab job={job} applications={applications} />}
         {activeTab === 'activity' && <ActivityTab job={job} />}
         {activeTab === 'settings' && <SettingsTab job={job} onDelete={() => setShowDeleteModal(true)} />}
@@ -312,23 +314,100 @@ function OverviewTab({ job }: { job: Job }) {
   );
 }
 
-function PipelineTab({ job }: { job: Job }) {
+function PipelineTab({ job, pipeline }: { job: Job; pipeline: Pipeline | null }) {
+  if (!pipeline) {
+    return (
+      <Card className="p-6">
+        <h2 className="text-lg font-semibold text-gray-900">Pipeline</h2>
+        <p className="mt-2 text-sm text-gray-600">
+          No pipeline assigned to this job yet.
+        </p>
+        <div className="mt-4">
+          <Link
+            href={`/dashboard/pipeline?job=${job.id}`}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            <GitBranch className="h-4 w-4" />
+            Assign Pipeline
+          </Link>
+        </div>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="p-6">
-      <h2 className="text-lg font-semibold text-gray-900">Pipeline</h2>
-      <p className="mt-2 text-sm text-gray-600">
-        View and manage the recruitment pipeline for this job.
-      </p>
-      <div className="mt-4">
+    <div className="space-y-6">
+      {/* Pipeline Header */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">{pipeline.name}</h2>
+            <p className="mt-1 text-sm text-gray-600">{pipeline.description}</p>
+          </div>
+          <Badge variant={pipeline.is_active ? 'success' : 'default'}>
+            {pipeline.is_active ? 'Active' : 'Inactive'}
+          </Badge>
+        </div>
+      </Card>
+
+      {/* Pipeline Stages */}
+      <Card className="p-6">
+        <h3 className="text-md font-semibold text-gray-900 mb-4">
+          Pipeline Stages ({pipeline.stages.length})
+        </h3>
+
+        {/* Horizontal Stage Flow */}
+        <div className="relative">
+          <div className="flex items-center overflow-x-auto pb-4">
+            {pipeline.stages.map((stage, index) => (
+              <div key={index} className="flex items-center">
+                {/* Stage Card */}
+                <div className="flex-shrink-0 w-48 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600">
+                      {index + 1}
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 truncate">
+                      {stage.stage}
+                    </span>
+                  </div>
+                  <div className="space-y-1 text-xs text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">Type:</span>
+                      <span className="capitalize">{stage.type}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="font-medium">By:</span>
+                      <span>{stage.conducted_by}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arrow between stages */}
+                {index < pipeline.stages.length - 1 && (
+                  <div className="flex-shrink-0 mx-2 text-gray-300">
+                    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {/* View Full Pipeline Link */}
+      <div className="flex justify-end">
         <Link
-          href={`/dashboard/pipeline?job=${job.id}`}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          href={`/dashboard/pipeline/${pipeline.id}`}
+          className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
         >
           <GitBranch className="h-4 w-4" />
-          View Pipeline
+          View Full Pipeline Details
         </Link>
       </div>
-    </Card>
+    </div>
   );
 }
 

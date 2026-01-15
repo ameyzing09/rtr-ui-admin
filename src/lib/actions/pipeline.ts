@@ -154,6 +154,40 @@ export async function getPipelineAction(id: string): Promise<ActionResult<Pipeli
 }
 
 /**
+ * Server action to get pipeline assigned to a job
+ * GET /pipeline/job/:jobId
+ *
+ * @param jobId - Job ID
+ * @returns Pipeline object or null if not assigned
+ */
+export async function getPipelineByJobIdAction(jobId: string): Promise<ActionResult<Pipeline | null>> {
+  try {
+    console.log('🔄 [getPipelineByJobIdAction] Fetching pipeline for job:', jobId);
+
+    const session = await requireCanReadPipelines();
+    const pipeline = await pipelineService.getPipelineByJobId(session, session.token, jobId);
+
+    console.log('✅ [getPipelineByJobIdAction] Result:', pipeline ? pipeline.id : 'No pipeline assigned');
+
+    return {
+      success: true,
+      data: pipeline,
+    };
+  } catch (error) {
+    // Re-throw Next.js redirect errors to allow framework-level handling
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
+    console.error('❌ [getPipelineByJobIdAction] Failed:', error);
+    return {
+      success: false,
+      ...formatError(error),
+    };
+  }
+}
+
+/**
  * Server action to create a new pipeline
  * POST /pipeline
  * Requires ADMIN or HR role

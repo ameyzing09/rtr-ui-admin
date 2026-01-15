@@ -3,6 +3,7 @@ import type { UserSession } from '@/lib/rbac/guard';
 import { z } from 'zod';
 import {
   pipelineSchema,
+  pipelineWrappedResponseSchema,
   type Pipeline,
   type CreatePipelineRequest,
   type UpdatePipelineRequest,
@@ -142,6 +143,43 @@ export class PipelineService {
     } catch (error) {
       // Audit error
       await auditPipelineError(session, 'view', error, { pipelineId });
+      return this.handleError(error);
+    }
+  }
+
+  /**
+   * Get pipeline assigned to a job
+   * GET /pipeline/job/:jobId
+   */
+  async getPipelineByJobId(
+    session: UserSession,
+    token: string,
+    jobId: string
+  ): Promise<Pipeline | null> {
+    try {
+      console.log('[PipelineService] Fetching pipeline for job:', jobId);
+
+      // Create authenticated fetcher with pipeline API base URL
+      const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
+      const response = await authFetcher.get<{ data: Pipeline }>(
+        `/pipeline/job/${jobId}`,
+        pipelineWrappedResponseSchema
+      );
+
+      console.log('[PipelineService] Successfully fetched pipeline for job:', response.data.id);
+
+      // Audit log successful view operation
+      await auditPipelineView(session, response.data.id, response.data);
+
+      return response.data;
+    } catch (error) {
+      // If 404, return null instead of throwing
+      if (error instanceof ApiException && error.status === 404) {
+        console.log('[PipelineService] No pipeline assigned to job:', jobId);
+        return null;
+      }
+      // Audit error
+      await auditPipelineError(session, 'view', error, { jobId });
       return this.handleError(error);
     }
   }
