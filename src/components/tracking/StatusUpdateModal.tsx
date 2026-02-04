@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, Loader2, AlertTriangle } from 'lucide-react';
 import { updateStatusAction } from '@/lib/actions/tracking';
+import { listTenantStatusesAction } from '@/lib/actions/tenantStatus';
 import { TrackingStatusBadge } from './TrackingStatusBadge';
 import { toast } from '@/components/ui/ToastProvider';
 import type { TrackingStatus } from '@/domain/tracking/schemas';
 import {
-  TERMINAL_STATUSES,
-  isTerminalStatus,
+  isTerminalStatus as isHardcodedTerminalStatus,
   getTrackingStatusLabel,
 } from '@/domain/tracking/schemas';
+import type { TenantStatus } from '@/domain/tracking/statusSettings/schemas';
 
 interface StatusUpdateModalProps {
   isOpen: boolean;
@@ -21,7 +22,8 @@ interface StatusUpdateModalProps {
   onSuccess?: () => void;
 }
 
-const ALL_STATUSES: TrackingStatus[] = [
+// Fallback statuses for backward compatibility
+const FALLBACK_STATUSES: TrackingStatus[] = [
   'ACTIVE',
   'ON_HOLD',
   'HIRED',
@@ -40,9 +42,67 @@ export function StatusUpdateModal({
   const [newStatus, setNewStatus] = useState<TrackingStatus>(currentStatus);
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tenantStatuses, setTenantStatuses] = useState<TenantStatus[]>([]);
+  const [isLoadingStatuses, setIsLoadingStatuses] = useState(false);
 
-  // Filter out current status from options
-  const availableStatuses = ALL_STATUSES.filter((s) => s !== currentStatus);
+  // Fetch dynamic statuses on mount
+  useEffect(() => {
+    if (isOpen) {
+      setIsLoadingStatuses(true);
+      listTenantStatusesAction()
+        .then((result) => {
+          if (result.success && result.data.length > 0) {
+            setTenantStatuses(result.data);
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to load tenant statuses:', error);
+        })
+        .finally(() => {
+          setIsLoadingStatuses(false);
+        });
+    }
+  }, [isOpen]);
+
+  // Build status options map for easy lookup
+  const statusConfigMap = useMemo(() => {
+    const map = new Map<string, TenantStatus>();
+    tenantStatuses.forEach((s) => map.set(s.statusCode, s));
+    return map;
+  }, [tenantStatuses]);
+
+  // Get available statuses (use tenant statuses if available, otherwise fallback)
+  const availableStatuses = useMemo(() => {
+    if (tenantStatuses.length > 0) {
+      return tenantStatuses
+        .filter((s) => s.statusCode !== currentStatus)
+        .sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+    return FALLBACK_STATUSES.filter((s) => s !== currentStatus);
+  }, [tenantStatuses, currentStatus]);
+
+  // Check if status is terminal (use tenant config or fallback)
+  const isTerminalStatus = (statusCode: string): boolean => {
+    const config = statusConfigMap.get(statusCode);
+    if (config) {
+      return config.isTerminal;
+    }
+    return isHardcodedTerminalStatus(statusCode as TrackingStatus);
+  };
+
+  // Get display name for status
+  const getStatusDisplayName = (statusCode: string): string => {
+    const config = statusConfigMap.get(statusCode);
+    if (config) {
+      return config.displayName;
+    }
+    return getTrackingStatusLabel(statusCode as TrackingStatus);
+  };
+
+  // Get status config for badge display
+  const getCurrentStatusConfig = (): TenantStatus | undefined => {
+    return statusConfigMap.get(currentStatus);
+  };
 
   // Check if new status is terminal
   const isNewStatusTerminal = isTerminalStatus(newStatus);
@@ -64,7 +124,7 @@ export function StatusUpdateModal({
       if (result.success) {
         toast({
           title: 'Status updated',
-          description: `${applicantName}'s status changed to ${getTrackingStatusLabel(newStatus)}`,
+          description: `${applicantName}'s status changed to ${getStatusDisplayName(newStatus)}`,
           variant: 'success',
         });
         onClose();
@@ -76,7 +136,7 @@ export function StatusUpdateModal({
           variant: 'error',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'An unexpected error occurred',
@@ -127,7 +187,11 @@ export function StatusUpdateModal({
             {/* Current Status */}
             <div>
               <p className="text-sm text-gray-500 mb-1">Current Status</p>
-              <TrackingStatusBadge status={currentStatus} size="md" />
+              <TrackingStatusBadge
+                status={currentStatus}
+                size="md"
+                statusConfig={getCurrentStatusConfig()}
+              />
             </div>
 
             {/* Terminal Status Warning */}
@@ -152,21 +216,35 @@ export function StatusUpdateModal({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     New Status
                   </label>
-                  <select
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value as TrackingStatus)}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    disabled={isSubmitting}
-                  >
-                    <option value={currentStatus} disabled>
-                      Select new status...
-                    </option>
-                    {availableStatuses.map((status) => (
-                      <option key={status} value={status}>
-                        {getTrackingStatusLabel(status)}
+                  {isLoadingStatuses ? (
+                    <div className="flex items-center gap-2 py-2 text-sm text-gray-500">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Loading statuses...
+                    </div>
+                  ) : (
+                    <select
+                      value={newStatus}
+                      onChange={(e) => setNewStatus(e.target.value as TrackingStatus)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      disabled={isSubmitting}
+                    >
+                      <option value={currentStatus} disabled>
+                        Select new status...
                       </option>
-                    ))}
-                  </select>
+                      {availableStatuses.map((status) => {
+                        // Handle both TenantStatus objects and fallback strings
+                        const statusCode = typeof status === 'string' ? status : status.statusCode;
+                        const displayName = typeof status === 'string'
+                          ? getTrackingStatusLabel(status)
+                          : status.displayName;
+                        return (
+                          <option key={statusCode} value={statusCode}>
+                            {displayName}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  )}
                 </div>
 
                 {/* Terminal Warning */}
@@ -178,7 +256,7 @@ export function StatusUpdateModal({
                         This is a final decision
                       </p>
                       <p className="text-sm text-red-700">
-                        Once set to {getTrackingStatusLabel(newStatus)}, the application
+                        Once set to {getStatusDisplayName(newStatus)}, the application
                         cannot be moved between stages and the status cannot be changed.
                       </p>
                     </div>

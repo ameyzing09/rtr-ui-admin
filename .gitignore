@@ -49,3 +49,10 @@ node_modules
 user-auth-api-docs
 docs
 .claude/settings.local.json
+
+# Cypress
+cypress/videos
+cypress/screenshots
+cypress/downloads
+cypress.env.json
+cypress/fixtures/users.json
