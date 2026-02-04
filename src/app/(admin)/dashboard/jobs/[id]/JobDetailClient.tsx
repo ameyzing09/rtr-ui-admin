@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -17,11 +17,15 @@ import {
   Settings as SettingsIcon,
   GitBranch,
   Plus,
+  LayoutGrid,
+  List,
+  Loader2,
 } from 'lucide-react';
 import type { Job } from '@/domain/jobs/schemas';
 import { getJobStatusBadge, isJobActive } from '@/domain/jobs/schemas';
 import type { ApplicationListResponse, Application } from '@/domain/applications/schemas';
 import type { Pipeline } from '@/domain/pipelines/schemas';
+import type { PipelineBoard, PipelineStage, BoardApplication } from '@/domain/tracking/schemas';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -32,6 +36,8 @@ import { CreateApplicationModal } from '@/components/applications/CreateApplicat
 import { UpdateApplicationModal } from '@/components/applications/UpdateApplicationModal';
 import { DeleteApplicationModal } from '@/components/applications/DeleteApplicationModal';
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge';
+import { KanbanBoard, ApplicationDetailDrawer } from '@/components/tracking';
+import { getPipelineBoardAction } from '@/lib/actions/tracking';
 
 interface JobDetailClientProps {
   job: Job;
@@ -222,7 +228,7 @@ export function JobDetailClient({ job, applications, pipeline }: JobDetailClient
       <div className="flex-1 overflow-y-auto bg-gray-50 p-6">
         {activeTab === 'overview' && <OverviewTab job={job} />}
         {activeTab === 'pipeline' && <PipelineTab job={job} pipeline={pipeline} />}
-        {activeTab === 'applicants' && <ApplicantsTab job={job} applications={applications} />}
+        {activeTab === 'applicants' && <ApplicantsTab job={job} applications={applications} pipeline={pipeline} />}
         {activeTab === 'activity' && <ActivityTab job={job} />}
         {activeTab === 'settings' && <SettingsTab job={job} onDelete={() => setShowDeleteModal(true)} />}
       </div>
@@ -411,17 +417,70 @@ function PipelineTab({ job, pipeline }: { job: Job; pipeline: Pipeline | null })
   );
 }
 
-function ApplicantsTab({ job, applications }: { job: Job; applications: ApplicationListResponse }) {
+function ApplicantsTab({ job, applications, pipeline }: { job: Job; applications: ApplicationListResponse; pipeline: Pipeline | null }) {
   const router = useRouter();
   const { session } = useAuth();
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>(pipeline ? 'kanban' : 'list');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedApplicationForEdit, setSelectedApplicationForEdit] = useState<Application | null>(null);
   const [selectedApplicationForDelete, setSelectedApplicationForDelete] = useState<Application | null>(null);
+
+  // Kanban state
+  const [board, setBoard] = useState<PipelineBoard | null>(null);
+  const [isLoadingBoard, setIsLoadingBoard] = useState(false);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
+  const [selectedApplicant, setSelectedApplicant] = useState<{ name: string; email: string } | null>(null);
 
   // Check permissions
   const canCreate = session ? hasApplicationPermission(session.user.permissions, APPLICATION_PERMISSIONS.CREATE) : false;
   const canUpdate = session ? hasApplicationPermission(session.user.permissions, APPLICATION_PERMISSIONS.UPDATE) : false;
   const canDelete = session ? hasApplicationPermission(session.user.permissions, APPLICATION_PERMISSIONS.DELETE) : false;
+
+  // Load Kanban board when view mode changes or pipeline changes
+  useEffect(() => {
+    if (viewMode === 'kanban' && pipeline) {
+      loadBoard();
+    }
+  }, [viewMode, pipeline?.id, job.id]);
+
+  const loadBoard = async () => {
+    if (!pipeline) return;
+
+    setIsLoadingBoard(true);
+    try {
+      const result = await getPipelineBoardAction(pipeline.id, { jobId: job.id });
+      if (result.success) {
+        setBoard(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to load board:', error);
+    } finally {
+      setIsLoadingBoard(false);
+    }
+  };
+
+  const handleApplicationClick = (applicationId: string) => {
+    // Find applicant info from board
+    if (board) {
+      for (const stage of board.stages) {
+        const app = stage.applications.find((a) => a.applicationId === applicationId);
+        if (app) {
+          setSelectedApplicant({ name: app.applicantName, email: app.applicantEmail });
+          break;
+        }
+      }
+    }
+    setSelectedApplicationId(applicationId);
+  };
+
+  // Convert pipeline stages to PipelineStage type for the drawer
+  const pipelineStages: PipelineStage[] = pipeline?.stages.map((s, index) => ({
+    id: `stage-${index}`, // Note: This may need to be updated when backend provides stage IDs
+    stageName: s.stage,
+    stageType: s.type,
+    conductedBy: s.conducted_by,
+    orderIndex: index,
+  })) || [];
 
   return (
     <div className="space-y-4">
@@ -434,6 +493,34 @@ function ApplicantsTab({ job, applications }: { job: Job; applications: Applicat
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* View Mode Toggle */}
+            {pipeline && (
+              <div className="flex items-center rounded-lg border border-gray-300 bg-white p-1">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center gap-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <List className="h-4 w-4" />
+                  List
+                </button>
+                <button
+                  onClick={() => setViewMode('kanban')}
+                  className={`flex items-center gap-1 rounded px-3 py-1.5 text-sm font-medium transition-colors ${
+                    viewMode === 'kanban'
+                      ? 'bg-gray-100 text-gray-900'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  Kanban
+                </button>
+              </div>
+            )}
+
             {canCreate && (
               <button
                 onClick={() => setShowCreateModal(true)}
@@ -453,85 +540,127 @@ function ApplicantsTab({ job, applications }: { job: Job; applications: Applicat
           </div>
         </div>
 
-        {/* Applications Table */}
-        {applications.length === 0 ? (
-          <div className="mt-6 text-center py-12">
-            <p className="text-sm text-gray-500">No applicants yet</p>
-            {canCreate && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4" />
-                Add First Applicant
-              </button>
+        {/* No Pipeline Warning */}
+        {!pipeline && (
+          <div className="mt-4 rounded-lg bg-amber-50 border border-amber-200 p-4">
+            <p className="text-sm text-amber-800">
+              <strong>No pipeline assigned.</strong> Assign a pipeline to this job to use the Kanban board view.
+            </p>
+            <Link
+              href={`/dashboard/pipeline?job=${job.id}`}
+              className="mt-2 inline-flex items-center gap-2 text-sm text-amber-700 hover:text-amber-800 font-medium"
+            >
+              <GitBranch className="h-4 w-4" />
+              Assign Pipeline
+            </Link>
+          </div>
+        )}
+
+        {/* Kanban View */}
+        {viewMode === 'kanban' && pipeline && (
+          <div className="mt-6">
+            {isLoadingBoard ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              </div>
+            ) : board ? (
+              <KanbanBoard
+                board={board}
+                onApplicationClick={handleApplicationClick}
+                onBoardUpdate={loadBoard}
+                disabled={!canUpdate}
+              />
+            ) : (
+              <div className="text-center py-12 text-sm text-gray-500">
+                Failed to load Kanban board
+              </div>
             )}
           </div>
-        ) : (
-          <div className="mt-6 overflow-hidden rounded-lg border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Applicant
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Applied
-                  </th>
-                  <th className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {applications.map((application) => (
-                  <tr key={application.id} className="hover:bg-gray-50">
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div className="font-medium text-gray-900">{application.applicantName}</div>
-                      <div className="text-sm text-gray-500">{application.applicantEmail}</div>
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                      {application.applicantPhone}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <ApplicationStatusBadge status={application.status} />
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                      {formatDate(application.createdAt)}
-                    </td>
-                    <td className="relative whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                      {(canUpdate || canDelete) && (
-                        <div className="flex items-center justify-end gap-2">
-                          {canUpdate && (
-                            <button
-                              onClick={() => setSelectedApplicationForEdit(application)}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
+        )}
+
+        {/* List View */}
+        {viewMode === 'list' && (
+          <>
+            {applications.length === 0 ? (
+              <div className="mt-6 text-center py-12">
+                <p className="text-sm text-gray-500">No applicants yet</p>
+                {canCreate && (
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add First Applicant
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="mt-6 overflow-hidden rounded-lg border border-gray-200">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Applicant
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Contact
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                        Applied
+                      </th>
+                      <th className="relative px-6 py-3">
+                        <span className="sr-only">Actions</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {applications.map((application) => (
+                      <tr key={application.id} className="hover:bg-gray-50">
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div className="font-medium text-gray-900">{application.applicantName}</div>
+                          <div className="text-sm text-gray-500">{application.applicantEmail}</div>
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                          {application.applicantPhone}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <ApplicationStatusBadge status={application.status} />
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                          {formatDate(application.createdAt)}
+                        </td>
+                        <td className="relative whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
+                          {(canUpdate || canDelete) && (
+                            <div className="flex items-center justify-end gap-2">
+                              {canUpdate && (
+                                <button
+                                  onClick={() => setSelectedApplicationForEdit(application)}
+                                  className="text-blue-600 hover:text-blue-900"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button
+                                  onClick={() => setSelectedApplicationForDelete(application)}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
                           )}
-                          {canDelete && (
-                            <button
-                              onClick={() => setSelectedApplicationForDelete(application)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </Card>
 
@@ -563,6 +692,21 @@ function ApplicantsTab({ job, applications }: { job: Job; applications: Applicat
           onSuccess={() => router.refresh()}
         />
       )}
+
+      {/* Application Detail Drawer (for Kanban) */}
+      <ApplicationDetailDrawer
+        applicationId={selectedApplicationId}
+        applicantName={selectedApplicant?.name}
+        applicantEmail={selectedApplicant?.email}
+        pipelineStages={pipelineStages}
+        isOpen={!!selectedApplicationId}
+        onClose={() => {
+          setSelectedApplicationId(null);
+          setSelectedApplicant(null);
+        }}
+        onUpdate={loadBoard}
+        canEdit={canUpdate}
+      />
     </div>
   );
 }

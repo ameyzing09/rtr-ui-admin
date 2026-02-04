@@ -710,6 +710,14 @@ export const unifiedNavConfig = {
           description: 'Slack, ATS, etc.',
           permission: PERMISSIONS.INTEGRATIONS_READ,
         },
+        {
+          id: 'statuses',
+          label: 'Application Statuses',
+          href: '/dashboard/settings/statuses',
+          icon: 'flag',
+          description: 'Configure tracking status options',
+          permission: PERMISSIONS.SETTINGS_READ,
+        },
       ],
     },
 
