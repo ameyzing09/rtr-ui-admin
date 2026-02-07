@@ -59,6 +59,7 @@ export function StageColumn({
 
   return (
     <div
+      data-testid={`kanban-stage-${stage.orderIndex}`}
       className={`
         flex flex-col bg-gray-50 rounded-xl min-w-[280px] max-w-[320px]
         ${isOver && canDrop ? 'ring-2 ring-blue-400 bg-blue-50' : ''}

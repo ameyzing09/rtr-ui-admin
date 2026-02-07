@@ -5,7 +5,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Mail, Clock } from 'lucide-react';
 import { TrackingStatusBadge } from './TrackingStatusBadge';
 import type { BoardApplication } from '@/domain/tracking/schemas';
-import { isTerminalStatus } from '@/domain/tracking/schemas';
 
 interface ApplicationCardProps {
   application: BoardApplication;
@@ -43,7 +42,7 @@ export function ApplicationCard({
   onClick,
   disabled = false,
 }: ApplicationCardProps) {
-  const isTerminal = isTerminalStatus(application.status);
+  const isTerminal = application.isTerminal ?? false;
   const isDraggable = !disabled && !isTerminal;
 
   const {
@@ -72,6 +71,7 @@ export function ApplicationCard({
     <div
       ref={setNodeRef}
       style={style}
+      data-testid={`application-card-${application.applicationId}`}
       className={`
         bg-white rounded-lg border border-gray-200 p-3 cursor-pointer
         hover:shadow-md hover:border-gray-300 transition-all
@@ -108,7 +108,11 @@ export function ApplicationCard({
 
           {/* Status & Time */}
           <div className="flex items-center justify-between mt-2">
-            <TrackingStatusBadge status={application.status} size="sm" />
+            <TrackingStatusBadge
+              status={application.status}
+              outcomeType={application.outcomeType}
+              size="sm"
+            />
             <div className="flex items-center gap-1 text-xs text-gray-400">
               <Clock className="h-3 w-3" />
               <span>{formatRelativeTime(application.enteredStageAt)}</span>

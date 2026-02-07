@@ -11,19 +11,17 @@ import {
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
-  type DragOverEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { StageColumn } from './StageColumn';
 import { ApplicationCard } from './ApplicationCard';
-import { moveStageAction } from '@/lib/actions/tracking';
+import { executeActionAction } from '@/lib/actions/tracking';
 import { toast } from '@/components/ui/ToastProvider';
 import type {
   PipelineBoard,
   BoardApplication,
   BoardStage,
 } from '@/domain/tracking/schemas';
-import { isAdjacentMove, isTerminalStatus } from '@/domain/tracking/schemas';
 
 interface KanbanBoardProps {
   board: PipelineBoard;
@@ -100,7 +98,7 @@ export function KanbanBoard({
   );
 
   /**
-   * Handle drag end
+   * Handle drag end — uses v2 action engine
    */
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -141,12 +139,22 @@ export function KanbanBoard({
       // Same stage - no action needed
       if (sourceStageIndex === targetStageIndex) return;
 
-      // Check if adjacent move
-      if (!isAdjacentMove(sourceStageIndex, targetStageIndex)) {
+      // Backward drag is not supported in v2 action model
+      if (targetStageIndex < sourceStageIndex) {
+        toast({
+          variant: 'warning',
+          title: 'Not supported',
+          description: 'Backward moves are not supported. Use "Take Action" for other transitions.',
+        });
+        return;
+      }
+
+      // Only allow forward drag to next adjacent stage
+      if (targetStageIndex !== sourceStageIndex + 1) {
         toast({
           variant: 'warning',
           title: 'Invalid move',
-          description: 'Applications can only be moved to adjacent stages',
+          description: 'Applications can only be advanced to the next stage',
         });
         return;
       }
@@ -158,7 +166,7 @@ export function KanbanBoard({
       if (!application) return;
 
       // Check if terminal status
-      if (isTerminalStatus(application.status)) {
+      if (application.isTerminal ?? false) {
         toast({
           variant: 'warning',
           title: 'Cannot move',
@@ -195,13 +203,8 @@ export function KanbanBoard({
         return newStages;
       });
 
-      // Server action
-      const result = await moveStageAction(
-        applicationId,
-        { to_stage_id: targetStageId },
-        sourceStageIndex,
-        targetStageIndex
-      );
+      // Server action — use COMPLETE to advance to next stage
+      const result = await executeActionAction(applicationId, { action: 'COMPLETE' });
 
       setIsMoving(false);
 
@@ -222,16 +225,17 @@ export function KanbanBoard({
         onBoardUpdate?.();
       }
     },
-    [board.stages, findStageByApplicationId, stages, toast, onBoardUpdate]
+    [board.stages, findStageByApplicationId, stages, onBoardUpdate]
   );
 
   /**
-   * Check if a stage can accept drops (adjacent only)
+   * Check if a stage can accept drops (forward adjacent only)
    */
   const canDropOnStage = useCallback(
     (stageIndex: number): boolean => {
       if (activeStageIndex === null) return false;
-      return isAdjacentMove(activeStageIndex, stageIndex);
+      // Only allow forward drag to next stage
+      return stageIndex === activeStageIndex + 1;
     },
     [activeStageIndex]
   );

@@ -6,6 +6,15 @@ import { toast } from '@/components/ui/ToastProvider';
 import { createTenantStatusAction, updateTenantStatusAction } from '@/lib/actions/tenantStatus';
 import { normalizeColorHex } from '@/domain/tracking/statusSettings/schemas';
 import type { TenantStatus } from '@/domain/tracking/statusSettings/schemas';
+import type { OutcomeType } from '@/domain/tracking/schemas';
+
+const OUTCOME_TYPES: { value: OutcomeType; label: string }[] = [
+  { value: 'ACTIVE', label: 'Active' },
+  { value: 'HOLD', label: 'Hold' },
+  { value: 'SUCCESS', label: 'Success' },
+  { value: 'FAILURE', label: 'Failure' },
+  { value: 'NEUTRAL', label: 'Neutral' },
+];
 
 interface StatusEditModalProps {
   isOpen: boolean;
@@ -28,6 +37,7 @@ export function StatusEditModal({
   const [displayName, setDisplayName] = useState('');
   const [colorHex, setColorHex] = useState('#3b82f6');
   const [isTerminal, setIsTerminal] = useState(false);
+  const [outcomeType, setOutcomeType] = useState<OutcomeType | ''>('');
   const [sortOrder, setSortOrder] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -40,12 +50,14 @@ export function StatusEditModal({
         setDisplayName(status.displayName);
         setColorHex(normalizeColorHex(status.colorHex));
         setIsTerminal(status.isTerminal);
+        setOutcomeType(status.outcomeType ?? '');
         setSortOrder(status.sortOrder);
       } else {
         setStatusCode('');
         setDisplayName('');
         setColorHex('#3b82f6');
         setIsTerminal(false);
+        setOutcomeType('');
         setSortOrder(existingStatusCodes.length * 10);
       }
       setErrors({});
@@ -93,6 +105,7 @@ export function StatusEditModal({
           color_hex: normalizeColorHex(colorHex),
           is_terminal: isTerminal,
           sort_order: sortOrder,
+          ...(outcomeType ? { outcome_type: outcomeType as OutcomeType } : {}),
         });
 
         if (result.success) {
@@ -113,6 +126,7 @@ export function StatusEditModal({
           color_hex: normalizeColorHex(colorHex),
           is_terminal: isTerminal,
           sort_order: sortOrder,
+          ...(outcomeType ? { outcome_type: outcomeType as OutcomeType } : {}),
         });
 
         if (result.success) {
@@ -261,6 +275,29 @@ export function StatusEditModal({
               {errors.colorHex && (
                 <p className="mt-1 text-sm text-red-600">{errors.colorHex}</p>
               )}
+            </div>
+
+            {/* Outcome Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Outcome Type
+              </label>
+              <select
+                value={outcomeType}
+                onChange={(e) => setOutcomeType(e.target.value as OutcomeType | '')}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                disabled={isSubmitting}
+              >
+                <option value="">None</option>
+                {OUTCOME_TYPES.map((ot) => (
+                  <option key={ot.value} value={ot.value}>
+                    {ot.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Determines badge color styling when displayed on cards.
+              </p>
             </div>
 
             {/* Sort Order */}

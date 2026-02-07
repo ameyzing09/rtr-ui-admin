@@ -41,6 +41,41 @@ describe('Jobs - Create Job Wizard', () => {
     cy.visit('/dashboard/jobs/create');
   });
 
+  after(() => {
+    // Cleanup: Delete all test jobs created during this test suite
+    const email = Cypress.env('ADMIN_EMAIL') || 'admin@test.com';
+    const password = Cypress.env('ADMIN_PASSWORD') || 'test-password-123';
+    cy.login(email, password);
+    cy.visit('/dashboard/jobs');
+
+    // Recursively delete jobs with "E2E Test Job" prefix
+    const deleteTestJobs = () => {
+      cy.get('body').then(($body) => {
+        const testJobs = $body.find('h3').filter((_, el) => {
+          return Cypress.$(el).text().includes('E2E Test Job');
+        });
+
+        if (testJobs.length > 0) {
+          // Click the action menu for the first test job
+          // DOM structure: h3 -> Link -> div.flex-1 -> div.flex.justify-between -> find button
+          cy.wrap(testJobs.first())
+            .parent() // Link
+            .parent() // div.flex-1
+            .parent() // div.flex.justify-between
+            .find('button')
+            .click({ force: true });
+          // Menu is rendered via Portal to document.body
+          cy.contains('Delete Job').click();
+          cy.contains('button', 'Delete').click();
+          cy.wait(500);
+          deleteTestJobs();
+        }
+      });
+    };
+
+    deleteTestJobs();
+  });
+
   it('should display the job creation wizard', () => {
     // Check wizard step indicators
     cy.contains('Basic Information').should('be.visible');
@@ -112,6 +147,9 @@ describe('Jobs - Create Job Wizard', () => {
   });
 
   it('should create a new job successfully', () => {
+    // Wait for the form to be ready
+    cy.contains('Job Title').should('be.visible');
+
     // Step 1: Basic Information - use specific ID selector
     cy.get('#title').type('E2E Test Job - ' + Date.now());
     cy.contains('button', 'Next').click();
@@ -171,33 +209,56 @@ describe('Jobs - Delete', () => {
     const email = Cypress.env('ADMIN_EMAIL') || 'admin@test.com';
     const password = Cypress.env('ADMIN_PASSWORD') || 'test-password-123';
     cy.login(email, password);
-    cy.visit('/dashboard/jobs');
   });
 
-  it('should show delete confirmation modal', () => {
-    // This test requires at least one job to exist
-    cy.get('body').then(($body) => {
-      // Check if there are job cards with action menus
-      const hasJobs = $body.find('h3').length > 0;
+  it('should delete a job with confirmation', () => {
+    // First create a job specifically for this delete test
+    cy.visit('/dashboard/jobs/create');
+    const deleteTestJobTitle = 'E2E Test Job Delete - ' + Date.now();
 
-      if (hasJobs) {
-        // Open the action menu for the first job
-        cy.get('button').filter(':visible').last().click({ force: true });
+    // Wait for the form to be ready
+    cy.contains('Job Title').should('be.visible');
 
-        // Click Delete Job option (if visible)
-        cy.get('body').then(($menu) => {
-          if ($menu.find(':contains("Delete Job")').length > 0) {
-            cy.contains('Delete Job').click();
+    // Step 1: Basic Information
+    cy.get('#title').type(deleteTestJobTitle);
+    cy.contains('button', 'Next').click();
 
-            // Confirm modal appears
-            cy.contains('Delete').should('be.visible');
-            cy.contains('Cancel').should('be.visible');
+    // Step 2: Wait for step 1 to disappear, then proceed
+    cy.contains('h2', 'Basic Information').should('not.exist');
+    cy.contains('button', 'Next').click();
 
-            // Cancel the deletion
-            cy.contains('button', 'Cancel').click();
-          }
-        });
-      }
-    });
+    // Step 3: Wait for step 2 to complete
+    cy.get('button').contains('Next').click();
+
+    // Step 4: Submit
+    cy.get('button').contains('Submit').click();
+
+    // Should show success toast
+    cy.contains('created successfully', { timeout: 15000 }).should('be.visible');
+
+    // Go back to jobs list
+    cy.visit('/dashboard/jobs');
+    cy.contains(deleteTestJobTitle, { timeout: 10000 }).should('be.visible');
+
+    // Find and delete the job
+    // DOM structure: h3 -> Link -> div.flex-1 -> div.flex.justify-between -> find button
+    cy.contains('h3', deleteTestJobTitle)
+      .parent() // Link
+      .parent() // div.flex-1
+      .parent() // div.flex.justify-between
+      .find('button')
+      .click({ force: true });
+    // Menu is rendered via Portal to document.body
+    cy.contains('Delete Job').click();
+
+    // Confirmation modal should appear
+    cy.contains('Delete').should('be.visible');
+    cy.contains('Cancel').should('be.visible');
+
+    // Actually confirm deletion
+    cy.contains('button', 'Delete').click();
+
+    // Job should be removed
+    cy.contains(deleteTestJobTitle).should('not.exist');
   });
 });

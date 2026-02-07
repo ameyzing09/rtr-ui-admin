@@ -1,44 +1,25 @@
 import { z } from 'zod';
 
 // ============================================================================
-// Enums
+// Enums & Types
 // ============================================================================
 
 /**
- * Tracking status for applications
+ * Outcome type for tracking actions
  */
-export const trackingStatusSchema = z.enum([
-  'ACTIVE',
-  'HIRED',
-  'REJECTED',
-  'WITHDRAWN',
-  'ON_HOLD',
-]);
+export const outcomeTypeSchema = z.enum(['ACTIVE', 'HOLD', 'SUCCESS', 'FAILURE', 'NEUTRAL']);
+export type OutcomeType = z.infer<typeof outcomeTypeSchema>;
+
+/**
+ * Tracking status for applications (tenant-configurable, loosened to string)
+ */
+export const trackingStatusSchema = z.string();
 export type TrackingStatus = z.infer<typeof trackingStatusSchema>;
 
 /**
- * Terminal statuses - cannot move stages after reaching these
+ * History action types (tenant-configurable, loosened to string)
  */
-export const TERMINAL_STATUSES: TrackingStatus[] = ['HIRED', 'REJECTED', 'WITHDRAWN'];
-
-/**
- * Check if a status is terminal
- */
-export function isTerminalStatus(status: TrackingStatus): boolean {
-  return TERMINAL_STATUSES.includes(status);
-}
-
-/**
- * History action types
- */
-export const historyActionSchema = z.enum([
-  'MOVE',
-  'REJECT',
-  'HIRE',
-  'WITHDRAW',
-  'HOLD',
-  'ACTIVATE',
-]);
+export const historyActionSchema = z.string();
 export type HistoryAction = z.infer<typeof historyActionSchema>;
 
 // ============================================================================
@@ -46,22 +27,32 @@ export type HistoryAction = z.infer<typeof historyActionSchema>;
 // ============================================================================
 
 /**
- * Current tracking state for an application
+ * Current tracking state for an application (inner data)
  */
-export const trackingStateSchema = z.object({
+export const trackingStateDataSchema = z.object({
   id: z.string().uuid(),
   applicationId: z.string().uuid(),
   jobId: z.string().uuid(),
-  pipelineId: z.string().uuid(),
+  pipelineId: z.string(), // Not strict UUID - backend may use test/seed IDs like 00000000-0000-0000-0000-000000000100
   currentStageId: z.string().uuid(),
   currentStageName: z.string(),
   currentStageIndex: z.number(),
   status: trackingStatusSchema,
+  outcomeType: outcomeTypeSchema,
+  isTerminal: z.boolean(),
   enteredStageAt: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
-export type TrackingState = z.infer<typeof trackingStateSchema>;
+
+/**
+ * API response wrapper - extracts data from { data: {...} } envelope
+ */
+export const trackingStateSchema = z.object({
+  data: trackingStateDataSchema,
+}).transform((res) => res.data);
+
+export type TrackingState = z.infer<typeof trackingStateDataSchema>;
 
 // ============================================================================
 // Stage History
@@ -73,7 +64,7 @@ export type TrackingState = z.infer<typeof trackingStateSchema>;
 export const stageHistorySchema = z.object({
   id: z.string().uuid(),
   applicationId: z.string().uuid(),
-  pipelineId: z.string().uuid(),
+  pipelineId: z.string(), // Not strict UUID - backend may use test/seed IDs
   fromStageId: z.string().uuid().nullable(),
   fromStageName: z.string().nullable(),
   toStageId: z.string().uuid().nullable(),
@@ -123,6 +114,8 @@ export const boardApplicationSchema = z.object({
   applicantName: z.string(),
   applicantEmail: z.string(),
   status: trackingStatusSchema,
+  outcomeType: outcomeTypeSchema.optional(),
+  isTerminal: z.boolean().optional(),
   enteredStageAt: z.string(),
 });
 export type BoardApplication = z.infer<typeof boardApplicationSchema>;
@@ -156,35 +149,99 @@ export const pipelineBoardSchema = z.object({
 }).transform((res) => res.data);
 
 // ============================================================================
-// Request DTOs
+// V2 Action Engine Schemas
 // ============================================================================
 
 /**
- * Move stage request
+ * Available action from GET /tracking/applications/:id/actions
  */
-export const moveStageRequestSchema = z.object({
-  to_stage_id: z.string().uuid(),
-  reason: z.string().optional(),
+export const availableActionSchema = z.object({
+  actionCode: z.string(),
+  displayName: z.string(),
+  outcomeType: outcomeTypeSchema.nullable(), // Can be null
+  isTerminal: z.boolean(),
+  requiresFeedback: z.boolean(),
+  requiresNotes: z.boolean(),
+  feedbackSubmitted: z.boolean(),
+  signalConditions: z.unknown().nullable().optional(), // Backend extra field
+  signalsMet: z.boolean().optional(), // Backend extra field
 });
-export type MoveStageRequest = z.infer<typeof moveStageRequestSchema>;
+export type AvailableAction = z.infer<typeof availableActionSchema>;
 
 /**
- * Update status request
+ * Full response from GET /tracking/applications/:id/actions
+ * Backend returns { availableActions: [...] } directly (no data envelope)
  */
-export const updateStatusRequestSchema = z.object({
-  status: trackingStatusSchema,
-  reason: z.string().optional(),
+export const availableActionsResponseSchema = z.object({
+  availableActions: z.array(availableActionSchema),
 });
-export type UpdateStatusRequest = z.infer<typeof updateStatusRequestSchema>;
+export type AvailableActionsResponse = z.infer<typeof availableActionsResponseSchema>;
+
+/**
+ * Request for POST /applications/:id/act
+ */
+export const executeActionRequestSchema = z.object({
+  action: z.string(),
+  notes: z.string().optional(),
+});
+export type ExecuteActionRequest = z.infer<typeof executeActionRequestSchema>;
 
 // ============================================================================
 // UI Helpers
 // ============================================================================
 
 /**
- * Get status badge styling
+ * Get outcome-type-based badge styling
  */
-export function getTrackingStatusStyle(status: TrackingStatus): {
+export function getOutcomeTypeStyle(outcomeType: OutcomeType): {
+  bg: string;
+  text: string;
+  border: string;
+} {
+  switch (outcomeType) {
+    case 'ACTIVE':
+      return {
+        bg: 'bg-blue-100',
+        text: 'text-blue-800',
+        border: 'border-blue-200',
+      };
+    case 'HOLD':
+      return {
+        bg: 'bg-amber-100',
+        text: 'text-amber-800',
+        border: 'border-amber-200',
+      };
+    case 'SUCCESS':
+      return {
+        bg: 'bg-green-100',
+        text: 'text-green-800',
+        border: 'border-green-200',
+      };
+    case 'FAILURE':
+      return {
+        bg: 'bg-red-100',
+        text: 'text-red-800',
+        border: 'border-red-200',
+      };
+    case 'NEUTRAL':
+      return {
+        bg: 'bg-gray-100',
+        text: 'text-gray-800',
+        border: 'border-gray-200',
+      };
+    default:
+      return {
+        bg: 'bg-gray-100',
+        text: 'text-gray-800',
+        border: 'border-gray-200',
+      };
+  }
+}
+
+/**
+ * Get status badge styling (fallback for board cards without outcomeType)
+ */
+export function getTrackingStatusStyle(status: string): {
   bg: string;
   text: string;
   border: string;
@@ -232,7 +289,7 @@ export function getTrackingStatusStyle(status: TrackingStatus): {
 /**
  * Get human-readable status label
  */
-export function getTrackingStatusLabel(status: TrackingStatus): string {
+export function getTrackingStatusLabel(status: string): string {
   switch (status) {
     case 'ACTIVE':
       return 'Active';
@@ -245,20 +302,26 @@ export function getTrackingStatusLabel(status: TrackingStatus): string {
     case 'WITHDRAWN':
       return 'Withdrawn';
     default:
-      return status;
+      // Title-case pass-through for custom statuses
+      return status
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
   }
 }
 
 /**
  * Get history action icon name (for lucide-react)
  */
-export function getHistoryActionIcon(action: HistoryAction): string {
+export function getHistoryActionIcon(action: string): string {
   switch (action) {
     case 'MOVE':
+    case 'COMPLETE':
       return 'ArrowRight';
     case 'HIRE':
       return 'CheckCircle';
     case 'REJECT':
+    case 'FAIL':
       return 'XCircle';
     case 'WITHDRAW':
       return 'LogOut';
@@ -269,14 +332,4 @@ export function getHistoryActionIcon(action: HistoryAction): string {
     default:
       return 'Circle';
   }
-}
-
-/**
- * Check if move is adjacent (only allowed move type)
- */
-export function isAdjacentMove(
-  currentIndex: number,
-  targetIndex: number
-): boolean {
-  return Math.abs(currentIndex - targetIndex) === 1;
 }

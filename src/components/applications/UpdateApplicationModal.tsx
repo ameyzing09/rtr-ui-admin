@@ -31,8 +31,8 @@ export function UpdateApplicationModal({
   const [formData, setFormData] = useState<Partial<UpdateApplicationRequest>>({
     applicantName: application.applicantName,
     applicantEmail: application.applicantEmail,
-    applicantPhone: application.applicantPhone,
-    resumeUrl: application.resumeUrl,
+    applicantPhone: application.applicantPhone ?? undefined,
+    resumeUrl: application.resumeUrl ?? undefined,
     coverLetter: application.coverLetter || '',
     status: application.status,
   });
@@ -243,7 +243,7 @@ export function UpdateApplicationModal({
                 <input
                   type="tel"
                   id="applicantPhone"
-                  value={formData.applicantPhone}
+                  value={formData.applicantPhone ?? ''}
                   onChange={(e) => updateField('applicantPhone', e.target.value)}
                   disabled={isSubmitting}
                   className={`mt-1 block w-full rounded-lg border ${

@@ -4,11 +4,12 @@ import {
   trackingStateSchema,
   stageHistoryResponseSchema,
   pipelineBoardSchema,
+  availableActionsResponseSchema,
   type TrackingState,
   type StageHistoryResponse,
   type PipelineBoard,
-  type MoveStageRequest,
-  type UpdateStatusRequest,
+  type AvailableActionsResponse,
+  type ExecuteActionRequest,
 } from './schemas';
 
 // ============================================================================
@@ -46,31 +47,51 @@ class TrackingService {
    */
   async getTrackingState(token: string, applicationId: string): Promise<TrackingState> {
     const url = `/applications/${applicationId}`;
-    console.log('[TrackingService] getTrackingState:', { baseUrl: this.baseUrl, url, applicationId });
+    const fullUrl = `${this.baseUrl}${url}`;
+    console.log('[TrackingService] getTrackingState REQUEST:', { fullUrl, applicationId });
     try {
       const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
       const response = await authFetcher.get(
         url,
-        trackingStateSchema.transform((data) => data)
+        trackingStateSchema
       );
-      console.log('[TrackingService] getTrackingState success:', response);
+      console.log('[TrackingService] getTrackingState RESPONSE:', JSON.stringify(response, null, 2));
       return response;
     } catch (error) {
-      console.error('[TrackingService] getTrackingState error:', error);
+      console.error('[TrackingService] getTrackingState ERROR:', error);
       throw this.handleError(error, 'Failed to fetch tracking state');
     }
   }
 
   /**
-   * Move application to a different stage
+   * Get available actions for an application (v2 action engine)
    */
-  async moveStage(
+  async getAvailableActions(token: string, applicationId: string): Promise<AvailableActionsResponse> {
+    const url = `/applications/${applicationId}/actions`;
+    console.log('[TrackingService] getAvailableActions:', { baseUrl: this.baseUrl, url, applicationId });
+    try {
+      const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
+      const response = await authFetcher.get(url, availableActionsResponseSchema);
+      console.log('[TrackingService] getAvailableActions success:', {
+        actionCount: response.availableActions.length,
+      });
+      return response;
+    } catch (error) {
+      console.error('[TrackingService] getAvailableActions error:', error);
+      throw this.handleError(error, 'Failed to fetch available actions');
+    }
+  }
+
+  /**
+   * Execute an action on an application (v2 action engine)
+   */
+  async executeAction(
     token: string,
     applicationId: string,
-    request: MoveStageRequest
+    request: ExecuteActionRequest
   ): Promise<TrackingState> {
-    const url = `/applications/${applicationId}/move`;
-    console.log('[TrackingService] moveStage:', { baseUrl: this.baseUrl, url, applicationId, request });
+    const url = `/applications/${applicationId}/act`;
+    console.log('[TrackingService] executeAction:', { baseUrl: this.baseUrl, url, applicationId, request });
     try {
       const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
       const response = await authFetcher.post(
@@ -78,36 +99,11 @@ class TrackingService {
         request,
         trackingStateSchema.transform((data) => data)
       );
-      console.log('[TrackingService] moveStage success:', response);
+      console.log('[TrackingService] executeAction success:', response);
       return response;
     } catch (error) {
-      console.error('[TrackingService] moveStage error:', error);
-      throw this.handleError(error, 'Failed to move stage');
-    }
-  }
-
-  /**
-   * Update application status
-   */
-  async updateStatus(
-    token: string,
-    applicationId: string,
-    request: UpdateStatusRequest
-  ): Promise<TrackingState> {
-    const url = `/applications/${applicationId}/status`;
-    console.log('[TrackingService] updateStatus:', { baseUrl: this.baseUrl, url, applicationId, request });
-    try {
-      const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
-      const response = await authFetcher.patch(
-        url,
-        request,
-        trackingStateSchema.transform((data) => data)
-      );
-      console.log('[TrackingService] updateStatus success:', response);
-      return response;
-    } catch (error) {
-      console.error('[TrackingService] updateStatus error:', error);
-      throw this.handleError(error, 'Failed to update status');
+      console.error('[TrackingService] executeAction error:', error);
+      throw this.handleError(error, 'Failed to execute action');
     }
   }
 

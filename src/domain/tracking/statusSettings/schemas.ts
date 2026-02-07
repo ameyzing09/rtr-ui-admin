@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { outcomeTypeSchema } from '../schemas';
 
 // ============================================================================
 // Tenant Status Schemas
@@ -14,6 +15,7 @@ export const tenantStatusSchema = z.object({
   displayName: z.string(),
   colorHex: z.string(),
   isTerminal: z.boolean(),
+  outcomeType: outcomeTypeSchema.optional(),
   sortOrder: z.number(),
   actionCode: z.string().optional(),
   createdAt: z.string().optional(), // Backend may not return this
@@ -49,6 +51,7 @@ export const createTenantStatusRequestSchema = z.object({
   color_hex: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color format'),
   is_terminal: z.boolean(),
   sort_order: z.number().int().min(0),
+  outcome_type: outcomeTypeSchema.optional(),
 });
 export type CreateTenantStatusRequest = z.infer<typeof createTenantStatusRequestSchema>;
 
@@ -60,6 +63,7 @@ export const updateTenantStatusRequestSchema = z.object({
   color_hex: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color format').optional(),
   is_terminal: z.boolean().optional(),
   sort_order: z.number().int().min(0).optional(),
+  outcome_type: outcomeTypeSchema.optional(),
 });
 export type UpdateTenantStatusRequest = z.infer<typeof updateTenantStatusRequestSchema>;
 
