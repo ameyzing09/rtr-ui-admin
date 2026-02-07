@@ -78,9 +78,7 @@ export function CreateApplicationModal({
     if (!formData.applicantPhone || formData.applicantPhone.trim() === '') {
       errors.applicantPhone = 'Phone number is required';
     }
-    if (!formData.resumeUrl || formData.resumeUrl.trim() === '') {
-      errors.resumeUrl = 'Resume is required';
-    }
+    // resumeUrl is optional - backend allows null resume_url
     if (!formData.status) {
       errors.status = 'Status is required';
     }
@@ -286,7 +284,7 @@ export function CreateApplicationModal({
               {/* Resume Upload */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Resume <span className="text-red-500">*</span>
+                  Resume (Optional)
                 </label>
                 <div className="mt-1">
                   <FileUploadButton

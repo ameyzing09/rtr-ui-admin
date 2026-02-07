@@ -718,6 +718,14 @@ export const unifiedNavConfig = {
           description: 'Configure tracking status options',
           permission: PERMISSIONS.SETTINGS_READ,
         },
+        {
+          id: 'actions',
+          label: 'Stage Actions',
+          href: '/dashboard/settings/actions',
+          icon: 'zap',
+          description: 'View stage action configuration',
+          permission: PERMISSIONS.SETTINGS_READ,
+        },
       ],
     },
 

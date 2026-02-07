@@ -8,13 +8,11 @@ import {
 } from '@/domain/applications/permissions.server';
 import type {
   TrackingState,
-  StageHistory,
   StageHistoryResponse,
   PipelineBoard,
-  MoveStageRequest,
-  UpdateStatusRequest,
+  AvailableActionsResponse,
+  ExecuteActionRequest,
 } from '@/domain/tracking/schemas';
-import { isAdjacentMove } from '@/domain/tracking/schemas';
 
 /**
  * Generic action result type
@@ -51,12 +49,12 @@ export async function getTrackingStateAction(
   applicationId: string
 ): Promise<ActionResult<TrackingState>> {
   try {
-    console.log('🔄 [getTrackingStateAction] Fetching tracking state:', applicationId);
+    console.log('[getTrackingStateAction] Fetching tracking state:', applicationId);
 
     const session = await requireCanListApplications();
     const state = await trackingService.getTrackingState(session.token, applicationId);
 
-    console.log('✅ [getTrackingStateAction] Successfully fetched tracking state');
+    console.log('[getTrackingStateAction] Successfully fetched tracking state:', state);
 
     return { success: true, data: state };
   } catch (error) {
@@ -64,49 +62,81 @@ export async function getTrackingStateAction(
       throw error;
     }
 
-    console.error('❌ [getTrackingStateAction] Failed:', error);
+    // Log full error details to terminal
+    const errorDetails = (error as { details?: unknown })?.details;
+    console.error('[getTrackingStateAction] FAILED:', JSON.stringify({
+      message: error instanceof Error ? error.message : String(error),
+      details: errorDetails,
+    }, null, 2));
+
+    // Pass detailed error to client
+    const formatted = formatError(error);
+    return {
+      success: false,
+      ...formatted,
+      // Include Zod error details if available
+      error: errorDetails
+        ? `${formatted.error} - Details: ${JSON.stringify(errorDetails)}`
+        : formatted.error,
+    };
+  }
+}
+
+// ============================================================================
+// Get Available Actions (v2 Action Engine)
+// ============================================================================
+
+/**
+ * Get available actions for an application
+ */
+export async function getAvailableActionsAction(
+  applicationId: string
+): Promise<ActionResult<AvailableActionsResponse>> {
+  try {
+    console.log('[getAvailableActionsAction] Fetching actions:', applicationId);
+
+    const session = await requireCanListApplications();
+    const response = await trackingService.getAvailableActions(session.token, applicationId);
+
+    console.log('[getAvailableActionsAction] Successfully fetched actions:', {
+      count: response.availableActions.length,
+    });
+
+    return { success: true, data: response };
+  } catch (error) {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
+    console.error('[getAvailableActionsAction] Failed:', error);
     return { success: false, ...formatError(error) };
   }
 }
 
 // ============================================================================
-// Move Stage
+// Execute Action (v2 Action Engine)
 // ============================================================================
 
 /**
- * Move application to a different stage
- * Only allows adjacent stage moves (currentIndex ± 1)
+ * Execute an action on an application (replaces moveStage + updateStatus)
  */
-export async function moveStageAction(
+export async function executeActionAction(
   applicationId: string,
-  request: MoveStageRequest,
-  currentStageIndex: number,
-  targetStageIndex: number
+  request: ExecuteActionRequest
 ): Promise<ActionResult<TrackingState>> {
   try {
-    console.log('🔄 [moveStageAction] Moving application:', {
+    console.log('[executeActionAction] Executing action:', {
       applicationId,
-      toStageId: request.to_stage_id,
-      currentIndex: currentStageIndex,
-      targetIndex: targetStageIndex,
+      action: request.action,
     });
 
-    // Validate adjacent move
-    if (!isAdjacentMove(currentStageIndex, targetStageIndex)) {
-      return {
-        success: false,
-        error: 'Can only move to adjacent stages',
-        code: 'INVALID_MOVE',
-      };
-    }
-
     const session = await requireCanUpdateApplications();
-    const state = await trackingService.moveStage(session.token, applicationId, request);
+    const state = await trackingService.executeAction(session.token, applicationId, request);
 
     // Revalidate job detail page
     revalidatePath('/dashboard/jobs/[id]', 'page');
 
-    console.log('✅ [moveStageAction] Successfully moved application');
+    console.log('[executeActionAction] Successfully executed action');
 
     return { success: true, data: state };
   } catch (error) {
@@ -114,43 +144,7 @@ export async function moveStageAction(
       throw error;
     }
 
-    console.error('❌ [moveStageAction] Failed:', error);
-    return { success: false, ...formatError(error) };
-  }
-}
-
-// ============================================================================
-// Update Status
-// ============================================================================
-
-/**
- * Update application status (ACTIVE, HIRED, REJECTED, etc.)
- */
-export async function updateStatusAction(
-  applicationId: string,
-  request: UpdateStatusRequest
-): Promise<ActionResult<TrackingState>> {
-  try {
-    console.log('🔄 [updateStatusAction] Updating status:', {
-      applicationId,
-      newStatus: request.status,
-    });
-
-    const session = await requireCanUpdateApplications();
-    const state = await trackingService.updateStatus(session.token, applicationId, request);
-
-    // Revalidate job detail page
-    revalidatePath('/dashboard/jobs/[id]', 'page');
-
-    console.log('✅ [updateStatusAction] Successfully updated status');
-
-    return { success: true, data: state };
-  } catch (error) {
-    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      throw error;
-    }
-
-    console.error('❌ [updateStatusAction] Failed:', error);
+    console.error('[executeActionAction] Failed:', error);
     return { success: false, ...formatError(error) };
   }
 }
@@ -168,7 +162,7 @@ export async function getStageHistoryAction(
   offset = 0
 ): Promise<ActionResult<StageHistoryResponse>> {
   try {
-    console.log('🔄 [getStageHistoryAction] Fetching history:', applicationId);
+    console.log('[getStageHistoryAction] Fetching history:', applicationId);
 
     const session = await requireCanListApplications();
     const response = await trackingService.getStageHistory(
@@ -178,7 +172,7 @@ export async function getStageHistoryAction(
       offset
     );
 
-    console.log('✅ [getStageHistoryAction] Successfully fetched history:', {
+    console.log('[getStageHistoryAction] Successfully fetched history:', {
       count: response.data.length,
     });
 
@@ -188,7 +182,7 @@ export async function getStageHistoryAction(
       throw error;
     }
 
-    console.error('❌ [getStageHistoryAction] Failed:', error);
+    console.error('[getStageHistoryAction] Failed:', error);
     return { success: false, ...formatError(error) };
   }
 }
@@ -205,7 +199,7 @@ export async function getPipelineBoardAction(
   options?: { status?: string; jobId?: string }
 ): Promise<ActionResult<PipelineBoard>> {
   try {
-    console.log('🔄 [getPipelineBoardAction] Fetching board:', { pipelineId, options });
+    console.log('[getPipelineBoardAction] Fetching board:', { pipelineId, options });
 
     const session = await requireCanListApplications();
     const board = await trackingService.getPipelineBoard(
@@ -214,7 +208,7 @@ export async function getPipelineBoardAction(
       options
     );
 
-    console.log('✅ [getPipelineBoardAction] Successfully fetched board:', {
+    console.log('[getPipelineBoardAction] Successfully fetched board:', {
       stages: board.stages.length,
       total: board.totalApplications,
     });
@@ -225,7 +219,7 @@ export async function getPipelineBoardAction(
       throw error;
     }
 
-    console.error('❌ [getPipelineBoardAction] Failed:', error);
+    console.error('[getPipelineBoardAction] Failed:', error);
     return { success: false, ...formatError(error) };
   }
 }

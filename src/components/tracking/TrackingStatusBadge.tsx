@@ -1,7 +1,8 @@
 'use client';
 
 import {
-  type TrackingStatus,
+  type OutcomeType,
+  getOutcomeTypeStyle,
   getTrackingStatusStyle,
   getTrackingStatusLabel,
 } from '@/domain/tracking/schemas';
@@ -11,10 +12,12 @@ import {
 } from '@/domain/tracking/statusSettings/schemas';
 
 interface TrackingStatusBadgeProps {
-  status: TrackingStatus;
+  status: string;
   size?: 'sm' | 'md' | 'lg';
   /** Optional dynamic status config from API with custom colors */
   statusConfig?: TenantStatus;
+  /** Optional outcome type for v2 action engine styling */
+  outcomeType?: OutcomeType;
 }
 
 const sizeClasses = {
@@ -27,8 +30,9 @@ export function TrackingStatusBadge({
   status,
   size = 'sm',
   statusConfig,
+  outcomeType,
 }: TrackingStatusBadgeProps) {
-  // Use dynamic config if provided and has colorHex
+  // Priority 1: Use dynamic config if provided and has colorHex
   if (statusConfig?.colorHex) {
     const inlineStyle = getTenantStatusInlineStyle(statusConfig.colorHex);
     const displayName = statusConfig.displayName || getTrackingStatusLabel(status);
@@ -47,7 +51,25 @@ export function TrackingStatusBadge({
     );
   }
 
-  // Fallback to hardcoded styles for backward compatibility
+  // Priority 2: Use outcomeType-based styling
+  if (outcomeType) {
+    const style = getOutcomeTypeStyle(outcomeType);
+    const label = statusConfig?.displayName || getTrackingStatusLabel(status);
+
+    return (
+      <span
+        className={`
+          inline-flex items-center rounded-full font-medium border
+          ${style.bg} ${style.text} ${style.border}
+          ${sizeClasses[size]}
+        `}
+      >
+        {label}
+      </span>
+    );
+  }
+
+  // Priority 3: Fallback to hardcoded status styles
   const style = getTrackingStatusStyle(status);
   const label = getTrackingStatusLabel(status);
 

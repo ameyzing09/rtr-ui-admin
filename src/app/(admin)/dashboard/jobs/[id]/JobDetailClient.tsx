@@ -698,7 +698,6 @@ function ApplicantsTab({ job, applications, pipeline }: { job: Job; applications
         applicationId={selectedApplicationId}
         applicantName={selectedApplicant?.name}
         applicantEmail={selectedApplicant?.email}
-        pipelineStages={pipelineStages}
         isOpen={!!selectedApplicationId}
         onClose={() => {
           setSelectedApplicationId(null);

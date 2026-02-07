@@ -1,5 +1,6 @@
-'use client';;
-import { useState, useMemo } from 'react';
+'use client';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Search, Plus, MoreVertical, Edit, Trash2, FileText } from 'lucide-react';
 import type { Application, ApplicationListResponse } from '@/domain/applications/schemas';
@@ -276,6 +277,51 @@ function ApplicationRow({
   onDelete,
 }: ApplicationRowProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // For Portal rendering
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close menu when clicking outside or scrolling
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setShowMenu(false);
+      }
+    }
+
+    function handleScroll() {
+      setShowMenu(false);
+    }
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('scroll', handleScroll, true);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        window.removeEventListener('scroll', handleScroll, true);
+      };
+    }
+  }, [showMenu]);
+
+  // Calculate menu position
+  const getMenuPosition = () => {
+    if (!buttonRef.current) return { top: 0, left: 0 };
+    const rect = buttonRef.current.getBoundingClientRect();
+    return {
+      top: rect.bottom + 8,
+      left: rect.right - 192, // 192px = w-48
+    };
+  };
 
   return (
     <tr className="hover:bg-gray-50">
@@ -314,66 +360,64 @@ function ApplicationRow({
         {(canUpdate || canDelete) && (
           <div className="relative">
             <button
+              ref={buttonRef}
               onClick={() => setShowMenu(!showMenu)}
               className="rounded-lg p-1 hover:bg-gray-100"
             >
               <MoreVertical className="h-5 w-5 text-gray-400" />
             </button>
 
-            {showMenu && (
-              <>
-                {/* Backdrop to close menu */}
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowMenu(false)}
-                />
+            {showMenu && mounted && createPortal(
+              <div
+                ref={menuRef}
+                className="fixed z-[60] w-48 rounded-lg border border-gray-200 bg-white shadow-lg"
+                style={getMenuPosition()}
+              >
+                <div className="py-1">
+                  {application.resumeUrl && (
+                    <a
+                      href={application.resumeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowMenu(false)}
+                    >
+                      <FileText className="h-4 w-4" />
+                      View Resume
+                    </a>
+                  )}
 
-                {/* Menu */}
-                <div className="absolute right-0 z-20 mt-2 w-48 rounded-lg border border-gray-200 bg-white shadow-lg">
-                  <div className="py-1">
-                    {application.resumeUrl && (
-                      <a
-                        href={application.resumeUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        <FileText className="h-4 w-4" />
-                        View Resume
-                      </a>
-                    )}
+                  {canUpdate && (
+                    <button
+                      onClick={() => {
+                        setShowMenu(false);
+                        onEdit();
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit Application
+                    </button>
+                  )}
 
-                    {canUpdate && (
+                  {canDelete && (
+                    <>
+                      <div className="my-1 border-t border-gray-200" />
                       <button
                         onClick={() => {
                           setShowMenu(false);
-                          onEdit();
+                          onDelete();
                         }}
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                       >
-                        <Edit className="h-4 w-4" />
-                        Edit Application
+                        <Trash2 className="h-4 w-4" />
+                        Delete Application
                       </button>
-                    )}
-
-                    {canDelete && (
-                      <>
-                        <div className="my-1 border-t border-gray-200" />
-                        <button
-                          onClick={() => {
-                            setShowMenu(false);
-                            onDelete();
-                          }}
-                          className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete Application
-                        </button>
-                      </>
-                    )}
-                  </div>
+                    </>
+                  )}
                 </div>
-              </>
+              </div>,
+              document.body
             )}
           </div>
         )}

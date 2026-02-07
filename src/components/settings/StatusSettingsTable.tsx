@@ -64,6 +64,12 @@ export function StatusSettingsTable({
             </th>
             <th
               scope="col"
+              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28"
+            >
+              Outcome Type
+            </th>
+            <th
+              scope="col"
               className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24"
             >
               Terminal
@@ -105,6 +111,11 @@ export function StatusSettingsTable({
                     {status.colorHex}
                   </span>
                 </div>
+              </td>
+              <td className="px-4 py-3 whitespace-nowrap">
+                <code className="text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded">
+                  {status.outcomeType ?? 'N/A'}
+                </code>
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
                 {status.isTerminal ? (
