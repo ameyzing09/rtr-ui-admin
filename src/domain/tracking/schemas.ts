@@ -169,13 +169,21 @@ export const availableActionSchema = z.object({
 export type AvailableAction = z.infer<typeof availableActionSchema>;
 
 /**
- * Full response from GET /tracking/applications/:id/actions
- * Backend returns { availableActions: [...] } directly (no data envelope)
+ * Inner data for GET /tracking/applications/:id/actions
  */
-export const availableActionsResponseSchema = z.object({
+export const availableActionsDataSchema = z.object({
   availableActions: z.array(availableActionSchema),
 });
-export type AvailableActionsResponse = z.infer<typeof availableActionsResponseSchema>;
+
+/**
+ * Full response from GET /tracking/applications/:id/actions
+ * Backend returns { data: { availableActions: [...] } } with data envelope
+ */
+export const availableActionsResponseSchema = z.object({
+  data: availableActionsDataSchema,
+}).transform((res) => res.data);
+
+export type AvailableActionsResponse = z.infer<typeof availableActionsDataSchema>;
 
 /**
  * Request for POST /applications/:id/act

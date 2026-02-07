@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertTriangle, X, Loader2 } from 'lucide-react';
 import { deleteJobAction, getCascadeInfoAction } from '@/lib/actions/job';
-import type { Job, JobListItem } from '@/domain/jobs/schemas';
+import type { Job, JobListItem, CascadeInfo } from '@/domain/jobs/schemas';
 import { toast } from '@/components/ui/ToastProvider';
 
 interface DeleteJobModalProps {
@@ -21,11 +21,7 @@ interface DeleteJobModalProps {
 export function DeleteJobModal({ job, isOpen, onClose, onSuccess }: DeleteJobModalProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
-  const [cascadeInfo, setCascadeInfo] = useState<{
-    applications: number;
-    interviews: number;
-    feedback: number;
-  } | null>(null);
+  const [cascadeInfo, setCascadeInfo] = useState<CascadeInfo | null>(null);
   const [isLoadingCascade, setIsLoadingCascade] = useState(false);
 
   /**
@@ -50,7 +46,7 @@ export function DeleteJobModal({ job, isOpen, onClose, onSuccess }: DeleteJobMod
     } catch (error) {
       console.error('Failed to load cascade info:', error);
       // Continue with default values
-      setCascadeInfo({ applications: 0, interviews: 0, feedback: 0 });
+      setCascadeInfo({ jobId: '', applicationCount: 0, activeApplicationCount: 0 });
     } finally {
       setIsLoadingCascade(false);
     }
@@ -84,10 +80,17 @@ export function DeleteJobModal({ job, isOpen, onClose, onSuccess }: DeleteJobMod
           router.push('/dashboard/jobs');
         }
       } else {
-        // Show error toast
+        const isFkConstraint =
+          result.error?.toLowerCase().includes('foreign key') ||
+          result.error?.toLowerCase().includes('constraint') ||
+          result.error?.toLowerCase().includes('cannot delete') ||
+          result.code === 'FK_CONSTRAINT';
+
         toast({
           title: 'Failed to delete job',
-          description: result.error,
+          description: isFkConstraint
+            ? 'This job has active applications. Remove all applications before deleting.'
+            : result.error,
           variant: 'error',
         });
       }
@@ -105,9 +108,7 @@ export function DeleteJobModal({ job, isOpen, onClose, onSuccess }: DeleteJobMod
 
   if (!isOpen) return null;
 
-  const hasCascadeItems =
-    cascadeInfo &&
-    (cascadeInfo.applications > 0 || cascadeInfo.interviews > 0 || cascadeInfo.feedback > 0);
+  const hasCascadeItems = cascadeInfo && cascadeInfo.applicationCount > 0;
 
   return (
     <>
@@ -187,24 +188,11 @@ export function DeleteJobModal({ job, isOpen, onClose, onSuccess }: DeleteJobMod
                   The following items will also be deleted:
                 </p>
                 <ul className="mt-2 space-y-1 text-sm text-orange-700">
-                  {cascadeInfo.applications > 0 && (
-                    <li>
-                      • {cascadeInfo.applications} application
-                      {cascadeInfo.applications > 1 ? 's' : ''}
-                    </li>
-                  )}
-                  {cascadeInfo.interviews > 0 && (
-                    <li>
-                      • {cascadeInfo.interviews} interview
-                      {cascadeInfo.interviews > 1 ? 's' : ''}
-                    </li>
-                  )}
-                  {cascadeInfo.feedback > 0 && (
-                    <li>
-                      • {cascadeInfo.feedback} feedback entry
-                      {cascadeInfo.feedback > 1 ? 'ies' : 'y'}
-                    </li>
-                  )}
+                  <li>
+                    • {cascadeInfo.applicationCount} application
+                    {cascadeInfo.applicationCount > 1 ? 's' : ''}{' '}
+                    ({cascadeInfo.activeApplicationCount} active)
+                  </li>
                 </ul>
               </div>
             ) : cascadeInfo ? (
