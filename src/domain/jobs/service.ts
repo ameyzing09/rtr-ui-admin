@@ -4,12 +4,14 @@ import {
   jobSchema,
   jobListResponseSchema,
   deleteJobResponseSchema,
+  cascadeInfoResponseSchema,
   type Job,
   type CreateJobRequest,
   type UpdateJobRequest,
   type JobListResponse,
   type JobListParams,
   type DeleteJobResponse,
+  type CascadeInfo,
 } from './schemas';
 import {
   auditJobCreate,
@@ -267,6 +269,19 @@ export class JobService {
       if (error instanceof ApiException && error.status === 404) {
         throw new JobApiError('Job not found', 'JOB_NOT_FOUND', 404);
       }
+      if (
+        error instanceof ApiException &&
+        (error.status === 409 ||
+          error.message?.toLowerCase().includes('foreign key') ||
+          error.message?.toLowerCase().includes('constraint'))
+      ) {
+        await auditJobError(session, 'delete', error, { id });
+        throw new JobApiError(
+          'Cannot delete this job because it has active applications. Remove all applications first.',
+          'FK_CONSTRAINT',
+          error.status || 409
+        );
+      }
       // Audit error
       await auditJobError(session, 'delete', error, { id });
       return this.handleError(error);
@@ -274,32 +289,27 @@ export class JobService {
   }
 
   /**
-   * Get cascade delete preview (optional - if backend supports it)
-   * Returns information about what will be deleted
+   * Get cascade delete preview
+   * GET /job/:id/cascade-info
    */
   async getCascadeInfo(
     session: UserSession,
     token: string,
     id: string
-  ): Promise<{ applications: number; interviews: number; feedback: number }> {
+  ): Promise<CascadeInfo> {
     try {
       console.log('[JobService] Fetching cascade info for job:', id);
 
-      // If backend supports a preview endpoint like GET /job/:id/cascade-info
-      // Otherwise, return default values
-      return {
-        applications: 0,
-        interviews: 0,
-        feedback: 0,
-      };
+      const authFetcher = createAuthenticatedFetcher(token);
+      const response = await authFetcher.get(
+        `${this.baseUrl}/${id}/cascade-info`,
+        cascadeInfoResponseSchema
+      );
+      return response;
     } catch (error) {
       console.error('[JobService] Failed to fetch cascade info:', error);
-      // Return defaults on error
-      return {
-        applications: 0,
-        interviews: 0,
-        feedback: 0,
-      };
+      // Return safe defaults on error so modal still renders
+      return { jobId: id, applicationCount: 0, activeApplicationCount: 0 };
     }
   }
 }

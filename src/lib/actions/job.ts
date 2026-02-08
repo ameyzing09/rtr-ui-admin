@@ -9,6 +9,7 @@ import type {
   JobListResponse,
   JobListParams,
   DeleteJobResponse,
+  CascadeInfo,
 } from '@/domain/jobs/schemas';
 
 /**
@@ -350,7 +351,7 @@ export async function deleteJobAction(
  */
 export async function getCascadeInfoAction(
   id: string
-): Promise<ActionResult<{ applications: number; interviews: number; feedback: number }>> {
+): Promise<ActionResult<CascadeInfo>> {
   try {
     console.log('🔄 [getCascadeInfoAction] Fetching cascade info for job:', id);
 

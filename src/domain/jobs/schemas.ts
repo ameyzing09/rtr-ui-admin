@@ -221,6 +221,25 @@ export const deleteJobResponseSchema = z.object({
 export type DeleteJobResponse = z.infer<typeof deleteJobResponseSchema>;
 
 // ============================================================================
+// Cascade Info Schema
+// ============================================================================
+
+/**
+ * Cascade delete preview from GET /job/:id/cascade-info
+ */
+export const cascadeInfoDataSchema = z.object({
+  jobId: z.string(),
+  applicationCount: z.number(),
+  activeApplicationCount: z.number(),
+});
+
+export const cascadeInfoResponseSchema = z.object({
+  data: cascadeInfoDataSchema,
+}).transform((res) => res.data);
+
+export type CascadeInfo = z.infer<typeof cascadeInfoDataSchema>;
+
+// ============================================================================
 // Utility Functions
 // ============================================================================
 

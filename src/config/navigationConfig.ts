@@ -27,6 +27,7 @@ import {
   Languages,
   Key,
   UserCheck,
+  ClipboardList,
 } from 'lucide-react';
 
 import type { Permission } from '@/lib/rbac/permissions';
@@ -63,7 +64,8 @@ export type NavIconKey =
   | 'palette'
   | 'languages'
   | 'key'
-  | 'usercheck';
+  | 'usercheck'
+  | 'clipboard';
 
 const iconMap: Record<NavIconKey, LucideIcon> = {
   dashboard: Home,
@@ -94,6 +96,7 @@ const iconMap: Record<NavIconKey, LucideIcon> = {
   languages: Languages,
   key: Key,
   usercheck: UserCheck,
+  clipboard: ClipboardList,
 };
 
 export type NavLinkConfig = {
@@ -610,6 +613,14 @@ export const unifiedNavConfig = {
           icon: 'clock',
           description: 'Upcoming & completed interviews',
           permission: PERMISSIONS.INTERVIEW_LIST,
+        },
+        {
+          id: 'my-evaluations',
+          label: 'My Evaluations',
+          href: '/dashboard/evaluations',
+          icon: 'clipboard',
+          description: 'Complete pending interview evaluations',
+          permission: PERMISSIONS.FEEDBACK_CREATE,
         },
         {
           id: 'feedback',
