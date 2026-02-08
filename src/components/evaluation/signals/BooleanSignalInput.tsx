@@ -22,7 +22,7 @@ export function BooleanSignalInput({
   required = true,
 }: BooleanSignalInputProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid={`boolean-signal-${signalKey}`}>
       <label className="block text-sm font-medium text-gray-700">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
@@ -46,6 +46,7 @@ export function BooleanSignalInput({
           aria-pressed={value === true}
           aria-label={`${label}: Yes`}
           data-signal-key={signalKey}
+          data-testid="boolean-input-yes"
         >
           <CheckCircle className={`h-5 w-5 ${value === true ? 'text-green-600' : 'text-gray-400'}`} />
           <span className="font-medium">Yes</span>
@@ -65,6 +66,7 @@ export function BooleanSignalInput({
           aria-pressed={value === false}
           aria-label={`${label}: No`}
           data-signal-key={signalKey}
+          data-testid="boolean-input-no"
         >
           <XCircle className={`h-5 w-5 ${value === false ? 'text-red-600' : 'text-gray-400'}`} />
           <span className="font-medium">No</span>

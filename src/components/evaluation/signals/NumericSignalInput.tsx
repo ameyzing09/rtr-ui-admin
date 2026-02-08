@@ -44,7 +44,7 @@ export function NumericSignalInput({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid={`numeric-signal-${signalKey}`}>
       <label className="block text-sm font-medium text-gray-700">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
@@ -55,7 +55,7 @@ export function NumericSignalInput({
 
       {/* Rating buttons for smaller ranges */}
       {range.length <= 10 ? (
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap" data-testid="numeric-rating-buttons">
           {range.map((num) => (
             <button
               key={num}
@@ -73,6 +73,7 @@ export function NumericSignalInput({
               aria-pressed={value === num}
               aria-label={`${label}: ${num}`}
               data-signal-key={signalKey}
+              data-testid={`numeric-input-${num}`}
             >
               {num}
             </button>
@@ -80,7 +81,7 @@ export function NumericSignalInput({
         </div>
       ) : (
         /* Number input with increment/decrement for larger ranges */
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3" data-testid="numeric-stepper">
           <button
             type="button"
             onClick={handleDecrement}
@@ -90,6 +91,7 @@ export function NumericSignalInput({
               ${disabled || value === min ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}
             `}
             aria-label="Decrease value"
+            data-testid="numeric-decrement-btn"
           >
             <Minus className="h-4 w-4 text-gray-600" />
           </button>
@@ -113,6 +115,7 @@ export function NumericSignalInput({
             `}
             placeholder="-"
             data-signal-key={signalKey}
+            data-testid="numeric-input-field"
           />
 
           <button
@@ -124,6 +127,7 @@ export function NumericSignalInput({
               ${disabled || value === max ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'}
             `}
             aria-label="Increase value"
+            data-testid="numeric-increment-btn"
           >
             <Plus className="h-4 w-4 text-gray-600" />
           </button>

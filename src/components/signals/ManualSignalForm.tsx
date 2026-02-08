@@ -110,6 +110,7 @@ export function ManualSignalForm({
           text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors
           ${className}
         `}
+        data-testid="manual-signal-toggle"
       >
         <Plus className="h-4 w-4" />
         Set Manual Signal
@@ -118,13 +119,14 @@ export function ManualSignalForm({
   }
 
   return (
-    <div className={`p-4 border border-gray-200 rounded-lg bg-white ${className}`}>
+    <div className={`p-4 border border-gray-200 rounded-lg bg-white ${className}`} data-testid="manual-signal-form">
       <div className="flex items-center justify-between mb-4">
         <h4 className="font-medium text-gray-900">Set Manual Signal</h4>
         <button
           onClick={handleClose}
           className="p-1 rounded hover:bg-gray-100"
           aria-label="Close"
+          data-testid="manual-signal-close-btn"
         >
           <X className="h-4 w-4 text-gray-500" />
         </button>
@@ -143,6 +145,7 @@ export function ManualSignalForm({
             placeholder="e.g., hr_override_approved"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             disabled={isSubmitting}
+            data-testid="manual-signal-key"
           />
         </div>
 
@@ -165,6 +168,7 @@ export function ManualSignalForm({
                     : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
                   }
                 `}
+                data-testid={`manual-signal-type-${type}`}
               >
                 {type}
               </button>
@@ -190,6 +194,7 @@ export function ManualSignalForm({
                     : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
                   }
                 `}
+                data-testid="manual-signal-boolean-true"
               >
                 True
               </button>
@@ -204,6 +209,7 @@ export function ManualSignalForm({
                     : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
                   }
                 `}
+                data-testid="manual-signal-boolean-false"
               >
                 False
               </button>
@@ -217,6 +223,7 @@ export function ManualSignalForm({
               placeholder="Enter a number"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               disabled={isSubmitting}
+              data-testid="manual-signal-numeric-value"
             />
           )}
           {signalType === 'text' && (
@@ -227,6 +234,7 @@ export function ManualSignalForm({
               rows={2}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
               disabled={isSubmitting}
+              data-testid="manual-signal-text-value"
             />
           )}
         </div>
@@ -243,6 +251,7 @@ export function ManualSignalForm({
             rows={2}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
             disabled={isSubmitting}
+            data-testid="manual-signal-reason"
           />
         </div>
 
@@ -253,6 +262,7 @@ export function ManualSignalForm({
             onClick={handleClose}
             disabled={isSubmitting}
             className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
+            data-testid="manual-signal-cancel"
           >
             Cancel
           </button>
@@ -261,6 +271,7 @@ export function ManualSignalForm({
             onClick={handleSubmit}
             disabled={!isValid() || isSubmitting}
             className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="manual-signal-submit"
           >
             {isSubmitting ? (
               <>

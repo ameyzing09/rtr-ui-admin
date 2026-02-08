@@ -32,7 +32,7 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-testid="evaluation-detail">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white px-6 py-4">
         <div className="flex items-center gap-4">
@@ -40,6 +40,7 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
             onClick={handleBack}
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
             aria-label="Go back"
+            data-testid="evaluation-back-btn"
           >
             <ArrowLeft className="h-5 w-5 text-gray-600" />
           </button>
@@ -47,7 +48,7 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
             <h1 className="text-xl font-bold text-gray-900">
               Interview Evaluation
             </h1>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500" data-testid="evaluation-template-name">
               {evaluation.templateName || 'Standard Evaluation'}
             </p>
           </div>
@@ -58,18 +59,18 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Participants Status */}
-          <Card className="p-4">
+          <Card className="p-4" data-testid="participant-status">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                 <Users className="h-5 w-5 text-blue-600" />
               </div>
               <div className="flex-1">
                 <h3 className="font-medium text-gray-900">Evaluation Progress</h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500" data-testid="evaluation-progress">
                   {respondedCount} of {totalParticipants} evaluators have submitted
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2" data-testid="participant-avatars">
                 {evaluation.participants.map((participant) => (
                   <div
                     key={participant.userId}
@@ -79,6 +80,7 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
                         : 'bg-gray-100 text-gray-500'
                     }`}
                     title={`${participant.userName}${participant.hasResponded ? ' (submitted)' : ' (pending)'}`}
+                    data-testid={`participant-${participant.userId}`}
                   >
                     {participant.hasResponded ? (
                       <CheckCircle className="h-4 w-4" />
@@ -98,7 +100,7 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
 
           {/* Already Submitted Notice */}
           {hasResponded ? (
-            <Card className="p-6 bg-green-50 border-green-200">
+            <Card className="p-6 bg-green-50 border-green-200" data-testid="evaluation-submitted-notice">
               <div className="flex items-start gap-4">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
                   <CheckCircle className="h-5 w-5 text-green-600" />

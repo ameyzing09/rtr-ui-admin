@@ -1,4 +1,5 @@
 import { createAuthenticatedFetcher } from '@/lib/api/fetcher';
+import { env } from '@/config/env';
 import type { UserSession } from '@/lib/rbac/guard';
 import {
   evaluationDetailsSchema,
@@ -30,7 +31,12 @@ export class EvaluationApiError extends Error {
 // ============================================================================
 
 export class EvaluationService {
-  private baseUrl = '/evaluations';
+  private baseUrl: string;
+
+  constructor() {
+    this.baseUrl = env.NEXT_PUBLIC_EVALUATION_API_BASE_URL || '';
+    console.log('[EvaluationService] Initialized with baseUrl:', this.baseUrl);
+  }
 
   /**
    * Get list of pending evaluations for the current user
@@ -39,11 +45,17 @@ export class EvaluationService {
     session: UserSession,
     token: string
   ): Promise<PendingEvaluationsList> {
-    try {
-      const url = `${this.baseUrl}/my-pending`;
+    if (!this.baseUrl) {
+      throw new EvaluationApiError(
+        'NEXT_PUBLIC_EVALUATION_API_BASE_URL is not configured',
+        500,
+        'CONFIG_ERROR'
+      );
+    }
 
-      const authFetcher = createAuthenticatedFetcher(token);
-      const data = await authFetcher.get(url, pendingEvaluationsListSchema);
+    try {
+      const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
+      const data = await authFetcher.get('/my-pending', pendingEvaluationsListSchema);
 
       return data;
     } catch (error) {
@@ -66,11 +78,17 @@ export class EvaluationService {
     token: string,
     evaluationId: string
   ): Promise<EvaluationDetails> {
-    try {
-      const url = `${this.baseUrl}/${evaluationId}/participants`;
+    if (!this.baseUrl) {
+      throw new EvaluationApiError(
+        'NEXT_PUBLIC_EVALUATION_API_BASE_URL is not configured',
+        500,
+        'CONFIG_ERROR'
+      );
+    }
 
-      const authFetcher = createAuthenticatedFetcher(token);
-      const data = await authFetcher.get(url, evaluationDetailsSchema);
+    try {
+      const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
+      const data = await authFetcher.get(`/${evaluationId}/participants`, evaluationDetailsSchema);
 
       return data;
     } catch (error) {
@@ -102,11 +120,17 @@ export class EvaluationService {
     evaluationId: string,
     request: SubmitEvaluationRequest
   ): Promise<SubmitEvaluationResponse> {
-    try {
-      const url = `${this.baseUrl}/${evaluationId}/respond`;
+    if (!this.baseUrl) {
+      throw new EvaluationApiError(
+        'NEXT_PUBLIC_EVALUATION_API_BASE_URL is not configured',
+        500,
+        'CONFIG_ERROR'
+      );
+    }
 
-      const authFetcher = createAuthenticatedFetcher(token);
-      const data = await authFetcher.post(url, request, submitEvaluationResponseSchema);
+    try {
+      const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
+      const data = await authFetcher.post(`/${evaluationId}/respond`, request, submitEvaluationResponseSchema);
 
       return data;
     } catch (error) {

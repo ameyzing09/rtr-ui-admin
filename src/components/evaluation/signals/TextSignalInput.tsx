@@ -30,7 +30,7 @@ export function TextSignalInput({
   const isAtLimit = charCount >= maxLength;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid={`text-signal-${signalKey}`}>
       <label className="block text-sm font-medium text-gray-700">
         {label}
         {required && <span className="text-red-500 ml-1">*</span>}
@@ -59,12 +59,14 @@ export function TextSignalInput({
           `}
           aria-label={label}
           data-signal-key={signalKey}
+          data-testid="text-input"
         />
         <div
           className={`
             absolute bottom-2 right-2 text-xs
             ${isAtLimit ? 'text-red-500' : isNearLimit ? 'text-amber-500' : 'text-gray-400'}
           `}
+          data-testid="text-char-count"
         >
           {charCount}/{maxLength}
         </div>

@@ -74,29 +74,50 @@ export type EvaluationDetails = z.infer<typeof evaluationDetailsDataSchema>;
 // Pending Evaluation List Item Schema
 // ============================================================================
 
-export const pendingEvaluationItemSchema = z.object({
-  id: z.string().uuid(),
+// Raw API response item schema
+const pendingEvaluationApiItemSchema = z.object({
+  evaluationId: z.string().uuid(),
   applicationId: z.string().uuid(),
+  templateId: z.string().uuid().optional(),
+  templateName: z.string().optional(),
+  stageId: z.string().uuid().nullable().optional(),
+  stageName: z.string().nullable().optional(),
+  evaluationStatus: z.string(),
+  scheduledAt: z.string().nullable().optional(),
   applicantName: z.string(),
-  jobTitle: z.string().optional(),
-  stageName: z.string().optional(),
-  deadline: z.string().nullable().optional(),
+  applicantEmail: z.string().email().optional(),
+  participantStatus: z.string(),
   createdAt: z.string(),
 });
 
+// Transformed item for UI consumption
+export const pendingEvaluationItemSchema = pendingEvaluationApiItemSchema.transform((item) => ({
+  id: item.evaluationId,
+  applicationId: item.applicationId,
+  applicantName: item.applicantName,
+  applicantEmail: item.applicantEmail,
+  jobTitle: item.templateName, // Use templateName as job title for display
+  stageName: item.stageName ?? undefined,
+  deadline: item.scheduledAt ?? undefined,
+  createdAt: item.createdAt,
+  status: item.evaluationStatus,
+  participantStatus: item.participantStatus,
+}));
+
 export type PendingEvaluationItem = z.infer<typeof pendingEvaluationItemSchema>;
 
-export const pendingEvaluationsListDataSchema = z.object({
-  evaluations: z.array(pendingEvaluationItemSchema),
-  total: z.number(),
-});
-
-// API response wrapper
+// API returns { data: [...] } - array directly under data
 export const pendingEvaluationsListSchema = z.object({
-  data: pendingEvaluationsListDataSchema,
-}).transform((res) => res.data);
+  data: z.array(pendingEvaluationItemSchema),
+}).transform((res) => ({
+  evaluations: res.data,
+  total: res.data.length,
+}));
 
-export type PendingEvaluationsList = z.infer<typeof pendingEvaluationsListDataSchema>;
+export type PendingEvaluationsList = {
+  evaluations: PendingEvaluationItem[];
+  total: number;
+};
 
 // ============================================================================
 // Submit Evaluation Request Schema

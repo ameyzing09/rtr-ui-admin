@@ -30,27 +30,27 @@ export function SignalCard({ signal, className = '' }: SignalCardProps) {
   };
 
   return (
-    <Card className={`p-4 ${className}`}>
+    <Card className={`p-4 ${className}`} data-testid={`signal-card-${signal.key}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-medium text-gray-900 truncate">
+            <h4 className="font-medium text-gray-900 truncate" data-testid="signal-description">
               {signal.description || signal.key}
             </h4>
             <SourceBadge source={signal.source} />
           </div>
 
           <div className="flex items-center gap-1 text-xs text-gray-500">
-            <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
+            <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600" data-testid="signal-key">
               {signal.key}
             </code>
             <span className="text-gray-300">•</span>
-            <span className="capitalize">{signal.type}</span>
+            <span className="capitalize" data-testid="signal-type">{signal.type}</span>
           </div>
         </div>
 
         <div className="text-right flex-shrink-0">
-          <div className={`text-lg font-semibold ${getValueStyle()}`}>
+          <div className={`text-lg font-semibold ${getValueStyle()}`} data-testid="signal-value">
             {formattedValue}
           </div>
         </div>

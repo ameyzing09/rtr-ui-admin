@@ -57,7 +57,7 @@ export function SignalsDashboardClient({
   );
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col" data-testid="signals-dashboard">
       {/* Header */}
       <div className="border-b border-gray-200 bg-white px-6 py-4">
         <div className="flex items-center justify-between">
@@ -66,6 +66,7 @@ export function SignalsDashboardClient({
               onClick={handleBack}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               aria-label="Go back"
+              data-testid="signals-back-btn"
             >
               <ArrowLeft className="h-5 w-5 text-gray-600" />
             </button>
@@ -73,7 +74,7 @@ export function SignalsDashboardClient({
               <h1 className="text-xl font-bold text-gray-900">
                 Application Signals
               </h1>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500" data-testid="signals-applicant-info">
                 {application.applicantName} &mdash; {application.applicantEmail}
               </p>
             </div>
@@ -81,6 +82,7 @@ export function SignalsDashboardClient({
           <button
             onClick={handleRefresh}
             className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            data-testid="signals-refresh-btn"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh
@@ -102,7 +104,7 @@ export function SignalsDashboardClient({
             </div>
 
             {signals.length === 0 ? (
-              <Card className="p-6 text-center">
+              <Card className="p-6 text-center" data-testid="signals-empty-state">
                 <div className="text-gray-400 mb-2">
                   <Activity className="h-12 w-12 mx-auto" />
                 </div>
@@ -115,7 +117,7 @@ export function SignalsDashboardClient({
             ) : (
               <>
                 {sortedSources.map((source) => (
-                  <div key={source} className="space-y-3">
+                  <div key={source} className="space-y-3" data-testid={`signals-section-${source.toLowerCase()}`}>
                     <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wide">
                       {source} Signals
                     </h3>
@@ -148,7 +150,7 @@ export function SignalsDashboardClient({
             </div>
 
             {actions.length === 0 ? (
-              <Card className="p-6 text-center">
+              <Card className="p-6 text-center" data-testid="actions-empty-state">
                 <div className="text-gray-400 mb-2">
                   <Zap className="h-12 w-12 mx-auto" />
                 </div>
