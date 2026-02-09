@@ -69,9 +69,7 @@ export function ApplicationDetailDrawer({
     setIsLoading(true);
     setError(null);
     try {
-      console.log('[Drawer] Fetching tracking state for:', applicationId);
       const result = await getTrackingStateAction(applicationId);
-      console.log('[Drawer] Result:', result);
       if (result.success) {
         setTrackingState(result.data);
       } else {

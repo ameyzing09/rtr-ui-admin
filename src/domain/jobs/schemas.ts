@@ -230,7 +230,6 @@ export type DeleteJobResponse = z.infer<typeof deleteJobResponseSchema>;
 export const cascadeInfoDataSchema = z.object({
   jobId: z.string(),
   applicationCount: z.number(),
-  activeApplicationCount: z.number(),
 });
 
 export const cascadeInfoResponseSchema = z.object({

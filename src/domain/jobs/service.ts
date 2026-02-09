@@ -309,7 +309,7 @@ export class JobService {
     } catch (error) {
       console.error('[JobService] Failed to fetch cascade info:', error);
       // Return safe defaults on error so modal still renders
-      return { jobId: id, applicationCount: 0, activeApplicationCount: 0 };
+      return { jobId: id, applicationCount: 0 };
     }
   }
 }

@@ -63,6 +63,20 @@ declare global {
       ): Chainable<{ id: string }>;
 
       /**
+       * Submit an application via the public API (no auth required)
+       * Returns candidate_access_token for status page access
+       * @param jobId - Job ID to apply to
+       * @param applicantName - Applicant name
+       * @param applicantEmail - Applicant email
+       * @example cy.submitPublicApplicationViaApi('job-id', 'Jane Doe', 'jane@example.com')
+       */
+      submitPublicApplicationViaApi(
+        jobId: string,
+        applicantName: string,
+        applicantEmail: string
+      ): Chainable<{ id: string; status: string; candidate_access_token: string }>;
+
+      /**
        * Delete a job via the backend API
        * @param jobId - Job ID to delete
        * @example cy.deleteJobViaApi('job-id')
@@ -170,7 +184,7 @@ Cypress.Commands.add('createJobViaApi', (title: string) => {
         'X-Tenant-ID': tenantId,
         'Content-Type': 'application/json',
       },
-      body: { title, isPublic: true },
+      body: { title, isPublic: true, publishAt: new Date().toISOString(), expireAt: null },
     }).then((response) => {
       // API returns data directly (not wrapped in { data: ... })
       return response.body;
@@ -207,6 +221,33 @@ Cypress.Commands.add(
         // API returns data directly (not wrapped in { data: ... })
         return response.body;
       });
+    });
+  }
+);
+
+/**
+ * Submit an application via the public API route (no auth required)
+ * Uses the Next.js API route which handles tenant resolution internally
+ */
+Cypress.Commands.add(
+  'submitPublicApplicationViaApi',
+  (jobId: string, applicantName: string, applicantEmail: string) => {
+    return cy.request({
+      method: 'POST',
+      url: '/api/public/applications',
+      body: {
+        job_id: jobId,
+        applicant_name: applicantName,
+        applicant_email: applicantEmail,
+        applicant_phone: '+1-555-0100',
+        cover_letter: 'E2E test application for status page verification.',
+      },
+    }).then((response) => {
+      expect(response.status).to.eq(201);
+      expect(response.body.candidate_access_token).to.match(
+        /^[0-9a-fA-F-]{36}$/
+      );
+      return response.body;
     });
   }
 );

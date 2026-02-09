@@ -46,7 +46,7 @@ export function DeleteJobModal({ job, isOpen, onClose, onSuccess }: DeleteJobMod
     } catch (error) {
       console.error('Failed to load cascade info:', error);
       // Continue with default values
-      setCascadeInfo({ jobId: '', applicationCount: 0, activeApplicationCount: 0 });
+      setCascadeInfo({ jobId: '', applicationCount: 0 });
     } finally {
       setIsLoadingCascade(false);
     }
@@ -190,8 +190,7 @@ export function DeleteJobModal({ job, isOpen, onClose, onSuccess }: DeleteJobMod
                 <ul className="mt-2 space-y-1 text-sm text-orange-700">
                   <li>
                     • {cascadeInfo.applicationCount} application
-                    {cascadeInfo.applicationCount > 1 ? 's' : ''}{' '}
-                    ({cascadeInfo.activeApplicationCount} active)
+                    {cascadeInfo.applicationCount > 1 ? 's' : ''}
                   </li>
                 </ul>
               </div>

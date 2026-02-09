@@ -90,6 +90,7 @@ export type PublicApplicationSubmitRequest = z.infer<typeof publicApplicationSub
 export const publicApplicationSubmitResponseSchema = z.object({
   id: z.string().uuid(),
   status: z.string(),
+  candidate_access_token: z.string(),
 });
 
 export type PublicApplicationSubmitResponse = z.infer<typeof publicApplicationSubmitResponseSchema>;
@@ -160,10 +161,10 @@ export function transformApplicationFormToApi(
     job_id: formData.jobId,
     applicant_name: formData.applicantName,
     applicant_email: formData.applicantEmail,
-    applicant_phone: formData.applicantPhone,
-    resume_url: formData.resumeUrl,
-    cover_letter: formData.coverLetter,
-    captcha_token: formData.captchaToken,
+    applicant_phone: formData.applicantPhone || undefined,
+    resume_url: formData.resumeUrl || undefined,
+    cover_letter: formData.coverLetter || undefined,
+    captcha_token: formData.captchaToken || undefined,
   };
 }
 

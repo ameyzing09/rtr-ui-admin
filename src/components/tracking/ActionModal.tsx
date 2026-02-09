@@ -324,7 +324,7 @@ export function ActionModal({
                 )}
 
                 {/* Notes */}
-                {selectedAction && (selectedAction.requiresNotes || true) && (
+                {selectedAction && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Notes {selectedAction.requiresNotes ? <span className="text-red-500">*</span> : '(optional)'}

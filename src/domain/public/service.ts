@@ -102,14 +102,14 @@ export class PublicApplicationService {
 
   /**
    * D3: Submit public application
-   * POST /public/applications
+   * POST /public/jobs/:jobId/apply
    */
   async submitApplication(
     payload: PublicApplicationSubmitRequest
   ): Promise<PublicApplicationSubmitResponse> {
     try {
       const data = await publicClient.post(
-        this.baseUrl,
+        `/public/jobs/${payload.job_id}/apply`,
         payload,
         publicApplicationSubmitResponseSchema
       );
