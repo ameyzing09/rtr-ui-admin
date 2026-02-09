@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { getLocalTenantSubdomain } from '@/config/env';
+import { getLocalTenantSubdomain, getLocalTenantId } from '@/config/env';
 
 /**
  * Public API Client
@@ -75,6 +75,25 @@ function buildHostHeader(): string {
 }
 
 /**
+ * Build common headers for public API requests.
+ * Production: Host header carries the tenant subdomain.
+ * Local dev: X-Tenant-ID is added as a fallback (per architecture rules).
+ */
+function buildHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Host': buildHostHeader(),
+    'Content-Type': 'application/json',
+  };
+
+  const localTenantId = getLocalTenantId();
+  if (localTenantId) {
+    headers['X-Tenant-ID'] = localTenantId;
+  }
+
+  return headers;
+}
+
+/**
  * Public API Client
  * No authentication required, uses Host header for tenant identification
  */
@@ -89,7 +108,7 @@ export const publicClient = {
   ): Promise<T> {
     try {
       // Build URL with query params
-      const url = new URL(path, BASE_URL);
+      const url = new URL(`${BASE_URL}${path}`);
       if (queryParams) {
         Object.entries(queryParams).forEach(([key, value]) => {
           url.searchParams.append(key, String(value));
@@ -98,10 +117,7 @@ export const publicClient = {
 
       const response = await fetch(url.toString(), {
         method: 'GET',
-        headers: {
-          'Host': buildHostHeader(),
-          'Content-Type': 'application/json',
-        },
+        headers: buildHeaders(),
         cache: 'no-store', // Disable caching for dynamic content
       });
 
@@ -144,14 +160,11 @@ export const publicClient = {
     schema: z.ZodSchema<T>
   ): Promise<T> {
     try {
-      const url = new URL(path, BASE_URL);
+      const url = new URL(`${BASE_URL}${path}`);
 
       const response = await fetch(url.toString(), {
         method: 'POST',
-        headers: {
-          'Host': buildHostHeader(),
-          'Content-Type': 'application/json',
-        },
+        headers: buildHeaders(),
         body: JSON.stringify(body),
       });
 

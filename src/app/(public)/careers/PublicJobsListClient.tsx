@@ -82,7 +82,7 @@ export function PublicJobsListClient({
       {/* Hero Section */}
       <div className="mb-12 text-center">
         <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-          Join Our Team
+          {process.env.NEXT_PUBLIC_TENANT_NAME ? `Join ${process.env.NEXT_PUBLIC_TENANT_NAME}` : 'Join Our Team'}
         </h1>
         <p className="mt-4 text-lg text-gray-600">
           Explore {initialData.total} open position{initialData.total !== 1 ? 's' : ''} and find your next opportunity
@@ -161,16 +161,24 @@ export function PublicJobsListClient({
 
       {/* Results */}
       {initialData.data.length === 0 ? (
-        <Card className="p-12 text-center">
+        <Card className="p-12 text-center" data-testid="careers-empty-state">
           <Briefcase className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-4 text-lg font-semibold text-gray-900">
-            No jobs found
+            {hasFilters ? 'No positions match your filters' : 'No open positions right now'}
           </h3>
           <p className="mt-2 text-sm text-gray-600">
             {hasFilters
-              ? 'Try adjusting your filters to see more results'
-              : 'Check back soon for new opportunities'}
+              ? ''
+              : 'Check back soon!'}
           </p>
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              className="mt-4 text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              Clear filters
+            </button>
+          )}
         </Card>
       ) : (
         <>
@@ -199,9 +207,11 @@ export function PublicJobsListClient({
                             {job.location}
                           </span>
                         )}
-                        <span className="text-gray-400">
-                          Posted {formatPublishDate(job.publish_at)}
-                        </span>
+                        {job.publish_at && (
+                          <span className="text-gray-400">
+                            Posted {formatPublishDate(job.publish_at)}
+                          </span>
+                        )}
                       </div>
 
                       {/* Description Excerpt */}

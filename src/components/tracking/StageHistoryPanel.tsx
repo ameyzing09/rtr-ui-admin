@@ -181,11 +181,6 @@ export function StageHistoryContent({
                   <span className="font-medium text-gray-900">
                     {getActionLabel(entry.action)}
                   </span>
-                  {(entry.action === 'MOVE' || entry.action === 'COMPLETE') && entry.fromStageName && entry.toStageName && (
-                    <span className="text-sm text-gray-500">
-                      from {entry.fromStageName} to {entry.toStageName}
-                    </span>
-                  )}
                 </div>
 
                 {/* Stages */}
@@ -203,13 +198,13 @@ export function StageHistoryContent({
 
                 {/* Reason */}
                 {entry.reason && (
-                  <p className="text-sm text-gray-600 mb-2 italic">
+                  <p className="pl-3 border-l-2 border-gray-300 text-sm text-gray-600 mb-2">
                     &ldquo;{entry.reason}&rdquo;
                   </p>
                 )}
 
                 {/* Timestamp */}
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-500">
                   {formatDate(entry.changedAt)}
                 </p>
               </div>

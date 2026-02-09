@@ -73,21 +73,27 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                 {job.location}
               </span>
             )}
-            <span className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              Posted {formatPublishDate(job.publish_at)}
-            </span>
+            {job.publish_at && (
+              <span className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                Posted {formatPublishDate(job.publish_at)}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Job Description */}
-        {job.description && (
+        {job.description ? (
           <Card className="mt-8 p-8">
             <h2 className="text-xl font-semibold text-gray-900">About this role</h2>
             <div
               className="mt-4 prose prose-sm max-w-none text-gray-700"
               dangerouslySetInnerHTML={{ __html: job.description }}
             />
+          </Card>
+        ) : (!job.extra || Object.keys(job.extra).length === 0) && (
+          <Card className="mt-8 p-8 text-center">
+            <p className="text-sm text-gray-500">No details available yet</p>
           </Card>
         )}
 
