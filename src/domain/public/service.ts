@@ -6,11 +6,13 @@ import {
   publicJobsResponseSchema,
   publicJobDetailSchema,
   publicApplicationSubmitResponseSchema,
+  publicApplicationStatusSchema,
   type PublicJobsResponse,
   type PublicJobDetail,
   type PublicJobsQuery,
   type PublicApplicationSubmitRequest,
   type PublicApplicationSubmitResponse,
+  type PublicApplicationStatus,
 } from './schemas';
 
 // ============================================================================
@@ -136,6 +138,34 @@ export class PublicApplicationService {
         'Failed to submit application',
         500,
         'PUBLIC_APPLICATION_SUBMIT_ERROR'
+      );
+    }
+  }
+
+  /**
+   * Get application status by token
+   * GET /public/applications/:token
+   */
+  async getApplicationStatus(token: string): Promise<PublicApplicationStatus> {
+    try {
+      const url = `${this.baseUrl}/${token}`;
+      const data = await publicClient.get(url, publicApplicationStatusSchema);
+      return data;
+    } catch (error) {
+      if (error instanceof PublicApiError) {
+        if (error.statusCode === 404) {
+          throw new PublicApiError(
+            'Application not found',
+            404,
+            'PUBLIC_APPLICATION_NOT_FOUND'
+          );
+        }
+        throw error;
+      }
+      throw new PublicApiError(
+        'Failed to load application status',
+        500,
+        'PUBLIC_APPLICATION_STATUS_ERROR'
       );
     }
   }

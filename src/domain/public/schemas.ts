@@ -94,6 +94,42 @@ export const publicApplicationSubmitResponseSchema = z.object({
 
 export type PublicApplicationSubmitResponse = z.infer<typeof publicApplicationSubmitResponseSchema>;
 
+/**
+ * Public Application Status
+ * Returned by GET /public/applications/:token
+ */
+export const publicApplicationStatusSchema = z.object({
+  job_title: z.string(),
+  current_stage: z.string(),
+  status: z.string(),
+  applied_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+export type PublicApplicationStatus = z.infer<typeof publicApplicationStatusSchema>;
+
+/**
+ * Map application status to candidate-facing message
+ */
+export function getApplicationStatusMessage(status: string): string {
+  switch (status) {
+    case 'Active':
+      return "We're currently reviewing your application. You'll hear from us if there are next steps.";
+    case 'Pending':
+      return 'Your application has been received and is awaiting review.';
+    case 'On Hold':
+      return "Your application is currently on hold. We'll reach out when there's an update.";
+    case 'Hired':
+      return 'Congratulations! Please check your email for next steps.';
+    case 'Rejected':
+      return "Thank you for your interest. Unfortunately, we've decided to move forward with other candidates.";
+    case 'Withdrawn':
+      return 'This application has been withdrawn.';
+    default:
+      return "We're currently reviewing your application.";
+  }
+}
+
 // ============================================================================
 // Frontend-friendly types for form handling
 // ============================================================================
