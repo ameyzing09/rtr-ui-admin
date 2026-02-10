@@ -43,7 +43,6 @@ export function getSectionTabs(pathname: string): SectionTab[] {
     return [
       { label: 'Upcoming', href: '/dashboard/interviews?filter=upcoming' },
       { label: 'Completed', href: '/dashboard/interviews?filter=completed' },
-      { label: 'Feedback', href: '/dashboard/interviews/feedback' },
     ];
   }
 

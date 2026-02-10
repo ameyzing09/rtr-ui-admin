@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   X,
   Loader2,
@@ -107,11 +107,7 @@ export function StageHistoryContent({
 
   const LIMIT = 20;
 
-  useEffect(() => {
-    loadHistory(0);
-  }, [applicationId]);
-
-  const loadHistory = async (newOffset: number) => {
+  const loadHistory = useCallback(async (newOffset: number) => {
     if (newOffset === 0) {
       setIsLoading(true);
     } else {
@@ -136,7 +132,11 @@ export function StageHistoryContent({
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  };
+  }, [applicationId]);
+
+  useEffect(() => {
+    loadHistory(0);
+  }, [loadHistory]);
 
   const handleLoadMore = () => {
     loadHistory(offset);

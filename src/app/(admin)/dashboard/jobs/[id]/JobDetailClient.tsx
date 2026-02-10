@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -437,13 +437,7 @@ function ApplicantsTab({ job, applications, pipeline }: { job: Job; applications
   const canDelete = session ? hasApplicationPermission(session.user.permissions, APPLICATION_PERMISSIONS.DELETE) : false;
 
   // Load Kanban board when view mode changes or pipeline changes
-  useEffect(() => {
-    if (viewMode === 'kanban' && pipeline) {
-      loadBoard();
-    }
-  }, [viewMode, pipeline?.id, job.id]);
-
-  const loadBoard = async () => {
+  const loadBoard = useCallback(async () => {
     if (!pipeline) return;
 
     setIsLoadingBoard(true);
@@ -457,7 +451,13 @@ function ApplicantsTab({ job, applications, pipeline }: { job: Job; applications
     } finally {
       setIsLoadingBoard(false);
     }
-  };
+  }, [pipeline, job.id]);
+
+  useEffect(() => {
+    if (viewMode === 'kanban' && pipeline) {
+      loadBoard();
+    }
+  }, [viewMode, pipeline, loadBoard]);
 
   const handleApplicationClick = (applicationId: string) => {
     // Find applicant info from board

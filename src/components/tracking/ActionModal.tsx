@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Loader2, AlertTriangle, Lock, MessageSquare } from 'lucide-react';
 import { getAvailableActionsAction, executeActionAction } from '@/lib/actions/tracking';
 import { TrackingStatusBadge } from './TrackingStatusBadge';
@@ -92,15 +92,7 @@ export function ActionModal({
   const [selectedAction, setSelectedAction] = useState<AvailableAction | null>(null);
   const [notes, setNotes] = useState('');
 
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedAction(null);
-      setNotes('');
-      loadActions();
-    }
-  }, [isOpen, applicationId]);
-
-  const loadActions = async () => {
+  const loadActions = useCallback(async () => {
     setIsLoading(true);
     try {
       const result = await getAvailableActionsAction(applicationId);
@@ -122,7 +114,15 @@ export function ActionModal({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [applicationId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedAction(null);
+      setNotes('');
+      loadActions();
+    }
+  }, [isOpen, applicationId, loadActions]);
 
   const handleSubmit = async () => {
     if (!selectedAction) return;

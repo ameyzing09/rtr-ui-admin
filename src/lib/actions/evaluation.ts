@@ -14,18 +14,8 @@ import {
   type SubmitEvaluationResponse,
 } from '@/domain/evaluation/schemas';
 import { ZodError } from 'zod';
+import type { ActionResult } from './types';
 
-/**
- * Generic action result type
- */
-export type ActionResult<T> =
-  | { success: true; data: T }
-  | {
-      success: false;
-      error: string;
-      code?: string;
-      fieldErrors?: Record<string, string[]>;
-    };
 
 /**
  * Format error for ActionResult

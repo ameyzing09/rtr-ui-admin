@@ -8,12 +8,19 @@ import type { ResetPasswordResponse } from '@/domain/users/schemas';
 import { resetPasswordAction } from '@/lib/actions/user';
 import { useToastMessages } from '@/components/ui/ToastProvider';
 
+type ResetActionFn = (
+  userId: string,
+  request: { new_password?: string; force_change: boolean }
+) => Promise<{ success: true; data: { temporary_password?: string } } | { success: false; error: string; userMessage?: string }>;
+
 interface ResetPasswordModalProps {
   userId: string;
   userName: string;
   userEmail: string;
   onClose: () => void;
   onSuccess?: (response: ResetPasswordResponse) => void;
+  /** Custom reset action — defaults to the superadmin resetPasswordAction */
+  resetAction?: ResetActionFn;
 }
 
 export default function ResetPasswordModal({
@@ -22,6 +29,7 @@ export default function ResetPasswordModal({
   userEmail,
   onClose,
   onSuccess,
+  resetAction,
 }: ResetPasswordModalProps) {
   const [step, setStep] = useState<'confirm' | 'method' | 'loading' | 'success'>('confirm');
   const [passwordMethod, setPasswordMethod] = useState<'auto' | 'custom'>('auto');
@@ -58,16 +66,25 @@ export default function ResetPasswordModal({
       console.log('[ResetPasswordModal] Built request:', JSON.stringify(request));
       console.log('[ResetPasswordModal] request keys:', Object.keys(request));
 
-      const result = await resetPasswordAction(userId, request);
+      const actionFn = resetAction || resetPasswordAction;
+      const result = await actionFn(userId, request);
       console.log('[ResetPasswordModal] Result:', result.success ? 'success' : result.error);
 
       if (result.success) {
-        setSuccessData(result.data);
+        // Normalize response data from different action types
+        const data = result.data as Record<string, unknown>;
+        setSuccessData({
+          user_id: (data.user_id as string) || '',
+          temporary_password: (data.temporary_password as string) || '',
+          must_change_password: (data.must_change_password as boolean) ?? true,
+          message: data.message as string | undefined,
+        });
         setStep('success');
         // Don't call onSuccess yet - wait for user to explicitly close the success screen
       } else {
         // Use user-friendly message if available, otherwise fall back to technical error
-        setError(result.userMessage || result.error || 'Failed to reset password');
+        const failResult = result as { error: string; userMessage?: string };
+        setError(failResult.userMessage || failResult.error || 'Failed to reset password');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reset password');

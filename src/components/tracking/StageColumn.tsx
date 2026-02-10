@@ -40,7 +40,7 @@ export function StageColumn({
   stage,
   applications,
   count,
-  isDropTarget = false,
+  // isDropTarget — accepted but not yet used (reserved for drag styling)
   canDrop = true,
   onApplicationClick,
   disabled = false,

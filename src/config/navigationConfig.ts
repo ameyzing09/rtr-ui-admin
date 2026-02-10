@@ -607,11 +607,11 @@ export const unifiedNavConfig = {
       permission: PERMISSIONS.INTERVIEW_LIST,
       items: [
         {
-          id: 'calendar',
-          label: 'Calendar',
-          href: '/dashboard/interviews',
-          icon: 'clock',
-          description: 'Upcoming & completed interviews',
+          id: 'my-interviews',
+          label: 'My Interviews',
+          href: '/dashboard/interviews/my-pending',
+          icon: 'clipboard',
+          description: 'View pending interview assignments',
           permission: PERMISSIONS.INTERVIEW_LIST,
         },
         {
@@ -621,14 +621,6 @@ export const unifiedNavConfig = {
           icon: 'clipboard',
           description: 'Complete pending interview evaluations',
           permission: PERMISSIONS.FEEDBACK_CREATE,
-        },
-        {
-          id: 'feedback',
-          label: 'Feedback & Scores',
-          href: '/dashboard/interviews/feedback',
-          icon: 'file',
-          description: 'Collect & review interview feedback',
-          permission: PERMISSIONS.FEEDBACK_LIST,
         },
       ],
     },
