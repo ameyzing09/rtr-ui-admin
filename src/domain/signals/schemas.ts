@@ -12,43 +12,33 @@ export type SignalSource = z.infer<typeof signalSourceSchema>;
 // ============================================================================
 
 export const applicationSignalSchema = z.object({
-  key: z.string(),
-  type: z.enum(['boolean', 'numeric', 'text']),
+  id: z.string().uuid(),
+  applicationId: z.string().uuid(),
+  signalKey: z.string(),
+  signalType: z.enum(['boolean', 'integer', 'float', 'text']),
   value: z.union([z.boolean(), z.number(), z.string(), z.null()]),
-  source: signalSourceSchema,
+  sourceType: signalSourceSchema,
+  sourceId: z.string().uuid().nullable(),
+  setBy: z.string().uuid().nullable(),
   setAt: z.string(),
-  setBy: z.string().nullable().optional(),
-  setByName: z.string().nullable().optional(),
-  description: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type ApplicationSignal = z.infer<typeof applicationSignalSchema>;
 
-export const applicationSignalsDataSchema = z.object({
-  signals: z.array(applicationSignalSchema),
-  applicationId: z.string().uuid(),
-});
-
-// API response wrapper
+// API response wrapper — backend returns { data: [...] } (flat array)
 export const applicationSignalsSchema = z.object({
-  data: applicationSignalsDataSchema,
+  data: z.array(applicationSignalSchema),
 }).transform((res) => res.data);
 
-export type ApplicationSignals = z.infer<typeof applicationSignalsDataSchema>;
+export type ApplicationSignals = ApplicationSignal[];
 
 // ============================================================================
 // Signal History Schema
 // ============================================================================
 
-export const signalHistoryEntrySchema = z.object({
-  key: z.string(),
-  value: z.union([z.boolean(), z.number(), z.string(), z.null()]),
-  source: signalSourceSchema,
-  setAt: z.string(),
-  setBy: z.string().nullable().optional(),
-  setByName: z.string().nullable().optional(),
-  previousValue: z.union([z.boolean(), z.number(), z.string(), z.null()]).optional(),
+export const signalHistoryEntrySchema = applicationSignalSchema.extend({
+  supersededAt: z.string().nullable().optional(),
+  supersededBy: z.string().uuid().nullable().optional(),
 });
 
 export type SignalHistoryEntry = z.infer<typeof signalHistoryEntrySchema>;
@@ -68,30 +58,22 @@ export type SignalHistory = z.infer<typeof signalHistoryDataSchema>;
 // Signal Condition Schema (for Action Prerequisites)
 // ============================================================================
 
-export const conditionOperatorSchema = z.enum([
-  'equals',
-  'not_equals',
-  'greater_than',
-  'less_than',
-  'greater_than_or_equals',
-  'less_than_or_equals',
-  'exists',
-  'not_exists',
-  'contains',
-]);
-
-export type ConditionOperator = z.infer<typeof conditionOperatorSchema>;
-
 export const signalConditionSchema = z.object({
-  signalKey: z.string(),
-  operator: conditionOperatorSchema,
-  expectedValue: z.union([z.boolean(), z.number(), z.string(), z.null()]).optional(),
-  currentValue: z.union([z.boolean(), z.number(), z.string(), z.null()]).optional(),
+  signal: z.string(),
+  operator: z.string(), // backend uses symbols like "=", "!=", ">", "<"
+  value: z.union([z.string(), z.null()]).optional(),
+  onMissing: z.string().optional(),
+  currentValue: z.union([z.string(), z.null()]).optional(),
   met: z.boolean(),
-  reason: z.string().optional(),
 });
 
 export type SignalCondition = z.infer<typeof signalConditionSchema>;
+
+// Backend nests conditions under { logic, conditions }
+export const signalConditionsWrapperSchema = z.object({
+  logic: z.string(),
+  conditions: z.array(signalConditionSchema),
+}).nullable().optional();
 
 // ============================================================================
 // Available Action with Signals Schema
@@ -100,11 +82,10 @@ export type SignalCondition = z.infer<typeof signalConditionSchema>;
 export const availableActionWithSignalsSchema = z.object({
   actionCode: z.string(),
   displayName: z.string(),
-  description: z.string().optional(),
-  outcomeType: z.enum(['ACTIVE', 'HOLD', 'SUCCESS', 'FAILURE', 'NEUTRAL']),
+  outcomeType: z.enum(['ACTIVE', 'HOLD', 'SUCCESS', 'FAILURE', 'NEUTRAL']).nullable(),
   isTerminal: z.boolean(),
-  signalConditions: z.array(signalConditionSchema),
-  signalsMet: z.boolean(),
+  signalConditions: signalConditionsWrapperSchema,
+  signalsMet: z.boolean().optional(),
   requiresNotes: z.boolean().optional(),
   requiresFeedback: z.boolean().optional(),
   feedbackSubmitted: z.boolean().optional(),
@@ -113,8 +94,7 @@ export const availableActionWithSignalsSchema = z.object({
 export type AvailableActionWithSignals = z.infer<typeof availableActionWithSignalsSchema>;
 
 export const actionsWithSignalsDataSchema = z.object({
-  actions: z.array(availableActionWithSignalsSchema),
-  applicationId: z.string().uuid(),
+  availableActions: z.array(availableActionWithSignalsSchema),
 });
 
 // API response wrapper
@@ -128,25 +108,22 @@ export type ActionsWithSignals = z.infer<typeof actionsWithSignalsDataSchema>;
 // Set Manual Signal Request Schema
 // ============================================================================
 
+// Backend-facing request schema (what gets sent over the wire)
 export const setManualSignalRequestSchema = z.object({
-  key: z.string().min(1, 'Signal key is required'),
-  value: z.union([z.boolean(), z.number(), z.string()]),
-  reason: z.string().optional(),
+  signal_key: z.string().min(1, 'Signal key is required'),
+  signal_type: z.enum(['boolean', 'integer', 'float', 'text']),
+  value: z.string(), // always string representation ("true", "42", etc.)
+  note: z.string().optional(),
 });
 
 export type SetManualSignalRequest = z.infer<typeof setManualSignalRequestSchema>;
 
-// API response for setting signal
-export const setManualSignalResponseDataSchema = z.object({
-  success: z.boolean(),
-  signal: applicationSignalSchema,
-});
-
+// API response for setting signal — backend returns { data: { ...signal } }
 export const setManualSignalResponseSchema = z.object({
-  data: setManualSignalResponseDataSchema,
+  data: applicationSignalSchema,
 }).transform((res) => res.data);
 
-export type SetManualSignalResponse = z.infer<typeof setManualSignalResponseDataSchema>;
+export type SetManualSignalResponse = ApplicationSignal;
 
 // ============================================================================
 // UI Helper Functions
@@ -210,26 +187,20 @@ export function getConditionStatusStyle(met: boolean): {
   };
 }
 
-export function formatOperator(operator: ConditionOperator): string {
+export function formatOperator(operator: string): string {
   switch (operator) {
-    case 'equals':
+    case '=':
       return '=';
-    case 'not_equals':
-      return '≠';
-    case 'greater_than':
+    case '!=':
+      return '\u2260';
+    case '>':
       return '>';
-    case 'less_than':
+    case '<':
       return '<';
-    case 'greater_than_or_equals':
-      return '≥';
-    case 'less_than_or_equals':
-      return '≤';
-    case 'exists':
-      return 'exists';
-    case 'not_exists':
-      return 'not set';
-    case 'contains':
-      return 'contains';
+    case '>=':
+      return '\u2265';
+    case '<=':
+      return '\u2264';
     default:
       return operator;
   }

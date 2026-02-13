@@ -8,17 +8,18 @@ import type { EvaluationDetails } from '@/domain/evaluation/schemas';
 
 interface EvaluationDetailClientProps {
   evaluation: EvaluationDetails;
+  currentUserId?: string;
 }
 
-export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientProps) {
+export function EvaluationDetailClient({ evaluation, currentUserId }: EvaluationDetailClientProps) {
   const router = useRouter();
 
   // Check if current user has already responded
-  const hasResponded = evaluation.participants.some(
-    (p) => p.hasResponded && p.userId === evaluation.id // This logic may need adjustment based on actual user identification
-  );
+  const hasResponded = currentUserId
+    ? evaluation.participants.some((p) => p.status === 'SUBMITTED' && p.userId === currentUserId)
+    : false;
 
-  const respondedCount = evaluation.participants.filter((p) => p.hasResponded).length;
+  const respondedCount = evaluation.participants.filter((p) => p.status === 'SUBMITTED').length;
   const totalParticipants = evaluation.participants.length;
 
   const handleSuccess = () => {
@@ -49,7 +50,7 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
               Interview Evaluation
             </h1>
             <p className="text-sm text-gray-500" data-testid="evaluation-template-name">
-              {evaluation.templateName || 'Standard Evaluation'}
+              {evaluation.template.name}
             </p>
           </div>
         </div>
@@ -67,7 +68,9 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
               <div className="flex-1">
                 <h3 className="font-medium text-gray-900">Evaluation Progress</h3>
                 <p className="text-sm text-gray-500" data-testid="evaluation-progress">
-                  {respondedCount} of {totalParticipants} evaluators have submitted
+                  {totalParticipants === 0
+                    ? 'No participants assigned yet'
+                    : `${respondedCount} of ${totalParticipants} evaluators have submitted`}
                 </p>
               </div>
               <div className="flex items-center gap-2" data-testid="participant-avatars">
@@ -75,14 +78,14 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
                   <div
                     key={participant.userId}
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
-                      participant.hasResponded
+                      participant.status === 'SUBMITTED'
                         ? 'bg-green-100 text-green-700'
                         : 'bg-gray-100 text-gray-500'
                     }`}
-                    title={`${participant.userName}${participant.hasResponded ? ' (submitted)' : ' (pending)'}`}
+                    title={`${participant.userName ?? 'Participant'} (${participant.status.toLowerCase()})`}
                     data-testid={`participant-${participant.userId}`}
                   >
-                    {participant.hasResponded ? (
+                    {participant.status === 'SUBMITTED' ? (
                       <CheckCircle className="h-4 w-4" />
                     ) : (
                       <Clock className="h-4 w-4" />
@@ -92,11 +95,6 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
               </div>
             </div>
           </Card>
-
-          {/* Deadline Warning if applicable */}
-          {evaluation.deadline && (
-            <DeadlineWarning deadline={evaluation.deadline} />
-          )}
 
           {/* Already Submitted Notice */}
           {hasResponded ? (
@@ -121,9 +119,7 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
             <EvaluationForm
               evaluationId={evaluation.id}
               signals={evaluation.signals}
-              applicantName={evaluation.applicantName}
-              jobTitle={evaluation.jobTitle}
-              stageName={evaluation.stageName}
+              templateName={evaluation.template.name}
               onSuccess={handleSuccess}
             />
           )}
@@ -133,52 +129,3 @@ export function EvaluationDetailClient({ evaluation }: EvaluationDetailClientPro
   );
 }
 
-function DeadlineWarning({ deadline }: { deadline: string }) {
-  const date = new Date(deadline);
-  const now = new Date();
-  const diff = date.getTime() - now.getTime();
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-
-  if (days > 3) return null;
-
-  const isOverdue = days < 0;
-  const isDueToday = days === 0;
-
-  return (
-    <Card
-      className={`p-4 ${
-        isOverdue
-          ? 'bg-red-50 border-red-200'
-          : 'bg-amber-50 border-amber-200'
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <Clock
-          className={`h-5 w-5 ${
-            isOverdue ? 'text-red-600' : 'text-amber-600'
-          }`}
-        />
-        <div>
-          <p
-            className={`font-medium ${
-              isOverdue ? 'text-red-800' : 'text-amber-800'
-            }`}
-          >
-            {isOverdue
-              ? 'This evaluation is overdue'
-              : isDueToday
-              ? 'This evaluation is due today'
-              : `This evaluation is due in ${days} day${days === 1 ? '' : 's'}`}
-          </p>
-          <p
-            className={`text-sm ${
-              isOverdue ? 'text-red-700' : 'text-amber-700'
-            }`}
-          >
-            Deadline: {date.toLocaleDateString()} at {date.toLocaleTimeString()}
-          </p>
-        </div>
-      </div>
-    </Card>
-  );
-}

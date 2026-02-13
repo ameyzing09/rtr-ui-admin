@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   X,
   Loader2,
@@ -13,9 +13,10 @@ import { getTrackingStateAction } from '@/lib/actions/tracking';
 import { TrackingStatusBadge } from './TrackingStatusBadge';
 import { ActionModal } from './ActionModal';
 import { StageHistoryContent } from './StageHistoryPanel';
+import { InterviewTimelineContent } from '@/components/interview/InterviewTimelineContent';
 import type { TrackingState } from '@/domain/tracking/schemas';
 
-type TabType = 'details' | 'history';
+type TabType = 'details' | 'history' | 'interviews';
 
 interface ApplicationDetailDrawerProps {
   applicationId: string | null;
@@ -25,6 +26,9 @@ interface ApplicationDetailDrawerProps {
   onClose: () => void;
   onUpdate?: () => void;
   canEdit?: boolean;
+  canViewInterviews?: boolean;
+  canCancelInterviews?: boolean;
+  canCreateInterviews?: boolean;
 }
 
 /**
@@ -49,6 +53,9 @@ export function ApplicationDetailDrawer({
   onClose,
   onUpdate,
   canEdit = true,
+  canViewInterviews = false,
+  canCancelInterviews = false,
+  canCreateInterviews = false,
 }: ApplicationDetailDrawerProps) {
   const [trackingState, setTrackingState] = useState<TrackingState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,14 +63,7 @@ export function ApplicationDetailDrawer({
   const [showActionModal, setShowActionModal] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('details');
 
-  useEffect(() => {
-    if (isOpen && applicationId) {
-      loadTrackingState();
-      setActiveTab('details'); // Reset to details tab when drawer opens
-    }
-  }, [isOpen, applicationId]);
-
-  const loadTrackingState = async () => {
+  const loadTrackingState = useCallback(async () => {
     if (!applicationId) return;
 
     setIsLoading(true);
@@ -73,11 +73,7 @@ export function ApplicationDetailDrawer({
       if (result.success) {
         setTrackingState(result.data);
       } else {
-        // Show detailed error info
-        const errorDetails = result.fieldErrors
-          ? JSON.stringify(result.fieldErrors)
-          : '';
-        setError(`${result.error || 'Failed to load tracking state'}${errorDetails ? ` - ${errorDetails}` : ''}`);
+        setError(result.error || 'Failed to load tracking state');
       }
     } catch (error) {
       console.error('Failed to load tracking state:', error);
@@ -85,7 +81,14 @@ export function ApplicationDetailDrawer({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [applicationId]);
+
+  useEffect(() => {
+    if (isOpen && applicationId) {
+      loadTrackingState();
+      setActiveTab('details'); // Reset to details tab when drawer opens
+    }
+  }, [isOpen, applicationId, loadTrackingState]);
 
   const handleUpdate = () => {
     loadTrackingState();
@@ -142,6 +145,18 @@ export function ApplicationDetailDrawer({
             >
               History
             </button>
+            {canViewInterviews && (
+              <button
+                onClick={() => setActiveTab('interviews')}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'interviews'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Interviews
+              </button>
+            )}
           </div>
         </div>
 
@@ -282,10 +297,20 @@ export function ApplicationDetailDrawer({
                 )}
               </div>
             )
-          ) : (
+          ) : activeTab === 'history' ? (
             // History Tab Content
             applicationId && <StageHistoryContent applicationId={applicationId} />
-          )}
+          ) : activeTab === 'interviews' ? (
+            // Interviews Tab Content
+            applicationId && (
+              <InterviewTimelineContent
+                applicationId={applicationId}
+                canCancel={canCancelInterviews}
+                canCreate={canCreateInterviews}
+                onUpdate={handleUpdate}
+              />
+            )
+          ) : null}
         </div>
       </div>
 

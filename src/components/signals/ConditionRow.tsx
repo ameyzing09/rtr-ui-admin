@@ -12,7 +12,7 @@ interface ConditionRowProps {
 export function ConditionRow({ condition, className = '' }: ConditionRowProps) {
   const style = getConditionStatusStyle(condition.met);
   const operatorSymbol = formatOperator(condition.operator);
-  const expectedValue = formatSignalValue(condition.expectedValue ?? null);
+  const expectedValue = formatSignalValue(condition.value ?? null);
   const currentValue = formatSignalValue(condition.currentValue ?? null);
 
   const StatusIcon = condition.met ? Check : X;
@@ -39,7 +39,7 @@ export function ConditionRow({ condition, className = '' }: ConditionRowProps) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 text-sm">
           <code className="px-1.5 py-0.5 bg-white/50 rounded text-gray-700 font-medium">
-            {condition.signalKey}
+            {condition.signal}
           </code>
           <span className="text-gray-500">{operatorSymbol}</span>
           <span className="font-medium text-gray-700">{expectedValue}</span>
@@ -53,11 +53,6 @@ export function ConditionRow({ condition, className = '' }: ConditionRowProps) {
               Current value: <strong>{currentValue}</strong>
             </span>
           </div>
-        )}
-
-        {/* Reason if provided */}
-        {condition.reason && (
-          <p className="mt-1 text-xs text-gray-600">{condition.reason}</p>
         )}
       </div>
     </div>

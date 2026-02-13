@@ -48,6 +48,8 @@ const envSchema = z.object({
   NEXT_PUBLIC_TRACKING_API_BASE_URL: z.string().url().optional(),
   // Evaluation service (Supabase edge function) - handles evaluation forms and responses
   NEXT_PUBLIC_EVALUATION_API_BASE_URL: z.string().url().optional(),
+  // Interview service (Supabase edge function) - handles interview scheduling and assignments
+  NEXT_PUBLIC_INTERVIEW_API_BASE_URL: z.string().url().optional(),
 
   // Deprecated: Use NEXT_PUBLIC_JOB_API_BASE_URL and NEXT_PUBLIC_USER_AUTH_API_BASE_URL instead
   NEXT_PUBLIC_API_BASE_URL: z.string().url().optional(),

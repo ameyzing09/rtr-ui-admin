@@ -51,6 +51,9 @@ export function PipelineDetailClient({ pipeline }: PipelineDetailClientProps) {
                   Active
                 </Badge>
               )}
+              {!pipeline.tenant_id && (
+                <Badge variant="default">System</Badge>
+              )}
             </div>
             {pipeline.description && (
               <p className="mt-2 text-sm text-gray-600">{pipeline.description}</p>
@@ -58,7 +61,7 @@ export function PipelineDetailClient({ pipeline }: PipelineDetailClientProps) {
           </div>
 
           {/* Edit Button */}
-          {canEdit && (
+          {canEdit && pipeline.tenant_id !== null && (
             <Link
               href={`/dashboard/pipeline/${pipeline.id}/edit`}
               className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"

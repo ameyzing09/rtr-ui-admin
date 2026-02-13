@@ -188,7 +188,96 @@ If something feels confusing:
 Claude must identify the boundary and fix the design, not patch around it.
 ## UI–Backend Contract Rules (Strict)
 
-These rules apply to **all UI work** (pages, components, hooks, server actions, tests).
+## 🚫 Rule: Client Components MUST NOT call Server Actions directly
+
+**Forbidden:**
+
+Client components (`'use client'`) must never:
+
+- Import from `@/lib/actions/*`
+- Call server actions like:
+  - `getAvailableActionsAction`
+  - `executeActionAction`
+  - `getMyPendingInterviewsAction`
+- Call any function defined with `'use server'`
+- Rely on implicit cookie/session forwarding via server actions
+- Use server-only logic inside drag handlers, event handlers, or effects
+
+**Incorrect pattern:**
+
+```js
+// ❌ WRONG — inside 'use client'
+import { getAvailableActionsAction } from '@/lib/actions/tracking';
+const result = await getAvailableActionsAction(applicationId);
+```
+
+**Required pattern:**
+
+Client components must call HTTP services only, never server actions.
+
+All client-side API calls must go through:
+
+- Domain services (e.g. `trackingService`, `interviewService`, `evaluationService`)
+- Or authenticated fetch wrapper (`createAuthenticatedFetcher`)
+- Or a typed client API layer
+
+```js
+// ✅ CORRECT — inside 'use client'
+import { trackingService } from '@/domain/tracking/service';
+const result = await trackingService.getAvailableActions(applicationId);
+```
+
+### Why This Rule Exists
+
+**1️⃣ Architectural Separation**
+
+- Server Actions = SSR / RSC boundary
+- Client Components = browser runtime
+- Mixing them couples drag handlers to server RPC, breaks testability, breaks edge/runtime separation, and causes hidden auth/session issues
+
+**2️⃣ Performance**
+
+- Server actions introduce unnecessary RSC boundary hops, latency during UI events, and hard-to-debug hydration inconsistencies
+- Client UI events must use direct HTTP calls
+
+**3️⃣ Testability**
+
+- Cypress can intercept HTTP requests, but not reliably intercept server action RPC calls
+- Using HTTP services ensures deterministic tests, clean mocking, and proper API visibility
+
+### Enforcement Rule
+
+If a file contains:
+
+```js
+'use client'
+```
+
+Then it must **NOT** import anything from:
+
+```js
+@/lib/actions/*
+```
+
+This is a strict architectural boundary.
+
+#### Allowed Usage of Server Actions
+
+Server actions are allowed only in:
+
+- Server Components
+- Route handlers
+- Forms using `action={someServerAction}`
+- SSR data loading in `page.tsx`
+
+Never in:
+
+- Drag handlers
+- onClick
+- onDrop
+- useEffect
+- useCallback
+- Any interactive client logic
 
 ### 1. Zero Assumptions Rule
 UI code MUST NOT assume:
@@ -308,3 +397,34 @@ When in doubt:
 - Ask for clarification with repo evidence
 
 Correctness > speed.
+
+#### Future Guardrail (Optional)
+
+Add ESLint rule:
+
+```json
+{
+  "no-restricted-imports": [
+    "error",
+    {
+      "patterns": [
+        {
+          "group": ["@/lib/actions/*"],
+          "message": "Server actions cannot be imported inside client components."
+        }
+      ]
+    }
+  ]
+}
+```
+
+This prevents accidental violations.
+
+**🔥 Architectural Principle**
+
+Server Actions are for server orchestration.
+Client Components talk to APIs.
+Never cross that boundary.
+
+These rules apply to **all UI work** (pages, components, hooks, server actions, tests).
+

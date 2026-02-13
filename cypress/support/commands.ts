@@ -74,7 +74,7 @@ declare global {
         jobId: string,
         applicantName: string,
         applicantEmail: string
-      ): Chainable<{ id: string; status: string; candidate_access_token: string }>;
+      ): Chainable<{ id: string; status: string; candidate_access_token?: string }>;
 
       /**
        * Delete a job via the backend API
@@ -96,6 +96,113 @@ declare global {
        * @example cy.assignPipelineViaApi('pipeline-id', 'job-id')
        */
       assignPipelineViaApi(pipelineId: string, jobId: string): Chainable<{ message: string }>;
+
+      /**
+       * Programmatic login — bypasses UI form, sets cookie + sessionStorage.
+       * Uses cy.session() for caching.
+       * @param role - 'ADMIN' or 'INTERVIEWER'
+       * @example cy.loginAs('INTERVIEWER')
+       */
+      loginAs(role: 'ADMIN' | 'INTERVIEWER'): Chainable<void>;
+
+      /**
+       * Get available actions for an application via the tracking API
+       * Returns evaluationsComplete, requiredEvaluations, and availableActions.
+       * @param applicationId - Application ID
+       * @example cy.getAvailableActionsViaApi('app-uuid').then((data) => { ... })
+       */
+      getAvailableActionsViaApi(applicationId: string): Chainable<{
+        evaluationsComplete: boolean;
+        requiredEvaluations: {
+          templateId: string;
+          templateName: string;
+          completed: boolean;
+          instanceId: string | null;
+          instanceStatus: string | null;
+        }[];
+        availableActions: {
+          actionCode: string;
+          displayName: string;
+          outcomeType: string | null;
+          isTerminal: boolean;
+          requiresNotes: boolean;
+        }[];
+      }>;
+
+      /**
+       * Execute an action on an application via the tracking API
+       * @param applicationId - Application ID
+       * @param actionCode - Action code (e.g. 'COMPLETE', 'REJECT')
+       * @example cy.executeActionViaApi('app-uuid', 'COMPLETE')
+       */
+      executeActionViaApi(applicationId: string, actionCode: string): Chainable<Record<string, unknown>>;
+
+      /**
+       * Get the current tracking state for an application via the tracking API.
+       * Returns { id, applicationId, currentStageId, currentStageName, ... }
+       * @param applicationId - Application ID
+       * @example cy.getTrackingStateViaApi('app-uuid').then((state) => { ... })
+       */
+      getTrackingStateViaApi(applicationId: string): Chainable<{
+        id: string;
+        applicationId: string;
+        currentStageId: string;
+        currentStageName: string;
+        currentStageIndex: number;
+        status: string;
+      }>;
+
+      /**
+       * Create an interview for an application via the interview API.
+       * Side effect: creates evaluation_participants for each interviewer.
+       * @param applicationId - Application ID
+       * @param body - Interview creation body
+       * @example cy.createInterviewViaApi('app-uuid', { pipeline_stage_id, rounds: [...] })
+       */
+      createInterviewViaApi(
+        applicationId: string,
+        body: {
+          pipeline_stage_id: string;
+          rounds: {
+            round_type: string;
+            sequence: number;
+            interviewer_ids: string[];
+            evaluation_template_id: string;
+          }[];
+        }
+      ): Chainable<Record<string, unknown>>;
+
+      /**
+       * Read the session user ID from sessionStorage (rtr-admin-session cookie).
+       * Must be called after loginAs().
+       * @example cy.getSessionUserId().then((userId) => { ... })
+       */
+      getSessionUserId(): Chainable<string>;
+
+      /**
+       * Cancel an interview via the backend API (PATCH /interviews/{id})
+       * Requires admin auth (uses current session token).
+       * @param interviewId - Interview ID to cancel
+       * @example cy.cancelInterviewViaApi('interview-uuid')
+       */
+      cancelInterviewViaApi(interviewId: string): Chainable<{ id: string; status: string }>;
+
+      /**
+       * Fetch the current user's pending interviews via API (GET /my-pending)
+       * Returns the data array from the response.
+       * @example cy.getMyPendingInterviewsViaApi().then((interviews) => { ... })
+       */
+      getMyPendingInterviewsViaApi(): Chainable<
+        {
+          interviewId: string;
+          evaluationInstanceId: string;
+          applicationId: string;
+          applicantName: string;
+          jobTitle: string;
+          roundType: string;
+          interviewStatus: string;
+        }[]
+      >;
     }
   }
 }
@@ -244,9 +351,6 @@ Cypress.Commands.add(
       },
     }).then((response) => {
       expect(response.status).to.eq(201);
-      expect(response.body.candidate_access_token).to.match(
-        /^[0-9a-fA-F-]{36}$/
-      );
       return response.body;
     });
   }
@@ -332,6 +436,161 @@ Cypress.Commands.add('assignPipelineViaApi', (pipelineId: string, jobId: string)
         throw new Error(`Failed to assign pipeline: ${response.body?.message || response.statusText}`);
       }
       return response.body;
+    });
+  });
+});
+
+// ---- getAvailableActionsViaApi ----
+Cypress.Commands.add('getAvailableActionsViaApi', (applicationId: string) => {
+  const apiBaseUrl = Cypress.env('TRACKING_API_BASE_URL');
+  const tenantId = Cypress.env('TENANT_ID');
+
+  return cy.getAuthToken().then((token) => {
+    return cy.request({
+      method: 'GET',
+      url: `${apiBaseUrl}/applications/${applicationId}/actions`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Tenant-ID': tenantId,
+      },
+    }).then((response) => {
+      const data = response.body.data || response.body;
+      return data;
+    });
+  });
+});
+
+// ---- executeActionViaApi ----
+Cypress.Commands.add('executeActionViaApi', (applicationId: string, actionCode: string) => {
+  const apiBaseUrl = Cypress.env('TRACKING_API_BASE_URL');
+  const tenantId = Cypress.env('TENANT_ID');
+
+  return cy.getAuthToken().then((token) => {
+    return cy.request({
+      method: 'POST',
+      url: `${apiBaseUrl}/applications/${applicationId}/act`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Tenant-ID': tenantId,
+        'Content-Type': 'application/json',
+      },
+      body: { action: actionCode },
+    }).then((response) => {
+      const data = response.body.data || response.body;
+      return data;
+    });
+  });
+});
+
+// ---- loginAs ----
+import { loginAs } from './auth';
+Cypress.Commands.add('loginAs', loginAs);
+
+// ---- getTrackingStateViaApi ----
+Cypress.Commands.add('getTrackingStateViaApi', (applicationId: string) => {
+  const apiBaseUrl = Cypress.env('TRACKING_API_BASE_URL');
+  const tenantId = Cypress.env('TENANT_ID');
+
+  return cy.getAuthToken().then((token) => {
+    return cy.request({
+      method: 'GET',
+      url: `${apiBaseUrl}/applications/${applicationId}`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Tenant-ID': tenantId,
+      },
+    }).then((response) => {
+      const data = response.body.data || response.body;
+      return data;
+    });
+  });
+});
+
+// ---- createInterviewViaApi ----
+Cypress.Commands.add(
+  'createInterviewViaApi',
+  (
+    applicationId: string,
+    body: {
+      pipeline_stage_id: string;
+      rounds: {
+        round_type: string;
+        sequence: number;
+        interviewer_ids: string[];
+        evaluation_template_id: string;
+      }[];
+    }
+  ) => {
+    const apiBaseUrl = Cypress.env('INTERVIEW_API_BASE_URL');
+    const tenantId = Cypress.env('TENANT_ID');
+
+    return cy.getAuthToken().then((token) => {
+      return cy.request({
+        method: 'POST',
+        url: `${apiBaseUrl}/applications/${applicationId}/interviews`,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'X-Tenant-ID': tenantId,
+          'Content-Type': 'application/json',
+        },
+        body,
+      }).then((response) => {
+        const data = response.body.data || response.body;
+        return data;
+      });
+    });
+  }
+);
+
+// ---- getSessionUserId ----
+Cypress.Commands.add('getSessionUserId', () => {
+  return cy.window().then((win) => {
+    const raw = win.sessionStorage.getItem('rtr-admin-session');
+    if (!raw) throw new Error('No rtr-admin-session in sessionStorage — login first');
+    const session = JSON.parse(raw);
+    const userId = session.user?.id;
+    if (!userId) throw new Error('Session user.id is missing');
+    return userId as string;
+  });
+});
+
+// ---- cancelInterviewViaApi ----
+Cypress.Commands.add('cancelInterviewViaApi', (interviewId: string) => {
+  const apiBaseUrl = Cypress.env('INTERVIEW_API_BASE_URL');
+  const tenantId = Cypress.env('TENANT_ID');
+
+  return cy.getAuthToken().then((token) => {
+    return cy.request({
+      method: 'PATCH',
+      url: `${apiBaseUrl}/interviews/${interviewId}`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Tenant-ID': tenantId,
+        'Content-Type': 'application/json',
+      },
+      body: { status: 'CANCELLED' },
+    }).then((response) => {
+      const data = response.body.data || response.body;
+      return { id: data.id || data.ID, status: data.status || data.Status };
+    });
+  });
+});
+
+// ---- getMyPendingInterviewsViaApi ----
+Cypress.Commands.add('getMyPendingInterviewsViaApi', () => {
+  const apiBaseUrl = Cypress.env('INTERVIEW_API_BASE_URL');
+  const tenantId = Cypress.env('TENANT_ID');
+
+  return cy.getAuthToken().then((token) => {
+    return cy.request({
+      method: 'GET',
+      url: `${apiBaseUrl}/my-pending`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Tenant-ID': tenantId,
+      },
+    }).then((response) => {
+      return response.body.data || [];
     });
   });
 });

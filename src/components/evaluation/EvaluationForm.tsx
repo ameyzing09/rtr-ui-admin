@@ -7,14 +7,12 @@ import { NumericSignalInput } from './signals/NumericSignalInput';
 import { TextSignalInput } from './signals/TextSignalInput';
 import { submitEvaluationResponseAction } from '@/lib/actions/evaluation';
 import { toast } from '@/components/ui/ToastProvider';
-import type { SignalDefinition, SignalResponse } from '@/domain/evaluation/schemas';
+import type { SignalDefinition } from '@/domain/evaluation/schemas';
 
 interface EvaluationFormProps {
   evaluationId: string;
   signals: SignalDefinition[];
-  applicantName: string;
-  jobTitle?: string;
-  stageName?: string;
+  templateName: string;
   onSuccess?: () => void;
   disabled?: boolean;
 }
@@ -24,9 +22,7 @@ type SignalValues = Record<string, boolean | number | string | null>;
 export function EvaluationForm({
   evaluationId,
   signals,
-  applicantName,
-  jobTitle,
-  stageName,
+  templateName,
   onSuccess,
   disabled = false,
 }: EvaluationFormProps) {
@@ -38,7 +34,6 @@ export function EvaluationForm({
     });
     return initial;
   });
-  const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -65,23 +60,23 @@ export function EvaluationForm({
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Build response array
-      const responses: SignalResponse[] = signals
-        .filter((signal) => values[signal.key] !== null)
-        .map((signal) => ({
-          key: signal.key,
-          value: values[signal.key] as boolean | number | string,
-        }));
+      // Build flat response_data object keyed by signal key
+      const response_data: Record<string, boolean | number | string> = {};
+      for (const signal of signals) {
+        const val = values[signal.key];
+        if (val !== null) {
+          response_data[signal.key] = val;
+        }
+      }
 
       const result = await submitEvaluationResponseAction(evaluationId, {
-        responses,
-        notes: notes.trim() || undefined,
+        response_data,
       });
 
       if (result.success) {
         toast({
           title: 'Evaluation submitted',
-          description: `Your evaluation for ${applicantName} has been submitted successfully.`,
+          description: 'Your evaluation has been submitted successfully.',
           variant: 'success',
         });
         setShowConfirmation(false);
@@ -114,7 +109,6 @@ export function EvaluationForm({
             key={signal.key}
             signalKey={signal.key}
             label={signal.label}
-            description={signal.description}
             value={value as boolean | null}
             onChange={(v) => handleValueChange(signal.key, v)}
             disabled={disabled || isSubmitting}
@@ -127,11 +121,10 @@ export function EvaluationForm({
             key={signal.key}
             signalKey={signal.key}
             label={signal.label}
-            description={signal.description}
             value={value as number | null}
             onChange={(v) => handleValueChange(signal.key, v)}
-            min={signal.min ?? 1}
-            max={signal.max ?? 5}
+            min={signal.scale?.min ?? 1}
+            max={signal.scale?.max ?? 5}
             disabled={disabled || isSubmitting}
             required={signal.required}
           />
@@ -142,7 +135,6 @@ export function EvaluationForm({
             key={signal.key}
             signalKey={signal.key}
             label={signal.label}
-            description={signal.description}
             value={(value as string) ?? ''}
             onChange={(v) => handleValueChange(signal.key, v)}
             disabled={disabled || isSubmitting}
@@ -158,12 +150,7 @@ export function EvaluationForm({
     <div className="space-y-6" data-testid="evaluation-form">
       {/* Context Header */}
       <div className="bg-gray-50 rounded-lg p-4" data-testid="evaluation-context-header">
-        <h3 className="font-medium text-gray-900" data-testid="evaluation-applicant-name">{applicantName}</h3>
-        <div className="mt-1 flex flex-wrap gap-2 text-sm text-gray-500">
-          {jobTitle && <span data-testid="evaluation-job-title">{jobTitle}</span>}
-          {jobTitle && stageName && <span>•</span>}
-          {stageName && <span data-testid="evaluation-stage-name">{stageName}</span>}
-        </div>
+        <h3 className="font-medium text-gray-900" data-testid="evaluation-template-name">{templateName}</h3>
       </div>
 
       {/* Progress Indicator */}
@@ -189,22 +176,6 @@ export function EvaluationForm({
             {renderSignalInput(signal)}
           </div>
         ))}
-      </div>
-
-      {/* Additional Notes */}
-      <div className="p-4 border border-gray-200 rounded-lg bg-white">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Additional Notes (Optional)
-        </label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Add any additional context or observations..."
-          rows={3}
-          disabled={disabled || isSubmitting}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-y"
-          data-testid="evaluation-notes"
-        />
       </div>
 
       {/* Submit Button */}
@@ -256,7 +227,7 @@ export function EvaluationForm({
                     Confirm Submission
                   </h3>
                   <p className="mt-2 text-sm text-gray-600">
-                    You are about to submit your evaluation for <strong>{applicantName}</strong>.
+                    You are about to submit your evaluation for <strong>{templateName}</strong>.
                     This action cannot be undone. Your responses will be recorded permanently.
                   </p>
                 </div>

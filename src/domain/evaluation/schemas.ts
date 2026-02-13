@@ -10,19 +10,28 @@ export type SignalType = z.infer<typeof signalTypeSchema>;
 export const aggregationMethodSchema = z.enum(['average', 'majority', 'any_true', 'all_true', 'concatenate']);
 export type AggregationMethod = z.infer<typeof aggregationMethodSchema>;
 
+export const evaluationStatusSchema = z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']);
+export type EvaluationStatus = z.infer<typeof evaluationStatusSchema>;
+
+export const participantStatusSchema = z.enum(['PENDING', 'SUBMITTED', 'DECLINED']);
+export type ParticipantStatus = z.infer<typeof participantStatusSchema>;
+
 // ============================================================================
 // Signal Definition Schema
 // ============================================================================
 
+const signalScaleSchema = z.object({
+  min: z.number().nullable(),
+  max: z.number().nullable(),
+});
+
 export const signalDefinitionSchema = z.object({
+  id: z.string(),
   key: z.string(),
   type: signalTypeSchema,
   label: z.string(),
-  description: z.string().optional(),
-  min: z.number().optional(),
-  max: z.number().optional(),
-  required: z.boolean().default(true),
-  aggregation: aggregationMethodSchema.optional(),
+  required: z.boolean(),
+  scale: signalScaleSchema.optional(),
 });
 
 export type SignalDefinition = z.infer<typeof signalDefinitionSchema>;
@@ -33,11 +42,8 @@ export type SignalDefinition = z.infer<typeof signalDefinitionSchema>;
 
 export const evaluationParticipantSchema = z.object({
   userId: z.string().uuid(),
-  userName: z.string(),
-  userEmail: z.string().email(),
-  role: z.string().optional(),
-  hasResponded: z.boolean(),
-  respondedAt: z.string().nullable().optional(),
+  userName: z.string().optional(),
+  status: participantStatusSchema,
 });
 
 export type EvaluationParticipant = z.infer<typeof evaluationParticipantSchema>;
@@ -46,21 +52,17 @@ export type EvaluationParticipant = z.infer<typeof evaluationParticipantSchema>;
 // Evaluation Details Schema
 // ============================================================================
 
+const evaluationTemplateSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+});
+
 export const evaluationDetailsDataSchema = z.object({
   id: z.string().uuid(),
-  applicationId: z.string().uuid(),
-  applicantName: z.string(),
-  applicantEmail: z.string().email().optional(),
-  jobTitle: z.string().optional(),
-  stageName: z.string().optional(),
-  stageId: z.string().uuid().optional(),
-  templateName: z.string().optional(),
+  status: evaluationStatusSchema,
+  template: evaluationTemplateSchema,
   signals: z.array(signalDefinitionSchema),
   participants: z.array(evaluationParticipantSchema),
-  status: z.enum(['pending', 'in_progress', 'completed']),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  deadline: z.string().nullable().optional(),
 });
 
 // API response wrapper - unwraps { data: {...} } envelope
@@ -123,24 +125,17 @@ export type PendingEvaluationsList = {
 // Submit Evaluation Request Schema
 // ============================================================================
 
-export const signalResponseSchema = z.object({
-  key: z.string(),
-  value: z.union([z.boolean(), z.number(), z.string()]),
-});
-
-export type SignalResponse = z.infer<typeof signalResponseSchema>;
-
 export const submitEvaluationRequestSchema = z.object({
-  responses: z.array(signalResponseSchema),
-  notes: z.string().optional(),
+  response_data: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
 });
 
 export type SubmitEvaluationRequest = z.infer<typeof submitEvaluationRequestSchema>;
 
 // API response for submission
 export const submitEvaluationResponseDataSchema = z.object({
-  success: z.boolean(),
-  evaluationId: z.string().uuid(),
+  id: z.string().uuid(),
+  participantId: z.string().uuid(),
+  responseData: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
   submittedAt: z.string(),
 });
 

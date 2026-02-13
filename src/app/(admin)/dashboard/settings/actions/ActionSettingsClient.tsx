@@ -177,7 +177,7 @@ export function ActionSettingsClient({
   );
 }
 
-function OutcomeTypeBadge({ outcomeType }: { outcomeType: string }) {
+function OutcomeTypeBadge({ outcomeType }: { outcomeType: string | null }) {
   const colors: Record<string, string> = {
     ACTIVE: 'bg-blue-100 text-blue-800',
     HOLD: 'bg-amber-100 text-amber-800',
@@ -187,8 +187,8 @@ function OutcomeTypeBadge({ outcomeType }: { outcomeType: string }) {
   };
 
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${colors[outcomeType] ?? 'bg-gray-100 text-gray-800'}`}>
-      {outcomeType}
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${(outcomeType && colors[outcomeType]) ?? 'bg-gray-100 text-gray-800'}`}>
+      {outcomeType ?? 'N/A'}
     </span>
   );
 }

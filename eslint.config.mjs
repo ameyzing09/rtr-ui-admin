@@ -19,6 +19,19 @@ const eslintConfig = [
       "build/**",
       "next-env.d.ts",
     ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ["@/lib/actions/*"],
+              message: "Server actions cannot be imported inside client components."
+            }
+          ]
+        }
+      ]
+    },
   },
 ];
 

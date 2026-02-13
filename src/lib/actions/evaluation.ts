@@ -14,18 +14,8 @@ import {
   type SubmitEvaluationResponse,
 } from '@/domain/evaluation/schemas';
 import { ZodError } from 'zod';
+import type { ActionResult } from './types';
 
-/**
- * Generic action result type
- */
-export type ActionResult<T> =
-  | { success: true; data: T }
-  | {
-      success: false;
-      error: string;
-      code?: string;
-      fieldErrors?: Record<string, string[]>;
-    };
 
 /**
  * Format error for ActionResult
@@ -90,7 +80,7 @@ export async function getMyPendingEvaluationsAction(): Promise<
  */
 export async function getEvaluationDetailsAction(
   evaluationId: string
-): Promise<ActionResult<EvaluationDetails>> {
+): Promise<ActionResult<EvaluationDetails | null>> {
   try {
     // Check permissions
     const session = await requireCanViewEvaluations();

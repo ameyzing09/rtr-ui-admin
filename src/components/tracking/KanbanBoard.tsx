@@ -13,15 +13,21 @@ import {
   type DragEndEvent,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { useRouter } from 'next/navigation';
 import { StageColumn } from './StageColumn';
 import { ApplicationCard } from './ApplicationCard';
-import { executeActionAction } from '@/lib/actions/tracking';
+import { trackingService } from '@/domain/tracking/service';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { toast } from '@/components/ui/ToastProvider';
 import type {
   PipelineBoard,
   BoardApplication,
   BoardStage,
 } from '@/domain/tracking/schemas';
+
+/** Defense-in-depth UUID check (Zod validates at parse time, but guard against passthrough) */
+const isUuid = (s: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 
 interface KanbanBoardProps {
   board: PipelineBoard;
@@ -36,6 +42,9 @@ export function KanbanBoard({
   onBoardUpdate,
   disabled = false,
 }: KanbanBoardProps) {
+  const { session } = useAuth();
+  const router = useRouter();
+
   // Local state for optimistic updates
   const [stages, setStages] = useState<BoardStage[]>(board.stages);
   const [activeApplication, setActiveApplication] = useState<BoardApplication | null>(null);
@@ -175,6 +184,58 @@ export function KanbanBoard({
         return;
       }
 
+      // Evaluation gate: call tracking API directly (not server action) for low latency
+      const token = session?.token;
+      if (!token) {
+        toast({
+          variant: 'error',
+          title: 'Session expired',
+          description: 'Please refresh the page and try again.',
+        });
+        return;
+      }
+
+      let actionsData: Awaited<ReturnType<typeof trackingService.getAvailableActions>>;
+      try {
+        actionsData = await trackingService.getAvailableActions(token, applicationId);
+        const blockedEval = actionsData.requiredEvaluations.find((e) => !e.completed);
+        if (blockedEval) {
+          toast({
+            variant: 'warning',
+            title: 'Evaluations required',
+            description: `Evaluation required for: ${sourceResult.stage.stage.stageName}`,
+            duration: 8000,
+            action: blockedEval.instanceId && isUuid(blockedEval.instanceId)
+              ? {
+                  label: 'Go to Evaluation',
+                  onClick: () => router.push(`/dashboard/evaluations/${blockedEval.instanceId}`),
+                }
+              : undefined,
+          });
+          return;
+        }
+      } catch {
+        toast({
+          variant: 'error',
+          title: 'Cannot verify evaluation status',
+          description: 'An unexpected error occurred. Please try again.',
+        });
+        return;
+      }
+
+      // Find the advance action by actionCode — ADVANCE preferred, COMPLETE as fallback
+      const advanceAction =
+        actionsData.availableActions.find((a) => a.actionCode === 'ADVANCE') ??
+        actionsData.availableActions.find((a) => a.actionCode === 'COMPLETE');
+      if (!advanceAction) {
+        toast({
+          variant: 'warning',
+          title: 'No advance action available',
+          description: 'This application cannot be advanced from the current stage.',
+        });
+        return;
+      }
+
       // Optimistic update
       setIsMoving(true);
       setStages((prevStages) => {
@@ -203,29 +264,29 @@ export function KanbanBoard({
         return newStages;
       });
 
-      // Server action — use COMPLETE to advance to next stage
-      const result = await executeActionAction(applicationId, { action: 'COMPLETE' });
+      // Direct API call — use dynamically selected advance action
+      try {
+        await trackingService.executeAction(token, applicationId, { action: advanceAction.actionCode });
 
-      setIsMoving(false);
-
-      if (!result.success) {
-        // Rollback on error
-        setStages(board.stages);
-        toast({
-          variant: 'error',
-          title: 'Failed to move application',
-          description: result.error,
-        });
-      } else {
+        setIsMoving(false);
         toast({
           variant: 'success',
           title: 'Application moved',
           description: `Moved to ${stages[targetStageIndex].stage.stageName}`,
         });
         onBoardUpdate?.();
+      } catch (err) {
+        setIsMoving(false);
+        // Rollback on error
+        setStages(board.stages);
+        toast({
+          variant: 'error',
+          title: 'Failed to move application',
+          description: err instanceof Error ? err.message : 'An unexpected error occurred',
+        });
       }
     },
-    [board.stages, findStageByApplicationId, stages, onBoardUpdate]
+    [board.stages, findStageByApplicationId, stages, onBoardUpdate, session, router]
   );
 
   /**
@@ -255,7 +316,7 @@ export function KanbanBoard({
             applications={boardStage.applications}
             count={boardStage.count}
             isDropTarget={activeApplication !== null}
-            canDrop={activeApplication !== null && canDropOnStage(index)}
+            canDrop={activeApplication === null || canDropOnStage(index)}
             onApplicationClick={onApplicationClick}
             disabled={disabled}
           />
