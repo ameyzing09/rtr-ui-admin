@@ -41,7 +41,7 @@ export function SignalsDashboardClient({
   // Group signals by source for better organization
   const groupedSignals = signals.reduce<Record<string, ApplicationSignal[]>>(
     (acc, signal) => {
-      const source = signal.source;
+      const source = signal.sourceType;
       if (!acc[source]) {
         acc[source] = [];
       }
@@ -123,7 +123,7 @@ export function SignalsDashboardClient({
                     </h3>
                     <div className="space-y-3">
                       {groupedSignals[source].map((signal) => (
-                        <SignalCard key={signal.key} signal={signal} />
+                        <SignalCard key={signal.signalKey} signal={signal} />
                       ))}
                     </div>
                   </div>

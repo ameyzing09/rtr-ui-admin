@@ -90,7 +90,7 @@ export type PublicApplicationSubmitRequest = z.infer<typeof publicApplicationSub
 export const publicApplicationSubmitResponseSchema = z.object({
   id: z.string().uuid(),
   status: z.string(),
-  candidate_access_token: z.string(),
+  candidate_access_token: z.string().optional(),
 });
 
 export type PublicApplicationSubmitResponse = z.infer<typeof publicApplicationSubmitResponseSchema>;

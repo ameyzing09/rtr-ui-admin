@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getEvaluationDetailsAction } from '@/lib/actions/evaluation';
+import { getSession } from '@/lib/rbac/guard.server';
 import { EvaluationDetailClient } from './EvaluationDetailClient';
 import Skeleton from '@/components/ui/Skeleton';
 
@@ -23,7 +24,10 @@ export default async function EvaluationDetailPage({
   params,
 }: EvaluationDetailPageProps) {
   const { id } = await params;
-  const result = await getEvaluationDetailsAction(id);
+  const [result, session] = await Promise.all([
+    getEvaluationDetailsAction(id),
+    getSession(),
+  ]);
 
   if (!result.success) {
     if (result.code === 'EVALUATION_NOT_FOUND') {
@@ -41,9 +45,24 @@ export default async function EvaluationDetailPage({
     );
   }
 
+  if (!result.data) {
+    return (
+      <div className="p-6">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-center">
+          <h3 className="text-sm font-semibold text-gray-900">
+            No evaluation data available yet
+          </h3>
+          <p className="mt-1 text-sm text-gray-600">
+            This evaluation has no participant data. Please check back later.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Suspense fallback={<EvaluationDetailSkeleton />}>
-      <EvaluationDetailClient evaluation={result.data} />
+      <EvaluationDetailClient evaluation={result.data} currentUserId={session?.userId} />
     </Suspense>
   );
 }

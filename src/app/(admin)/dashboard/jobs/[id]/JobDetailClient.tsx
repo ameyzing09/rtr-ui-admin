@@ -31,6 +31,12 @@ import Card from '@/components/ui/Card';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { hasJobPermission, JOB_PERMISSIONS } from '@/domain/jobs/permissions';
 import { hasApplicationPermission, APPLICATION_PERMISSIONS } from '@/domain/applications/permissions';
+import {
+  canViewInterviews,
+  canCreateInterviews,
+  hasInterviewPermission,
+  INTERVIEW_PERMISSIONS,
+} from '@/domain/interview/permissions';
 import { DeleteJobModal } from '@/components/jobs/DeleteJobModal';
 import { CreateApplicationModal } from '@/components/applications/CreateApplicationModal';
 import { UpdateApplicationModal } from '@/components/applications/UpdateApplicationModal';
@@ -436,6 +442,11 @@ function ApplicantsTab({ job, applications, pipeline }: { job: Job; applications
   const canUpdate = session ? hasApplicationPermission(session.user.permissions, APPLICATION_PERMISSIONS.UPDATE) : false;
   const canDelete = session ? hasApplicationPermission(session.user.permissions, APPLICATION_PERMISSIONS.DELETE) : false;
 
+  // Interview permissions
+  const showInterviews = session ? canViewInterviews(session.user.permissions) : false;
+  const allowCancelInterviews = session ? hasInterviewPermission(session.user.permissions, INTERVIEW_PERMISSIONS.CANCEL) : false;
+  const allowCreateInterviews = session ? canCreateInterviews(session.user.permissions) : false;
+
   // Load Kanban board when view mode changes or pipeline changes
   const loadBoard = useCallback(async () => {
     if (!pipeline) return;
@@ -705,6 +716,9 @@ function ApplicantsTab({ job, applications, pipeline }: { job: Job; applications
         }}
         onUpdate={loadBoard}
         canEdit={canUpdate}
+        canViewInterviews={showInterviews}
+        canCancelInterviews={allowCancelInterviews}
+        canCreateInterviews={allowCreateInterviews}
       />
     </div>
   );

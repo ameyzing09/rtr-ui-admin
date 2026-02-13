@@ -45,6 +45,24 @@ export async function requireCanViewInterview(): Promise<UserSession> {
 }
 
 /**
+ * Require permission to create an interview
+ * Throws UnauthorizedError if user lacks permission
+ */
+export async function requireCanCreateInterview(): Promise<UserSession> {
+  const session = await getSession();
+
+  if (!session) {
+    throw new UnauthorizedError('Authentication required to create interviews');
+  }
+
+  if (!hasInterviewPermission(session.permissions, INTERVIEW_PERMISSIONS.CREATE)) {
+    throw new UnauthorizedError('You do not have permission to create interviews');
+  }
+
+  return session;
+}
+
+/**
  * Require permission to cancel an interview
  * Throws UnauthorizedError if user lacks permission
  */

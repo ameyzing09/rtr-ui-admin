@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, Loader2, AlertTriangle, Lock, MessageSquare } from 'lucide-react';
+import Link from 'next/link';
+import { X, Loader2, AlertTriangle, Lock, Info, ExternalLink } from 'lucide-react';
 import { getAvailableActionsAction, executeActionAction } from '@/lib/actions/tracking';
 import { TrackingStatusBadge } from './TrackingStatusBadge';
 import { toast } from '@/components/ui/ToastProvider';
-import type { AvailableAction, OutcomeType } from '@/domain/tracking/schemas';
+import type { AvailableAction, EvaluationRequirement, OutcomeType } from '@/domain/tracking/schemas';
 import { getOutcomeTypeStyle } from '@/domain/tracking/schemas';
 
 interface ActionModalProps {
@@ -24,7 +25,7 @@ interface ActionModalProps {
 /**
  * Get button style classes based on outcome type
  */
-function getActionButtonClasses(outcomeType: OutcomeType, isSelected: boolean): string {
+function getActionButtonClasses(outcomeType: OutcomeType | null, isSelected: boolean): string {
   const base = 'w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-all text-left';
 
   if (!isSelected) {
@@ -49,7 +50,7 @@ function getActionButtonClasses(outcomeType: OutcomeType, isSelected: boolean): 
 /**
  * Get confirm button style based on outcome type
  */
-function getConfirmButtonClasses(outcomeType: OutcomeType, isTerminal: boolean): string {
+function getConfirmButtonClasses(outcomeType: OutcomeType | null, isTerminal: boolean): string {
   if (isTerminal) {
     return 'bg-red-600 hover:bg-red-700 text-white';
   }
@@ -83,6 +84,8 @@ export function ActionModal({
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [availableActions, setAvailableActions] = useState<AvailableAction[]>([]);
+  const [evaluationsComplete, setEvaluationsComplete] = useState(true);
+  const [requiredEvaluations, setRequiredEvaluations] = useState<EvaluationRequirement[]>([]);
 
   // Use props passed from parent drawer (which has the tracking state)
   const currentStatus = propStatus;
@@ -98,6 +101,8 @@ export function ActionModal({
       const result = await getAvailableActionsAction(applicationId);
       if (result.success) {
         setAvailableActions(result.data.availableActions);
+        setEvaluationsComplete(result.data.evaluationsComplete);
+        setRequiredEvaluations(result.data.requiredEvaluations);
       } else {
         toast({
           title: 'Failed to load actions',
@@ -160,9 +165,8 @@ export function ActionModal({
     }
   };
 
-  const isActionDisabled = (action: AvailableAction): boolean => {
-    return action.requiresFeedback && !action.feedbackSubmitted;
-  };
+  const actionsBlocked = requiredEvaluations.length > 0 && !evaluationsComplete;
+  const incompleteEvaluations = requiredEvaluations.filter((e) => !e.completed);
 
   if (!isOpen) return null;
 
@@ -226,6 +230,44 @@ export function ActionModal({
                   </div>
                 </div>
 
+                {/* Evaluation: fail-open badge (no evaluations configured) */}
+                {!isTerminalState && requiredEvaluations.length === 0 && (
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <Info className="h-3.5 w-3.5" />
+                    <span>Evaluation not configured</span>
+                  </div>
+                )}
+
+                {/* Evaluation: fail-closed block (incomplete evaluations) */}
+                {!isTerminalState && actionsBlocked && (
+                  <div className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-200 p-4">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-amber-800">
+                        Evaluation required for: {currentStageName}
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        {incompleteEvaluations.map((e) => (
+                          <div key={e.templateId}>
+                            {e.instanceId ? (
+                              <Link
+                                href={`/dashboard/evaluations/${e.instanceId}`}
+                                className="inline-flex items-center gap-1 text-sm font-medium text-amber-800 underline hover:text-amber-900"
+                              >
+                                Go to Evaluation
+                                <ExternalLink className="h-3 w-3" />
+                              </Link>
+                            ) : (
+                              <span className="text-sm text-amber-700">Evaluation pending</span>
+                            )}
+                            <p className="text-xs text-amber-600">Template: {e.templateName}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Terminal State */}
                 {isTerminalState && (
                   <div className="flex items-start gap-3 rounded-lg bg-gray-50 border border-gray-200 p-4">
@@ -249,31 +291,24 @@ export function ActionModal({
                 )}
 
                 {!isTerminalState && availableActions.length > 0 && (
-                  <div>
+                  <div className={actionsBlocked ? 'opacity-50 pointer-events-none' : ''}>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Available Actions
                     </label>
                     <div className="space-y-2">
                       {availableActions.map((action) => {
-                        const disabled = isActionDisabled(action);
                         const isSelected = selectedAction?.actionCode === action.actionCode;
-                        const style = getOutcomeTypeStyle(action.outcomeType);
+                        const style = action.outcomeType ? getOutcomeTypeStyle(action.outcomeType) : { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200' };
 
                         return (
                           <button
                             key={action.actionCode}
                             data-testid={`action-card-${action.actionCode}`}
                             onClick={() => {
-                              if (!disabled) {
-                                setSelectedAction(isSelected ? null : action);
-                                if (!isSelected) setNotes('');
-                              }
+                              setSelectedAction(isSelected ? null : action);
+                              if (!isSelected) setNotes('');
                             }}
-                            disabled={disabled}
-                            className={`${getActionButtonClasses(action.outcomeType, isSelected)} ${
-                              disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                            }`}
-                            title={disabled ? 'Feedback required before this action' : undefined}
+                            className={`${getActionButtonClasses(action.outcomeType, isSelected)} cursor-pointer`}
                           >
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
@@ -294,12 +329,6 @@ export function ActionModal({
                                   </span>
                                 )}
                               </div>
-                              {disabled && (
-                                <div className="flex items-center gap-1 mt-1 text-xs text-amber-600">
-                                  <MessageSquare className="h-3 w-3" />
-                                  Feedback required
-                                </div>
-                              )}
                             </div>
                           </button>
                         );

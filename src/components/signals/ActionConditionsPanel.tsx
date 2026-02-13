@@ -63,10 +63,11 @@ export function ActionConditionsPanel({
       <div className="space-y-2">
         {actions.map((action) => {
           const isExpanded = expandedActions.has(action.actionCode);
-          const style = getOutcomeTypeStyle(action.outcomeType);
-          const hasConditions = action.signalConditions.length > 0;
-          const metConditions = action.signalConditions.filter((c) => c.met);
-          const unmetConditions = action.signalConditions.filter((c) => !c.met);
+          const style = action.outcomeType ? getOutcomeTypeStyle(action.outcomeType) : { bg: 'bg-gray-100', text: 'text-gray-800' };
+          const conditions = action.signalConditions?.conditions ?? [];
+          const hasConditions = conditions.length > 0;
+          const metConditions = conditions.filter((c) => c.met);
+          const unmetConditions = conditions.filter((c) => !c.met);
 
           return (
             <Card key={action.actionCode} className="overflow-hidden" data-testid={`action-panel-${action.actionCode}`}>
@@ -104,27 +105,26 @@ export function ActionConditionsPanel({
                     <span className="font-medium text-gray-900" data-testid="action-display-name">
                       {action.displayName}
                     </span>
-                    <span
-                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${style.bg} ${style.text}`}
-                      data-testid="action-outcome-type"
-                    >
-                      {action.outcomeType}
-                    </span>
+                    {action.outcomeType && (
+                      <span
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${style.bg} ${style.text}`}
+                        data-testid="action-outcome-type"
+                      >
+                        {action.outcomeType}
+                      </span>
+                    )}
                     {action.isTerminal && (
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700" data-testid="action-final-badge">
                         Final
                       </span>
                     )}
                   </div>
-                  {action.description && (
-                    <p className="text-sm text-gray-500 truncate">{action.description}</p>
-                  )}
                 </div>
 
                 {/* Condition Count */}
                 {hasConditions && (
                   <div className="flex-shrink-0 text-xs text-gray-400" data-testid="action-condition-count">
-                    {metConditions.length}/{action.signalConditions.length} met
+                    {metConditions.length}/{conditions.length} met
                   </div>
                 )}
               </button>
@@ -140,7 +140,7 @@ export function ActionConditionsPanel({
                       </p>
                       {unmetConditions.map((condition, idx) => (
                         <ConditionRow
-                          key={`${condition.signalKey}-${idx}`}
+                          key={`${condition.signal}-${idx}`}
                           condition={condition}
                         />
                       ))}
@@ -157,7 +157,7 @@ export function ActionConditionsPanel({
                       )}
                       {metConditions.map((condition, idx) => (
                         <ConditionRow
-                          key={`${condition.signalKey}-${idx}`}
+                          key={`${condition.signal}-${idx}`}
                           condition={condition}
                         />
                       ))}

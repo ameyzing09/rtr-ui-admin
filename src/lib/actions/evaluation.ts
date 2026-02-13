@@ -80,7 +80,7 @@ export async function getMyPendingEvaluationsAction(): Promise<
  */
 export async function getEvaluationDetailsAction(
   evaluationId: string
-): Promise<ActionResult<EvaluationDetails>> {
+): Promise<ActionResult<EvaluationDetails | null>> {
   try {
     // Check permissions
     const session = await requireCanViewEvaluations();

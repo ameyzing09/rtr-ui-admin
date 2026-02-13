@@ -1,6 +1,7 @@
 'use server';
 
 import { createAuthenticatedFetcher, ApiException } from '@/lib/api/fetcher';
+import { env } from '@/config/env';
 import {
   requireCanViewSignals,
   requireCanSetManualSignal,
@@ -10,9 +11,8 @@ import {
   actionsWithSignalsSchema,
   setManualSignalResponseSchema,
   setManualSignalRequestSchema,
-  type ApplicationSignals,
+  type ApplicationSignal,
   type ActionsWithSignals,
-  type SetManualSignalRequest,
   type SetManualSignalResponse,
 } from '@/domain/signals/schemas';
 import { ZodError } from 'zod';
@@ -76,7 +76,7 @@ function formatError(error: unknown): {
 export async function getApplicationSignalsAction(
   applicationId: string,
   includeHistory?: boolean
-): Promise<ActionResult<ApplicationSignals>> {
+): Promise<ActionResult<ApplicationSignal[]>> {
   try {
     // Check permissions
     const session = await requireCanViewSignals();
@@ -84,11 +84,13 @@ export async function getApplicationSignalsAction(
     // Build URL with optional query params
     let url = `/applications/${applicationId}/signals`;
     if (includeHistory) {
-      url += '?includeHistory=true';
+      url += '?include_history=true';
     }
 
     // Fetch signals
-    const authFetcher = createAuthenticatedFetcher(session.token);
+    const authFetcher = createAuthenticatedFetcher(session.token, {
+      baseUrl: env.NEXT_PUBLIC_EVALUATION_API_BASE_URL,
+    });
     const data = await authFetcher.get(url, applicationSignalsSchema);
 
     return {
@@ -114,7 +116,7 @@ export async function getApplicationSignalsAction(
 
 /**
  * Get all available actions with their signal conditions
- * Shows which actions are available and which conditions are met/unmet
+ * Uses the tracking service (not evaluation) — same endpoint as getAvailableActions
  */
 export async function getApplicationActionsWithSignalsAction(
   applicationId: string
@@ -123,9 +125,11 @@ export async function getApplicationActionsWithSignalsAction(
     // Check permissions
     const session = await requireCanViewSignals();
 
-    // Fetch actions with signals
-    const url = `/applications/${applicationId}/actions-with-signals`;
-    const authFetcher = createAuthenticatedFetcher(session.token);
+    // Fetch actions from tracking service
+    const url = `/applications/${applicationId}/actions`;
+    const authFetcher = createAuthenticatedFetcher(session.token, {
+      baseUrl: env.NEXT_PUBLIC_TRACKING_API_BASE_URL,
+    });
     const data = await authFetcher.get(url, actionsWithSignalsSchema);
 
     return {
@@ -150,23 +154,60 @@ export async function getApplicationActionsWithSignalsAction(
 // ============================================================================
 
 /**
+ * UI-facing input for setManualSignalAction
+ * (uses friendly field names before transformation)
+ */
+interface SetManualSignalInput {
+  key: string;
+  value: boolean | number | string;
+  reason?: string;
+}
+
+/**
+ * Derive signal_type from a JS value
+ */
+function deriveSignalType(value: boolean | number | string): 'boolean' | 'integer' | 'float' | 'text' {
+  if (typeof value === 'boolean') return 'boolean';
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? 'integer' : 'float';
+  }
+  return 'text';
+}
+
+/**
  * Set a manual signal on an application
  * Used by HR/Admin to manually set signal values
+ *
+ * Transforms UI-friendly input into backend-expected format:
+ * - key → signal_key
+ * - auto-derives signal_type from value
+ * - stringifies value (e.g. true → "true", 42 → "42")
+ * - reason → note
  */
 export async function setManualSignalAction(
   applicationId: string,
-  request: SetManualSignalRequest
+  input: SetManualSignalInput
 ): Promise<ActionResult<SetManualSignalResponse>> {
   try {
     // Check permissions
     const session = await requireCanSetManualSignal();
 
-    // Validate request payload
-    const validatedPayload = setManualSignalRequestSchema.parse(request);
+    // Transform UI input to backend-expected format
+    const payload = {
+      signal_key: input.key,
+      signal_type: deriveSignalType(input.value),
+      value: String(input.value),
+      note: input.reason || undefined,
+    };
+
+    // Validate the backend payload
+    const validatedPayload = setManualSignalRequestSchema.parse(payload);
 
     // Set signal
     const url = `/applications/${applicationId}/signals`;
-    const authFetcher = createAuthenticatedFetcher(session.token);
+    const authFetcher = createAuthenticatedFetcher(session.token, {
+      baseUrl: env.NEXT_PUBLIC_EVALUATION_API_BASE_URL,
+    });
     const data = await authFetcher.post(url, validatedPayload, setManualSignalResponseSchema);
 
     return {

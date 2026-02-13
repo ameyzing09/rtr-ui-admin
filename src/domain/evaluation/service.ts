@@ -77,7 +77,7 @@ export class EvaluationService {
     session: UserSession,
     token: string,
     evaluationId: string
-  ): Promise<EvaluationDetails> {
+  ): Promise<EvaluationDetails | null> {
     if (!this.baseUrl) {
       throw new EvaluationApiError(
         'NEXT_PUBLIC_EVALUATION_API_BASE_URL is not configured',
@@ -88,12 +88,14 @@ export class EvaluationService {
 
     try {
       const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
-      const data = await authFetcher.get(`/${evaluationId}/participants`, evaluationDetailsSchema);
+      const data = await authFetcher.get(`/${evaluationId}`, evaluationDetailsSchema);
 
       return data;
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message.includes('404') || error.message.includes('not found')) {
+        // Check ApiException.status (reliable) instead of string matching (fragile)
+        const status = 'status' in error ? (error as { status: number }).status : undefined;
+        if (status === 404 || error.message.includes('not found')) {
           throw new EvaluationApiError(
             `Evaluation not found: ${evaluationId}`,
             404,
@@ -102,7 +104,7 @@ export class EvaluationService {
         }
         throw new EvaluationApiError(
           error.message,
-          500,
+          status ?? 500,
           'EVALUATION_GET_ERROR'
         );
       }

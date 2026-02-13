@@ -28,6 +28,7 @@ interface ApplicationDetailDrawerProps {
   canEdit?: boolean;
   canViewInterviews?: boolean;
   canCancelInterviews?: boolean;
+  canCreateInterviews?: boolean;
 }
 
 /**
@@ -54,6 +55,7 @@ export function ApplicationDetailDrawer({
   canEdit = true,
   canViewInterviews = false,
   canCancelInterviews = false,
+  canCreateInterviews = false,
 }: ApplicationDetailDrawerProps) {
   const [trackingState, setTrackingState] = useState<TrackingState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -304,6 +306,7 @@ export function ApplicationDetailDrawer({
               <InterviewTimelineContent
                 applicationId={applicationId}
                 canCancel={canCancelInterviews}
+                canCreate={canCreateInterviews}
                 onUpdate={handleUpdate}
               />
             )

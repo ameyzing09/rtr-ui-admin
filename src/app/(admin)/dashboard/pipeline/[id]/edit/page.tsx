@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getPipelineAction } from '@/lib/actions/pipeline';
 import { EditPipelineForm } from './EditPipelineForm';
 
@@ -38,6 +38,11 @@ export default async function EditPipelinePage({
 
     // For other errors, we could show an error page, but for now just throw
     throw new Error(result.error);
+  }
+
+  // System pipelines (tenant_id === null) cannot be edited
+  if (result.data.tenant_id === null) {
+    redirect(`/dashboard/pipeline/${id}`);
   }
 
   return <EditPipelineForm pipeline={result.data} redirectUrl={redirectUrl} />;

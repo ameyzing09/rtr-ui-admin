@@ -5,12 +5,15 @@ import {
   requireCanListInterviews,
   requireCanViewInterview,
   requireCanCancelInterview,
+  requireCanCreateInterview,
 } from '@/domain/interview/permissions.server';
 import {
   type PendingInterviewItem,
   type InterviewDetail,
   type ApplicationInterviewItem,
   type CancelInterviewResponse,
+  type CreateInterviewRequest,
+  type CreateInterviewResponse,
 } from '@/domain/interview/schemas';
 import { isNextRouterError } from 'next/dist/client/components/is-next-router-error';
 import type { ActionResult } from './types';
@@ -145,6 +148,32 @@ export async function cancelInterviewAction(
       session,
       session.token,
       interviewId
+    );
+    return { success: true, data: result };
+  } catch (error) {
+    if (isNextRouterError(error)) throw error;
+    return { success: false, ...formatError(error) };
+  }
+}
+
+// ============================================================================
+// Create Interview
+// ============================================================================
+
+/**
+ * Create an interview for an application
+ */
+export async function createInterviewAction(
+  applicationId: string,
+  request: CreateInterviewRequest
+): Promise<ActionResult<CreateInterviewResponse>> {
+  try {
+    const session = await requireCanCreateInterview();
+    const result = await interviewService.createInterview(
+      session,
+      session.token,
+      applicationId,
+      request
     );
     return { success: true, data: result };
   } catch (error) {

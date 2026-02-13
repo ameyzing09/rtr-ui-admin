@@ -67,6 +67,16 @@ export class PipelineService {
         );
       }
 
+      // Handle 404 Not Found
+      if (error.status === 404) {
+        throw new PipelineApiError(
+          error.message || 'Pipeline not found',
+          'PIPELINE_NOT_FOUND',
+          404,
+          error.details
+        );
+      }
+
       throw new PipelineApiError(
         error.message,
         error.code,
@@ -129,17 +139,17 @@ export class PipelineService {
 
       // Create authenticated fetcher with pipeline API base URL
       const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
-      const response = await authFetcher.get<Pipeline>(
+      const response = await authFetcher.get<{ data: Pipeline }>(
         `/pipeline/${pipelineId}`,
-        pipelineSchema
+        pipelineWrappedResponseSchema
       );
 
-      console.log('[PipelineService] Successfully fetched pipeline:', response.id);
+      console.log('[PipelineService] Successfully fetched pipeline:', response.data.id);
 
       // Audit log successful view operation
-      await auditPipelineView(session, pipelineId, response);
+      await auditPipelineView(session, pipelineId, response.data);
 
-      return response;
+      return response.data;
     } catch (error) {
       // Audit error
       await auditPipelineError(session, 'view', error, { pipelineId });

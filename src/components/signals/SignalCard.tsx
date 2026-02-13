@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, User } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { SourceBadge } from './SourceBadge';
 import { formatSignalValue } from '@/domain/signals/schemas';
 import type { ApplicationSignal } from '@/domain/signals/schemas';
@@ -20,32 +20,32 @@ export function SignalCard({ signal, className = '' }: SignalCardProps) {
     if (signal.value === null) {
       return 'text-gray-400 italic';
     }
-    if (signal.type === 'boolean') {
+    if (signal.signalType === 'boolean') {
       return signal.value ? 'text-green-700' : 'text-red-700';
     }
-    if (signal.type === 'numeric') {
+    if (signal.signalType === 'integer' || signal.signalType === 'float') {
       return 'text-blue-700 font-mono';
     }
     return 'text-gray-900';
   };
 
   return (
-    <Card className={`p-4 ${className}`} data-testid={`signal-card-${signal.key}`}>
+    <Card className={`p-4 ${className}`} data-testid={`signal-card-${signal.signalKey}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h4 className="font-medium text-gray-900 truncate" data-testid="signal-description">
-              {signal.description || signal.key}
+              {signal.signalKey}
             </h4>
-            <SourceBadge source={signal.source} />
+            <SourceBadge source={signal.sourceType} />
           </div>
 
           <div className="flex items-center gap-1 text-xs text-gray-500">
             <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600" data-testid="signal-key">
-              {signal.key}
+              {signal.signalKey}
             </code>
-            <span className="text-gray-300">•</span>
-            <span className="capitalize" data-testid="signal-type">{signal.type}</span>
+            <span className="text-gray-300">&bull;</span>
+            <span className="capitalize" data-testid="signal-type">{signal.signalType}</span>
           </div>
         </div>
 
@@ -64,12 +64,6 @@ export function SignalCard({ signal, className = '' }: SignalCardProps) {
             {setAtDate.toLocaleDateString()} at {setAtDate.toLocaleTimeString()}
           </span>
         </div>
-        {signal.setByName && (
-          <div className="flex items-center gap-1">
-            <User className="h-3 w-3" />
-            <span>{signal.setByName}</span>
-          </div>
-        )}
       </div>
     </Card>
   );

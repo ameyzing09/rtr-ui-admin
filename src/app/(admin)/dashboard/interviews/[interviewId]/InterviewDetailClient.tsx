@@ -65,8 +65,7 @@ export function InterviewDetailClient({
   // Get evaluation instance ID for a round where current user is assigned
   const getMyEvaluationId = (round: InterviewRound): string | undefined => {
     if (!currentUserId) return undefined;
-    const myAssignment = round.assignments.find((a) => a.userId === currentUserId);
-    return myAssignment?.evaluationInstanceId || round.evaluationInstanceId;
+    return round.evaluationInstanceId ?? undefined;
   };
 
   return (
@@ -83,7 +82,7 @@ export function InterviewDetailClient({
           <div className="flex-1">
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-gray-900">
-                {interview.applicantName}
+                Interview Detail
               </h1>
               <span
                 className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeStyle(interview.status)}`}
@@ -92,7 +91,13 @@ export function InterviewDetailClient({
               </span>
             </div>
             <p className="mt-1 text-sm text-gray-500">
-              {interview.jobTitle} &middot; {interview.stage.name}
+              Created {formatDate(interview.createdAt)} &middot;{' '}
+              <Link
+                href={`/dashboard/applications/${interview.applicationId}`}
+                className="text-blue-600 hover:text-blue-700"
+              >
+                View Application
+              </Link>
             </p>
           </div>
         </div>
@@ -138,24 +143,6 @@ export function InterviewDetailClient({
             </h2>
             <dl className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <dt className="font-medium text-gray-500">Applicant</dt>
-                <dd className="mt-1 text-gray-900">
-                  {interview.applicantName}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-medium text-gray-500">Job</dt>
-                <dd className="mt-1 text-gray-900">{interview.jobTitle}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-gray-500">Stage</dt>
-                <dd className="mt-1">
-                  <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">
-                    {interview.stage.name}
-                  </span>
-                </dd>
-              </div>
-              <div>
                 <dt className="font-medium text-gray-500">Status</dt>
                 <dd className="mt-1">
                   <span
@@ -166,19 +153,28 @@ export function InterviewDetailClient({
                 </dd>
               </div>
               <div>
+                <dt className="font-medium text-gray-500">Application</dt>
+                <dd className="mt-1">
+                  <Link
+                    href={`/dashboard/applications/${interview.applicationId}`}
+                    className="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                  >
+                    View Application
+                  </Link>
+                </dd>
+              </div>
+              <div>
                 <dt className="font-medium text-gray-500">Created</dt>
                 <dd className="mt-1 text-gray-900">
                   {formatDate(interview.createdAt)}
                 </dd>
               </div>
-              {interview.updatedAt && (
-                <div>
-                  <dt className="font-medium text-gray-500">Last Updated</dt>
-                  <dd className="mt-1 text-gray-900">
-                    {formatDate(interview.updatedAt)}
-                  </dd>
-                </div>
-              )}
+              <div>
+                <dt className="font-medium text-gray-500">Last Updated</dt>
+                <dd className="mt-1 text-gray-900">
+                  {formatDate(interview.updatedAt)}
+                </dd>
+              </div>
             </dl>
           </Card>
 
@@ -193,9 +189,7 @@ export function InterviewDetailClient({
                   ? round.assignments.some((a) => a.userId === currentUserId)
                   : false;
                 const myEvalId = getMyEvaluationId(round);
-                const hasAnyEvaluation =
-                  round.evaluationInstanceId ||
-                  round.assignments.some((a) => a.evaluationInstanceId);
+                const hasAnyEvaluation = !!round.evaluationInstanceId;
 
                 return (
                   <Card
@@ -209,13 +203,6 @@ export function InterviewDetailClient({
                           <h3 className="font-medium text-gray-900">
                             Round {round.sequence}: {round.roundType}
                           </h3>
-                          {round.status && (
-                            <span
-                              className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeStyle(round.status)}`}
-                            >
-                              {round.status}
-                            </span>
-                          )}
                           {isMyRound && (
                             <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">
                               Your Round
@@ -235,7 +222,7 @@ export function InterviewDetailClient({
                           <div className="space-y-1">
                             {round.assignments.map((assignment) => (
                               <div
-                                key={assignment.userId}
+                                key={assignment.id}
                                 className="flex items-center gap-2 text-sm"
                               >
                                 <div
@@ -252,7 +239,7 @@ export function InterviewDetailClient({
                                       : 'text-gray-600'
                                   }
                                 >
-                                  {assignment.userName || assignment.userId}
+                                  {assignment.userId.slice(0, 8)}…
                                   {assignment.userId === currentUserId &&
                                     ' (You)'}
                                 </span>
@@ -279,7 +266,7 @@ export function InterviewDetailClient({
                         {/* HR+: show evaluation link on every round that has one */}
                         {!isMyRound && hasAnyEvaluation && (
                           <Link
-                            href={`/dashboard/evaluations/${round.evaluationInstanceId || round.assignments.find((a) => a.evaluationInstanceId)?.evaluationInstanceId}`}
+                            href={`/dashboard/evaluations/${round.evaluationInstanceId}`}
                             className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700"
                             data-testid={`round-evaluation-link-${round.id}`}
                           >

@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Loader2,
-  ExternalLink,
-  Users,
   XCircle,
   AlertTriangle,
+  Plus,
 } from 'lucide-react';
+import { CreateInterviewForm } from './CreateInterviewForm';
 import {
   getInterviewsForApplicationAction,
   cancelInterviewAction,
@@ -18,6 +18,7 @@ import type { ApplicationInterviewItem } from '@/domain/interview/schemas';
 interface InterviewTimelineContentProps {
   applicationId: string;
   canCancel?: boolean;
+  canCreate?: boolean;
   onUpdate?: () => void;
 }
 
@@ -51,6 +52,7 @@ function formatDate(dateString: string): string {
 export function InterviewTimelineContent({
   applicationId,
   canCancel = false,
+  canCreate = false,
   onUpdate,
 }: InterviewTimelineContentProps) {
   const [interviews, setInterviews] = useState<ApplicationInterviewItem[]>([]);
@@ -58,6 +60,7 @@ export function InterviewTimelineContent({
   const [error, setError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const loadInterviews = useCallback(async () => {
     setIsLoading(true);
@@ -120,18 +123,54 @@ export function InterviewTimelineContent({
     );
   }
 
+  if (showCreateForm) {
+    return (
+      <CreateInterviewForm
+        applicationId={applicationId}
+        onSuccess={() => {
+          setShowCreateForm(false);
+          loadInterviews();
+          onUpdate?.();
+        }}
+        onCancel={() => setShowCreateForm(false)}
+      />
+    );
+  }
+
   if (interviews.length === 0) {
     return (
       <div className="text-center py-8">
         <p className="text-sm text-gray-500">
           No interviews scheduled for this application.
         </p>
+        {canCreate && (
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="mt-3 inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
+            <Plus className="h-4 w-4" />
+            Create Interview
+          </button>
+        )}
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {/* Create button */}
+      {canCreate && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4" />
+            Create Interview
+          </button>
+        </div>
+      )}
+
       {interviews.map((interview) => (
         <div
           key={interview.id}
@@ -139,55 +178,18 @@ export function InterviewTimelineContent({
         >
           {/* Interview header */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">
-                {interview.stage.name}
-              </span>
-              <span
-                className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeStyle(interview.status)}`}
-              >
-                {interview.status}
-              </span>
-            </div>
+            <span
+              className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusBadgeStyle(interview.status)}`}
+            >
+              {interview.status}
+            </span>
             <span className="text-xs text-gray-400">
               {formatDate(interview.createdAt)}
             </span>
           </div>
 
-          {/* Rounds */}
-          <div className="space-y-2">
-            {interview.rounds.map((round) => (
-              <div
-                key={round.id}
-                className="bg-gray-50 rounded p-3 text-sm"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-900">
-                    Round {round.sequence}: {round.roundType}
-                  </span>
-                  {round.evaluationInstanceId && (
-                    <Link
-                      href={`/dashboard/evaluations/${round.evaluationInstanceId}`}
-                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Evaluation
-                    </Link>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
-                  <Users className="h-3 w-3" />
-                  <span>
-                    {round.assignments.length} interviewer
-                    {round.assignments.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
           {/* Actions */}
-          <div className="mt-3 flex items-center gap-3">
+          <div className="flex items-center gap-3">
             <Link
               href={`/dashboard/interviews/${interview.id}`}
               className="text-xs text-blue-600 hover:text-blue-700"

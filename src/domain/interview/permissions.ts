@@ -32,6 +32,13 @@ export function canViewInterviews(userPermissions: Permission[]): boolean {
 }
 
 /**
+ * Check if user can create interviews
+ */
+export function canCreateInterviews(userPermissions: Permission[]): boolean {
+  return can(userPermissions, INTERVIEW_PERMISSIONS.CREATE);
+}
+
+/**
  * Check if user can manage interviews (create/update/cancel)
  */
 export function canManageInterviews(userPermissions: Permission[]): boolean {

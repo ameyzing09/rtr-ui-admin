@@ -160,18 +160,31 @@ export const availableActionSchema = z.object({
   displayName: z.string(),
   outcomeType: outcomeTypeSchema.nullable(), // Can be null
   isTerminal: z.boolean(),
-  requiresFeedback: z.boolean(),
   requiresNotes: z.boolean(),
-  feedbackSubmitted: z.boolean(),
   signalConditions: z.unknown().nullable().optional(), // Backend extra field
   signalsMet: z.boolean().optional(), // Backend extra field
 });
 export type AvailableAction = z.infer<typeof availableActionSchema>;
 
 /**
+ * Evaluation requirement for a pipeline stage
+ */
+export const evaluationRequirementSchema = z.object({
+  templateId: z.string().uuid(),
+  templateName: z.string(),
+  completed: z.boolean(),
+  instanceId: z.string().uuid().nullable(),
+  instanceStatus: z.string().nullable(),
+});
+export type EvaluationRequirement = z.infer<typeof evaluationRequirementSchema>;
+
+/**
  * Inner data for GET /tracking/applications/:id/actions
+ * evaluationsComplete/requiredEvaluations use defaults for terminal responses that omit them
  */
 export const availableActionsDataSchema = z.object({
+  evaluationsComplete: z.boolean().optional().default(true),
+  requiredEvaluations: z.array(evaluationRequirementSchema).optional().default([]),
   availableActions: z.array(availableActionSchema),
 });
 

@@ -166,6 +166,9 @@ function PipelineCard({ pipeline, canEdit }: PipelineCardProps) {
             {pipeline.is_active && (
               <Badge variant="success">Active</Badge>
             )}
+            {!pipeline.tenant_id && (
+              <Badge variant="default">System</Badge>
+            )}
           </div>
 
           {/* Description */}
@@ -204,7 +207,7 @@ function PipelineCard({ pipeline, canEdit }: PipelineCardProps) {
         </div>
 
         {/* Edit Action */}
-        {canEdit && (
+        {canEdit && pipeline.tenant_id !== null && (
           <div className="ml-4">
             <Link
               href={`/dashboard/pipeline/${pipeline.id}/edit`}

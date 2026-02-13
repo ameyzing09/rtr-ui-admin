@@ -64,13 +64,13 @@ export default async function SignalsDashboardPage({
   }
 
   // Actions result is optional - we can still show signals without it
-  const actions = actionsResult.success ? actionsResult.data.actions : [];
+  const actions = actionsResult.success ? actionsResult.data.availableActions : [];
 
   return (
     <Suspense fallback={<SignalsDashboardSkeleton />}>
       <SignalsDashboardClient
         application={applicationResult.data}
-        signals={signalsResult.data.signals}
+        signals={signalsResult.data}
         actions={actions}
       />
     </Suspense>
