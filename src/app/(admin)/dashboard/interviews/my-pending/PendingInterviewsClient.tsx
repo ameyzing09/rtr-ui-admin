@@ -39,6 +39,8 @@ function getStatusColor(status: string): string {
       return 'bg-blue-50 text-blue-700';
     case 'IN_PROGRESS':
       return 'bg-amber-50 text-amber-700';
+    case 'COMPLETED':
+      return 'bg-green-50 text-green-700';
     case 'CANCELLED':
       return 'bg-gray-50 text-gray-500';
     default:

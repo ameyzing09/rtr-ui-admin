@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { X, Loader2, AlertTriangle, Lock, Info, ExternalLink } from 'lucide-react';
+import { X, Loader2, AlertTriangle, Lock, Info, ExternalLink, CheckCircle } from 'lucide-react';
 import { getAvailableActionsAction, executeActionAction } from '@/lib/actions/tracking';
 import { TrackingStatusBadge } from './TrackingStatusBadge';
 import { toast } from '@/components/ui/ToastProvider';
@@ -20,6 +20,7 @@ interface ActionModalProps {
   currentOutcomeType?: OutcomeType;
   isTerminal?: boolean;
   onSuccess?: () => void;
+  onCreateInterview?: () => void;
 }
 
 /**
@@ -80,6 +81,7 @@ export function ActionModal({
   currentOutcomeType: propOutcomeType = 'ACTIVE',
   isTerminal: propIsTerminal = false,
   onSuccess,
+  onCreateInterview,
 }: ActionModalProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,6 +169,12 @@ export function ActionModal({
 
   const actionsBlocked = requiredEvaluations.length > 0 && !evaluationsComplete;
   const incompleteEvaluations = requiredEvaluations.filter((e) => !e.completed);
+  const pendingEvaluations = incompleteEvaluations.filter(
+    (e) => e.instanceStatus !== 'IN_PROGRESS'
+  );
+  const inProgressEvaluations = incompleteEvaluations.filter(
+    (e) => e.instanceStatus === 'IN_PROGRESS'
+  );
 
   if (!isOpen) return null;
 
@@ -238,29 +246,79 @@ export function ActionModal({
                   </div>
                 )}
 
-                {/* Evaluation: fail-closed block (incomplete evaluations) */}
-                {!isTerminalState && actionsBlocked && (
-                  <div className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-200 p-4">
+                {/* Evaluation: in-progress block (evaluators submitted, not yet completed) */}
+                {!isTerminalState && actionsBlocked && inProgressEvaluations.length > 0 && (
+                  <div
+                    className="flex items-start gap-3 rounded-lg bg-blue-50 border border-blue-200 p-4"
+                    data-testid="evaluation-in-progress-info"
+                  >
+                    <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-800">
+                        Evaluation responses submitted
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        {inProgressEvaluations.map((e) => (
+                          <div key={e.templateId} className="space-y-1">
+                            <p className="text-xs text-blue-600">
+                              Evaluation responses submitted for: {e.templateName}
+                            </p>
+                            <p className="text-xs text-blue-500">
+                              Complete the evaluation to unblock actions.
+                            </p>
+                            {e.instanceId && (
+                              <Link
+                                href={`/dashboard/evaluations/${e.instanceId}`}
+                                className="inline-flex items-center gap-1 text-sm font-medium text-blue-700 underline hover:text-blue-900"
+                                data-testid="evaluation-gate-complete-evaluation"
+                              >
+                                Complete Evaluation &rarr;
+                                <ExternalLink className="h-3 w-3" />
+                              </Link>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Evaluation: pending block (no submissions yet) */}
+                {!isTerminalState && actionsBlocked && pendingEvaluations.length > 0 && (
+                  <div
+                    className="flex items-start gap-3 rounded-lg bg-amber-50 border border-amber-200 p-4"
+                    data-testid="evaluation-gate-warning"
+                  >
                     <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-amber-800">
                         Evaluation required for: {currentStageName}
                       </p>
                       <div className="mt-2 space-y-1">
-                        {incompleteEvaluations.map((e) => (
-                          <div key={e.templateId}>
-                            {e.instanceId ? (
-                              <Link
-                                href={`/dashboard/evaluations/${e.instanceId}`}
-                                className="inline-flex items-center gap-1 text-sm font-medium text-amber-800 underline hover:text-amber-900"
-                              >
-                                Go to Evaluation
-                                <ExternalLink className="h-3 w-3" />
-                              </Link>
-                            ) : (
-                              <span className="text-sm text-amber-700">Evaluation pending</span>
-                            )}
+                        {pendingEvaluations.map((e) => (
+                          <div key={e.templateId} className="space-y-1">
                             <p className="text-xs text-amber-600">Template: {e.templateName}</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {e.instanceId && (
+                                <Link
+                                  href={`/dashboard/evaluations/${e.instanceId}`}
+                                  className="inline-flex items-center gap-1 text-sm text-amber-700 underline hover:text-amber-900"
+                                  data-testid="evaluation-gate-go-evaluation"
+                                >
+                                  Go to Evaluation
+                                  <ExternalLink className="h-3 w-3" />
+                                </Link>
+                              )}
+                              {onCreateInterview && (
+                                <button
+                                  onClick={onCreateInterview}
+                                  className="inline-flex items-center gap-1 text-sm font-medium text-blue-700 underline hover:text-blue-900"
+                                  data-testid="evaluation-gate-go-interviews"
+                                >
+                                  Go to Interviews
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>

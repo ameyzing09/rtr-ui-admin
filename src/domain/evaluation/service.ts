@@ -5,10 +5,14 @@ import {
   evaluationDetailsSchema,
   pendingEvaluationsListSchema,
   submitEvaluationResponseSchema,
+  completeEvaluationResponseSchema,
+  evaluationResponsesListSchema,
   type EvaluationDetails,
+  type EvaluationResponse,
   type PendingEvaluationsList,
   type SubmitEvaluationRequest,
   type SubmitEvaluationResponse,
+  type CompleteEvaluationResponse,
 } from './schemas';
 
 // ============================================================================
@@ -113,6 +117,39 @@ export class EvaluationService {
   }
 
   /**
+   * Get all submitted responses for an evaluation (HR/Admin only)
+   */
+  async getEvaluationResponses(
+    session: UserSession,
+    token: string,
+    evaluationId: string
+  ): Promise<EvaluationResponse[]> {
+    if (!this.baseUrl) {
+      throw new EvaluationApiError(
+        'NEXT_PUBLIC_EVALUATION_API_BASE_URL is not configured',
+        500,
+        'CONFIG_ERROR'
+      );
+    }
+
+    try {
+      const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
+      const data = await authFetcher.get(`/${evaluationId}/responses`, evaluationResponsesListSchema);
+      return data;
+    } catch (error) {
+      if (error instanceof Error) {
+        const status = 'status' in error ? (error as { status: number }).status : undefined;
+        throw new EvaluationApiError(
+          error.message,
+          status ?? 500,
+          'EVALUATION_RESPONSES_ERROR'
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Submit evaluation response
    * This is an immutable operation - responses cannot be modified once submitted
    */
@@ -155,6 +192,57 @@ export class EvaluationService {
           error.message,
           400,
           'EVALUATION_SUBMIT_ERROR'
+        );
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Complete an evaluation instance (HR/Admin only)
+   * Triggers signal aggregation
+   */
+  async completeEvaluation(
+    session: UserSession,
+    token: string,
+    evaluationId: string,
+  ): Promise<CompleteEvaluationResponse> {
+    if (!this.baseUrl) {
+      throw new EvaluationApiError(
+        'NEXT_PUBLIC_EVALUATION_API_BASE_URL is not configured',
+        500,
+        'CONFIG_ERROR'
+      );
+    }
+
+    try {
+      const authFetcher = createAuthenticatedFetcher(token, { baseUrl: this.baseUrl });
+      const data = await authFetcher.post(
+        `/${evaluationId}/complete`,
+        {},
+        completeEvaluationResponseSchema
+      );
+      return data;
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('EVALUATION_INCOMPLETE')) {
+          throw new EvaluationApiError(
+            'Not all participants have submitted their evaluations yet',
+            400,
+            'EVALUATION_INCOMPLETE'
+          );
+        }
+        if (error.message.includes('EVALUATION_ALREADY_COMPLETED') || error.message.includes('already completed')) {
+          throw new EvaluationApiError(
+            'This evaluation has already been completed',
+            409,
+            'EVALUATION_ALREADY_COMPLETED'
+          );
+        }
+        throw new EvaluationApiError(
+          error.message,
+          400,
+          'EVALUATION_COMPLETE_ERROR'
         );
       }
       throw error;

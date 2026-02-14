@@ -1,7 +1,10 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
-import { getEvaluationDetailsAction } from '@/lib/actions/evaluation';
+import { getEvaluationDetailsAction, getEvaluationResponsesAction } from '@/lib/actions/evaluation';
 import { getSession } from '@/lib/rbac/guard.server';
+import { canCreateInterviews } from '@/domain/interview/permissions';
+import { canCompleteEvaluations } from '@/domain/evaluation/permissions';
+import type { EvaluationResponse } from '@/domain/evaluation/schemas';
 import { EvaluationDetailClient } from './EvaluationDetailClient';
 import Skeleton from '@/components/ui/Skeleton';
 
@@ -60,9 +63,29 @@ export default async function EvaluationDetailPage({
     );
   }
 
+  const hasCreatePermission = session
+    ? canCreateInterviews(session.permissions)
+    : false;
+
+  const canComplete = session
+    ? canCompleteEvaluations(session.role)
+    : false;
+
+  let responses: EvaluationResponse[] = [];
+  if (canComplete && result.success && result.data) {
+    const r = await getEvaluationResponsesAction(id).catch(() => null);
+    if (r?.success) responses = r.data;
+  }
+
   return (
     <Suspense fallback={<EvaluationDetailSkeleton />}>
-      <EvaluationDetailClient evaluation={result.data} currentUserId={session?.userId} />
+      <EvaluationDetailClient
+        evaluation={result.data}
+        currentUserId={session?.userId}
+        canCreateInterview={hasCreatePermission}
+        canCompleteEvaluation={canComplete}
+        responses={responses}
+      />
     </Suspense>
   );
 }

@@ -5,13 +5,16 @@ import {
   requireCanListEvaluations,
   requireCanViewEvaluations,
   requireCanRespondToEvaluation,
+  requireCanCompleteEvaluation,
 } from '@/domain/evaluation/permissions.server';
 import {
   submitEvaluationRequestSchema,
   type EvaluationDetails,
+  type EvaluationResponse,
   type PendingEvaluationsList,
   type SubmitEvaluationRequest,
   type SubmitEvaluationResponse,
+  type CompleteEvaluationResponse,
 } from '@/domain/evaluation/schemas';
 import { ZodError } from 'zod';
 import type { ActionResult } from './types';
@@ -162,5 +165,64 @@ export async function submitEvaluationResponseAction(
       success: false,
       ...formatError(error),
     };
+  }
+}
+
+// ============================================================================
+// Complete Evaluation
+// ============================================================================
+
+/**
+ * Complete an evaluation (HR/Admin only)
+ * Triggers signal aggregation and marks as COMPLETED
+ */
+export async function completeEvaluationAction(
+  evaluationId: string
+): Promise<ActionResult<CompleteEvaluationResponse>> {
+  try {
+    const session = await requireCanCompleteEvaluation();
+
+    const result = await evaluationService.completeEvaluation(
+      session,
+      session.token,
+      evaluationId
+    );
+
+    return { success: true, data: result };
+  } catch (error) {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
+    return { success: false, ...formatError(error) };
+  }
+}
+
+// ============================================================================
+// Get Evaluation Responses (HR/Admin only)
+// ============================================================================
+
+/**
+ * Get all submitted responses for an evaluation (HR/Admin only)
+ */
+export async function getEvaluationResponsesAction(
+  evaluationId: string
+): Promise<ActionResult<EvaluationResponse[]>> {
+  try {
+    const session = await requireCanCompleteEvaluation();
+
+    const responses = await evaluationService.getEvaluationResponses(
+      session,
+      session.token,
+      evaluationId
+    );
+
+    return { success: true, data: responses };
+  } catch (error) {
+    if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
+      throw error;
+    }
+
+    return { success: false, ...formatError(error) };
   }
 }

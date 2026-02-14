@@ -247,6 +247,13 @@ export class InterviewService {
             'FORBIDDEN'
           );
         }
+        if (error.status === 409) {
+          throw new InterviewApiError(
+            error.message,
+            409,
+            error.code || 'CONFLICT'
+          );
+        }
         throw new InterviewApiError(error.message, error.status ?? 500, 'INTERVIEW_CREATE_ERROR');
       }
 

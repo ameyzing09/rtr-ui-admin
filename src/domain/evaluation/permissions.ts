@@ -67,3 +67,17 @@ export function canViewSignals(userPermissions: Permission[]): boolean {
 export function canSetManualSignals(userPermissions: Permission[]): boolean {
   return can(userPermissions, SIGNAL_PERMISSIONS.SET_MANUAL);
 }
+
+/**
+ * Roles allowed to complete evaluations.
+ * Must match backend canManageEvaluations() guard.
+ */
+const COMPLETE_EVALUATION_ROLES = ['SUPERADMIN', 'ADMIN', 'HR'] as const;
+
+/**
+ * Check if user can complete evaluations (HR/Admin only).
+ * Uses role-based check to match backend canManageEvaluations().
+ */
+export function canCompleteEvaluations(role: string): boolean {
+  return (COMPLETE_EVALUATION_ROLES as readonly string[]).includes(role);
+}

@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getInterviewDetailAction } from '@/lib/actions/interview';
+import { listMembersAction } from '@/lib/actions/members';
 import { InterviewDetailClient } from './InterviewDetailClient';
 import Skeleton from '@/components/ui/Skeleton';
 import { getSession } from '@/lib/rbac/guard.server';
@@ -24,10 +25,19 @@ export default async function InterviewDetailPage({
   params,
 }: InterviewDetailPageProps) {
   const { interviewId } = await params;
-  const [result, session] = await Promise.all([
+  const [result, session, membersResult] = await Promise.all([
     getInterviewDetailAction(interviewId),
     getSession(),
+    listMembersAction().catch(() => ({ success: false as const, data: [] as never[] })),
   ]);
+
+  // Build userId → name map for displaying interviewer names
+  const userMap: Record<string, string> = {};
+  if (membersResult.success) {
+    for (const m of membersResult.data) {
+      userMap[m.id] = m.name;
+    }
+  }
 
   if (!result.success) {
     if (result.code === 'INTERVIEW_NOT_FOUND') {
@@ -50,6 +60,7 @@ export default async function InterviewDetailPage({
       <InterviewDetailClient
         interview={result.data}
         currentUserId={session?.userId}
+        userMap={userMap}
       />
     </Suspense>
   );

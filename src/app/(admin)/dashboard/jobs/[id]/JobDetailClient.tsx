@@ -436,6 +436,7 @@ function ApplicantsTab({ job, applications, pipeline }: { job: Job; applications
   const [isLoadingBoard, setIsLoadingBoard] = useState(false);
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [selectedApplicant, setSelectedApplicant] = useState<{ name: string; email: string } | null>(null);
+  const [drawerInitialTab, setDrawerInitialTab] = useState<'details' | 'history' | 'interviews'>('details');
 
   // Check permissions
   const canCreate = session ? hasApplicationPermission(session.user.permissions, APPLICATION_PERMISSIONS.CREATE) : false;
@@ -481,6 +482,23 @@ function ApplicantsTab({ job, applications, pipeline }: { job: Job; applications
         }
       }
     }
+    setDrawerInitialTab('details');
+    setSelectedApplicationId(applicationId);
+  };
+
+  const handleOpenInterviewsForApplication = (applicationId: string) => {
+    // Best-effort: find applicant info from board
+    if (board) {
+      for (const stage of board.stages) {
+        const app = stage.applications.find((a) => a.applicationId === applicationId);
+        if (app) {
+          setSelectedApplicant({ name: app.applicantName, email: app.applicantEmail });
+          break;
+        }
+      }
+    }
+    // Always open drawer on interviews tab, even if applicant info not found
+    setDrawerInitialTab('interviews');
     setSelectedApplicationId(applicationId);
   };
 
@@ -578,6 +596,7 @@ function ApplicantsTab({ job, applications, pipeline }: { job: Job; applications
               <KanbanBoard
                 board={board}
                 onApplicationClick={handleApplicationClick}
+                onOpenInterviewsForApplication={handleOpenInterviewsForApplication}
                 onBoardUpdate={loadBoard}
                 disabled={!canUpdate}
               />
@@ -713,12 +732,14 @@ function ApplicantsTab({ job, applications, pipeline }: { job: Job; applications
         onClose={() => {
           setSelectedApplicationId(null);
           setSelectedApplicant(null);
+          setDrawerInitialTab('details');
         }}
         onUpdate={loadBoard}
         canEdit={canUpdate}
         canViewInterviews={showInterviews}
         canCancelInterviews={allowCancelInterviews}
         canCreateInterviews={allowCreateInterviews}
+        initialTab={drawerInitialTab}
       />
     </div>
   );
