@@ -148,10 +148,41 @@ export function CreateInterviewForm({
     );
   };
 
+  /**
+   * Find all duplicate interviewer+template combinations across rounds.
+   * Returns the set of round indices that participate in a conflict.
+   */
+  const getDuplicateRoundIndices = (): Set<number> => {
+    const seen = new Map<string, number>(); // key → first round index
+    const conflicts = new Set<number>();
+
+    for (let i = 0; i < rounds.length; i++) {
+      const templateId = rounds[i].evaluation_template_id;
+      if (!templateId) continue;
+
+      for (const interviewerId of rounds[i].interviewer_ids) {
+        const key = `${templateId}:${interviewerId}`;
+        const prev = seen.get(key);
+        if (prev !== undefined) {
+          conflicts.add(prev);
+          conflicts.add(i);
+        } else {
+          seen.set(key, i);
+        }
+      }
+    }
+
+    return conflicts;
+  };
+
+  const duplicateRoundIndices = rounds.length > 1 ? getDuplicateRoundIndices() : new Set<number>();
+  const hasDuplicateAssignments = duplicateRoundIndices.size > 0;
+
   const isFormValid = () => {
     if (!currentStageId) return false;
     if (requiredEvaluations.length === 0) return false;
     if (interviewers.length === 0) return false;
+    if (hasDuplicateAssignments) return false;
 
     return rounds.every(
       (r) =>
@@ -181,7 +212,16 @@ export function CreateInterviewForm({
       if (result.success) {
         onSuccess();
       } else {
-        setSubmitError(result.error || 'Failed to create interview');
+        const isDuplicateRound =
+          result.code === 'duplicate_round_assignment' ||
+          result.error?.toLowerCase().includes('duplicate') && result.error?.toLowerCase().includes('round');
+        if (isDuplicateRound) {
+          setSubmitError(
+            'Same interviewer cannot be assigned to multiple rounds with the same evaluation template. Use different templates or different interviewers.'
+          );
+        } else {
+          setSubmitError(result.error || 'Failed to create interview');
+        }
       }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Unexpected error');
@@ -300,7 +340,11 @@ export function CreateInterviewForm({
         {rounds.map((round, index) => (
           <div
             key={index}
-            className="border border-gray-200 rounded-lg p-4 space-y-3"
+            className={`rounded-lg p-4 space-y-3 border ${
+              duplicateRoundIndices.has(index)
+                ? 'border-amber-400 bg-amber-50/50'
+                : 'border-gray-200'
+            }`}
           >
             <div className="flex items-center justify-between">
               <h4 className="text-sm font-medium text-gray-900">
@@ -400,6 +444,24 @@ export function CreateInterviewForm({
         <Plus className="h-4 w-4" />
         Add Round
       </button>
+
+      {/* FE-3: Helper text for multi-round forms */}
+      {rounds.length > 1 && (
+        <p className="text-xs text-gray-400">
+          Each interviewer + template combination must be unique across rounds.
+        </p>
+      )}
+
+      {/* FE-2: Duplicate assignment warning */}
+      {hasDuplicateAssignments && (
+        <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3">
+          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-amber-800">
+            Same interviewer is assigned to multiple rounds with the same evaluation template.
+            Use different templates or different interviewers.
+          </p>
+        </div>
+      )}
 
       {/* Submit error */}
       {submitError && (

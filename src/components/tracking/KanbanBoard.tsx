@@ -32,6 +32,7 @@ const isUuid = (s: string) =>
 interface KanbanBoardProps {
   board: PipelineBoard;
   onApplicationClick?: (applicationId: string) => void;
+  onOpenInterviewsForApplication?: (applicationId: string) => void;
   onBoardUpdate?: () => void;
   disabled?: boolean;
 }
@@ -39,6 +40,7 @@ interface KanbanBoardProps {
 export function KanbanBoard({
   board,
   onApplicationClick,
+  onOpenInterviewsForApplication,
   onBoardUpdate,
   disabled = false,
 }: KanbanBoardProps) {
@@ -205,12 +207,17 @@ export function KanbanBoard({
             title: 'Evaluations required',
             description: `Evaluation required for: ${sourceResult.stage.stage.stageName}`,
             duration: 8000,
-            action: blockedEval.instanceId && isUuid(blockedEval.instanceId)
+            action: onOpenInterviewsForApplication
               ? {
-                  label: 'Go to Evaluation',
-                  onClick: () => router.push(`/dashboard/evaluations/${blockedEval.instanceId}`),
+                  label: 'Assign Interviewers',
+                  onClick: () => onOpenInterviewsForApplication(applicationId),
                 }
-              : undefined,
+              : blockedEval.instanceId && isUuid(blockedEval.instanceId)
+                ? {
+                    label: 'Go to Evaluation',
+                    onClick: () => router.push(`/dashboard/evaluations/${blockedEval.instanceId}`),
+                  }
+                : undefined,
           });
           return;
         }
@@ -286,7 +293,7 @@ export function KanbanBoard({
         });
       }
     },
-    [board.stages, findStageByApplicationId, stages, onBoardUpdate, session, router]
+    [board.stages, findStageByApplicationId, stages, onBoardUpdate, session, router, onOpenInterviewsForApplication]
   );
 
   /**

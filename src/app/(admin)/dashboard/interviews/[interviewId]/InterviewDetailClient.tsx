@@ -15,6 +15,7 @@ import type { InterviewDetail, InterviewRound } from '@/domain/interview/schemas
 interface InterviewDetailClientProps {
   interview: InterviewDetail;
   currentUserId?: string;
+  userMap?: Record<string, string>;
 }
 
 function getStatusBadgeStyle(status: string): string {
@@ -23,6 +24,8 @@ function getStatusBadgeStyle(status: string): string {
       return 'bg-blue-50 text-blue-700 border-blue-200';
     case 'IN_PROGRESS':
       return 'bg-amber-50 text-amber-700 border-amber-200';
+    case 'COMPLETED':
+      return 'bg-green-50 text-green-700 border-green-200';
     case 'CANCELLED':
       return 'bg-gray-100 text-gray-500 border-gray-200';
     default:
@@ -49,6 +52,7 @@ function formatDate(dateString: string): string {
 export function InterviewDetailClient({
   interview,
   currentUserId,
+  userMap = {},
 }: InterviewDetailClientProps) {
   const router = useRouter();
 
@@ -239,7 +243,7 @@ export function InterviewDetailClient({
                                       : 'text-gray-600'
                                   }
                                 >
-                                  {assignment.userId.slice(0, 8)}…
+                                  {userMap[assignment.userId] || `${assignment.userId.slice(0, 8)}…`}
                                   {assignment.userId === currentUserId &&
                                     ' (You)'}
                                 </span>

@@ -41,9 +41,11 @@ export type SignalDefinition = z.infer<typeof signalDefinitionSchema>;
 // ============================================================================
 
 export const evaluationParticipantSchema = z.object({
+  id: z.string().uuid(),
   userId: z.string().uuid(),
   userName: z.string().optional(),
   status: participantStatusSchema,
+  submittedAt: z.string().nullable(),
 });
 
 export type EvaluationParticipant = z.infer<typeof evaluationParticipantSchema>;
@@ -144,6 +146,49 @@ export const submitEvaluationResponseSchema = z.object({
 }).transform((res) => res.data);
 
 export type SubmitEvaluationResponse = z.infer<typeof submitEvaluationResponseDataSchema>;
+
+// ============================================================================
+// Evaluation Responses List Schema (GET /evaluations/:id/responses)
+// ============================================================================
+
+export const evaluationResponseSchema = z.object({
+  id: z.string().uuid(),
+  participantId: z.string().uuid(),
+  responseData: z.record(z.string(), z.union([z.boolean(), z.number(), z.string()])),
+  submittedAt: z.string(),
+});
+export type EvaluationResponse = z.infer<typeof evaluationResponseSchema>;
+
+export const evaluationResponsesListSchema = z.object({
+  data: z.array(evaluationResponseSchema),
+}).transform((res) => res.data);
+
+// ============================================================================
+// Complete Evaluation Response Schema
+// ============================================================================
+
+export const completeEvaluationResponseDataSchema = z.object({
+  id: z.string().uuid(),
+  applicationId: z.string(),
+  templateId: z.string(),
+  templateName: z.string().optional(),
+  stageId: z.string().nullable(),
+  stageName: z.string().nullable().optional(),
+  status: evaluationStatusSchema,
+  scheduledAt: z.string().nullable(),
+  completedAt: z.string().nullable(),
+  forceCompleted: z.boolean(),
+  participantCount: z.number().optional(),
+  submittedCount: z.number().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const completeEvaluationResponseSchema = z.object({
+  data: completeEvaluationResponseDataSchema,
+}).transform((res) => res.data);
+
+export type CompleteEvaluationResponse = z.infer<typeof completeEvaluationResponseDataSchema>;
 
 // ============================================================================
 // UI Helper Functions

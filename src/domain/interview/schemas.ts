@@ -4,7 +4,7 @@ import { z } from 'zod';
 // Interview Status
 // ============================================================================
 
-export const interviewStatusSchema = z.enum(['PLANNED', 'IN_PROGRESS', 'CANCELLED']);
+export const interviewStatusSchema = z.enum(['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']);
 export type InterviewStatus = z.infer<typeof interviewStatusSchema>;
 
 // ============================================================================

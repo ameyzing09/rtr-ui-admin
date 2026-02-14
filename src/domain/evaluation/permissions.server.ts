@@ -6,6 +6,7 @@ import type { UserSession } from '@/lib/rbac/guard';
 import {
   hasEvaluationPermission,
   hasSignalPermission,
+  canCompleteEvaluations,
   EVALUATION_PERMISSIONS,
   SIGNAL_PERMISSIONS,
 } from './permissions';
@@ -59,6 +60,25 @@ export async function requireCanRespondToEvaluation(): Promise<UserSession> {
 
   if (!hasEvaluationPermission(session.permissions, EVALUATION_PERMISSIONS.RESPOND)) {
     throw new UnauthorizedError('You do not have permission to submit evaluation responses');
+  }
+
+  return session;
+}
+
+/**
+ * Require permission to complete evaluations (HR/Admin)
+ * Uses role-based check to match backend canManageEvaluations()
+ * Throws UnauthorizedError if user lacks permission
+ */
+export async function requireCanCompleteEvaluation(): Promise<UserSession> {
+  const session = await getSession();
+
+  if (!session) {
+    throw new UnauthorizedError('Authentication required to complete evaluations');
+  }
+
+  if (!canCompleteEvaluations(session.role)) {
+    throw new UnauthorizedError('You do not have permission to complete evaluations');
   }
 
   return session;

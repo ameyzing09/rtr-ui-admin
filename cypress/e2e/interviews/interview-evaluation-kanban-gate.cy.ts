@@ -209,7 +209,7 @@ describe('Interview evaluation kanban gate', () => {
 
     // Assert ActionModal shows evaluation block message
     cy.getBySel('action-modal').should('be.visible');
-    cy.contains('Required evaluations must be completed').should('be.visible');
+    cy.getBySel('evaluation-gate-warning').should('be.visible');
 
     // Assert action cards are dimmed (opacity-50 pointer-events-none)
     cy.get('[class*="opacity-50"][class*="pointer-events-none"]').should('exist');
@@ -324,7 +324,7 @@ describe('Interview evaluation kanban gate', () => {
     cy.getBySel('action-modal').should('be.visible');
 
     // Assert evaluation block message is gone
-    cy.contains('Required evaluations must be completed').should('not.exist');
+    cy.getBySel('evaluation-gate-warning').should('not.exist');
 
     // Assert action cards are clickable (not dimmed)
     cy.get('[class*="opacity-50"][class*="pointer-events-none"]').should('not.exist');

@@ -29,6 +29,7 @@ interface ApplicationDetailDrawerProps {
   canViewInterviews?: boolean;
   canCancelInterviews?: boolean;
   canCreateInterviews?: boolean;
+  initialTab?: TabType;
 }
 
 /**
@@ -56,6 +57,7 @@ export function ApplicationDetailDrawer({
   canViewInterviews = false,
   canCancelInterviews = false,
   canCreateInterviews = false,
+  initialTab,
 }: ApplicationDetailDrawerProps) {
   const [trackingState, setTrackingState] = useState<TrackingState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,9 +88,9 @@ export function ApplicationDetailDrawer({
   useEffect(() => {
     if (isOpen && applicationId) {
       loadTrackingState();
-      setActiveTab('details'); // Reset to details tab when drawer opens
+      setActiveTab(initialTab ?? 'details');
     }
-  }, [isOpen, applicationId, loadTrackingState]);
+  }, [isOpen, applicationId, loadTrackingState, initialTab]);
 
   const handleUpdate = () => {
     loadTrackingState();
@@ -326,6 +328,10 @@ export function ApplicationDetailDrawer({
           currentOutcomeType={trackingState?.outcomeType}
           isTerminal={trackingState?.isTerminal}
           onSuccess={handleUpdate}
+          onCreateInterview={canViewInterviews ? () => {
+            setShowActionModal(false);
+            setActiveTab('interviews');
+          } : undefined}
         />
       )}
     </>
