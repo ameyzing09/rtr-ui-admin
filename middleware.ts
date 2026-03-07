@@ -53,6 +53,7 @@ const PUBLIC_ROUTES = [
   '/_next',
   '/api',
   '/favicon.ico',
+  '/careers',
 ];
 
 /**

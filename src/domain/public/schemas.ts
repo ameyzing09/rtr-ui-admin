@@ -14,7 +14,7 @@ export const publicJobSchema = z.object({
   department: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   description_excerpt: z.string(),
-  publish_at: z.coerce.date(),
+  publish_at: z.coerce.date().nullable(),
   updated_at: z.coerce.date(),
   extra: z.record(z.string(), z.unknown()).nullable().optional(),
 });
@@ -43,7 +43,7 @@ export const publicJobDetailSchema = z.object({
   department: z.string().nullable().optional(),
   location: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
-  publish_at: z.coerce.date(),
+  publish_at: z.coerce.date().nullable(),
   updated_at: z.coerce.date(),
   extra: z.record(z.string(), z.unknown()).nullable().optional(),
 });
@@ -183,6 +183,7 @@ export function calculateTotalPages(total: number, pageSize: number): number {
  * Check if job is currently published
  */
 export function isJobPublished(job: PublicJob | PublicJobDetail): boolean {
+  if (!job.publish_at) return false;
   const now = new Date();
   return job.publish_at <= now;
 }

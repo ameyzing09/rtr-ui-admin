@@ -1,13 +1,14 @@
-'use client';
-
+'use client';;
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle, Clock, Users, Loader2 } from 'lucide-react';
 import { EvaluationForm } from '@/components/evaluation/EvaluationForm';
-import { completeEvaluationAction } from '@/lib/actions/evaluation';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { evaluationService, EvaluationApiError } from '@/domain/evaluation/service';
+import type { EvaluationDetails, EvaluationResponse } from '@/domain/evaluation/schemas';
+import type { UserSession } from '@/lib/rbac/guard';
 import { toast } from '@/components/ui/ToastProvider';
 import Card from '@/components/ui/Card';
-import type { EvaluationDetails, EvaluationResponse } from '@/domain/evaluation/schemas';
 
 interface EvaluationDetailClientProps {
   evaluation: EvaluationDetails;
@@ -26,6 +27,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 
 export function EvaluationDetailClient({ evaluation, currentUserId, canCreateInterview, canCompleteEvaluation, responses = [] }: EvaluationDetailClientProps) {
   const router = useRouter();
+  const { session } = useAuth();
   const [isCompleting, setIsCompleting] = useState(false);
 
   // Build participant lookup by id for joining with responses
@@ -63,23 +65,40 @@ export function EvaluationDetailClient({ evaluation, currentUserId, canCreateInt
   };
 
   const handleComplete = async () => {
+    if (!session) {
+      toast({ title: 'Not authenticated', description: 'Please log in again.', variant: 'error' });
+      return;
+    }
+
     setIsCompleting(true);
     try {
-      const result = await completeEvaluationAction(evaluation.id);
-      if (result.success) {
-        toast({
-          title: 'Evaluation completed',
-          description: 'Signals have been aggregated successfully.',
-          variant: 'success',
-        });
-        router.refresh();
-      } else {
-        toast({
-          title: 'Failed to complete evaluation',
-          description: result.error,
-          variant: 'error',
-        });
-      }
+      const userSession: UserSession = {
+        userId: session.user.id,
+        tenantId: session.user.tenantId,
+        role: session.user.role,
+        permissions: session.user.permissions ?? [],
+        email: session.user.email,
+        name: session.user.name,
+        token: session.token,
+      };
+
+      await evaluationService.completeEvaluation(userSession, session.token, evaluation.id);
+
+      toast({
+        title: 'Evaluation completed',
+        description: 'Signals have been aggregated successfully.',
+        variant: 'success',
+      });
+      router.refresh();
+    } catch (error) {
+      const message = error instanceof EvaluationApiError
+        ? error.message
+        : 'An unexpected error occurred';
+      toast({
+        title: 'Failed to complete evaluation',
+        description: message,
+        variant: 'error',
+      });
     } finally {
       setIsCompleting(false);
     }
@@ -243,17 +262,124 @@ export function EvaluationDetailClient({ evaluation, currentUserId, canCreateInt
                 </div>
               </div>
             </Card>
-          ) : !isParticipant && canShowCompleteButton ? (
-            /* Complete CTA for non-participant HR/Admin */
+          ) : canShowCompleteButton ? (
+            /* Complete CTA for any authorized user when all submitted */
             completeCard
-          ) : (
-            /* Evaluation Form */
+          ) : isParticipant ? (
+            /* Evaluation Form — only for actual participants */
             <EvaluationForm
               evaluationId={evaluation.id}
               signals={evaluation.signals}
               templateName={evaluation.template.name}
               onSuccess={handleSuccess}
             />
+          ) : canCompleteEvaluation ? (
+            /* Admin/HR overview — non-participant with evaluation permissions */
+            <Card className="p-6 bg-blue-50 border-blue-200" data-testid="admin-evaluation-overview">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-medium text-blue-800">Evaluation Overview</h3>
+                  <p className="mt-2 text-sm text-blue-700">
+                    {respondedCount} of {totalParticipants} evaluators have submitted.
+                    {respondedCount < totalParticipants
+                      ? " You'll be able to complete this evaluation once all responses are in."
+                      : ' All responses are in — this evaluation is ready to be completed.'}
+                  </p>
+
+                  {/* Participant status list */}
+                  <ul className="mt-4 space-y-2">
+                    {evaluation.participants.map((participant) => (
+                      <li
+                        key={participant.id}
+                        className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-sm"
+                        data-testid={`admin-participant-${participant.id}`}
+                      >
+                        <span className="font-medium text-gray-900">
+                          {participant.userName ?? 'Participant'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {participant.submittedAt && (
+                            <span className="text-xs text-gray-400">
+                              {new Date(participant.submittedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                              participant.status === 'SUBMITTED'
+                                ? 'bg-green-100 text-green-700'
+                                : participant.status === 'DECLINED'
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-gray-100 text-gray-600'
+                            }`}
+                          >
+                            {participant.status === 'SUBMITTED'
+                              ? 'Submitted'
+                              : participant.status === 'DECLINED'
+                                ? 'Declined'
+                                : 'Pending'}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            /* Non-participant waiting state */
+            <Card className="p-6 bg-gray-50 border-gray-200" data-testid="evaluation-in-progress-notice">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-gray-500" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-800">Evaluation in progress</h3>
+                  <p className="mt-1 text-sm text-gray-600">
+                    Waiting for all evaluators to submit their responses before this evaluation can be completed.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Submitted Responses (HR/Admin only) */}
+          {responses.length > 0 && (
+            <div className="space-y-4" data-testid="submitted-responses">
+              <h2 className="text-lg font-semibold text-gray-900">Submitted Responses</h2>
+              {responses.map((response) => {
+                const participant = participantById[response.participantId];
+                return (
+                  <Card key={response.id} className="p-5" data-testid={`response-card-${response.id}`}>
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="font-medium text-gray-900">
+                        {participant?.userName ?? 'Unknown Participant'}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {new Date(response.submittedAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {evaluation.signals.map((signal) => {
+                        const value = response.responseData[signal.key];
+                        return (
+                          <div key={signal.key} className="flex items-start gap-3 py-1">
+                            <span className="text-sm font-medium text-gray-600 min-w-[140px]">
+                              {signal.label}
+                            </span>
+                            <span className="text-sm text-gray-900">
+                              {renderSignalValue(signal.type, value, signal.scale)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
           )}
 
           {/* Submitted Responses (HR/Admin only) */}

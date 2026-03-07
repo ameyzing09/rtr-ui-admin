@@ -3,13 +3,13 @@ import { PublicJobsListClient } from './PublicJobsListClient';
 import type { PublicJobsQuery } from '@/domain/public/schemas';
 
 interface CareersPageProps {
-  searchParams: {
+  searchParams: Promise<{
     search?: string;
     department?: string;
     location?: string;
     page?: string;
     pageSize?: string;
-  };
+  }>;
 }
 
 export const metadata = {
@@ -28,18 +28,19 @@ export const metadata = {
  * - Only shows published, non-expired jobs
  */
 export default async function CareersPage({ searchParams }: CareersPageProps) {
-  // Build query from URL params
-  const query: PublicJobsQuery = {
-    search: searchParams.search,
-    department: searchParams.department,
-    location: searchParams.location,
-    page: searchParams.page ? parseInt(searchParams.page) : 1,
-    pageSize: searchParams.pageSize ? parseInt(searchParams.pageSize) : 10,
-  };
-
-  // Fetch jobs from backend
   try {
+    const params = await searchParams;
+
+    // Build query from URL params
+    const query: PublicJobsQuery = {
+      search: params.search,
+      department: params.department,
+      location: params.location,
+      page: params.page ? parseInt(params.page) : 1,
+      pageSize: params.pageSize ? parseInt(params.pageSize) : 10,
+    };
     const jobsData = await publicJobService.listJobs(query);
+    console.log('Fetched jobs data:', jobsData);
 
     return (
       <PublicJobsListClient

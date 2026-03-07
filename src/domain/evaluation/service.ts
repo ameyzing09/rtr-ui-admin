@@ -1,5 +1,5 @@
 import { createAuthenticatedFetcher } from '@/lib/api/fetcher';
-import { env } from '@/config/env';
+
 import type { UserSession } from '@/lib/rbac/guard';
 import {
   evaluationDetailsSchema,
@@ -38,7 +38,7 @@ export class EvaluationService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = env.NEXT_PUBLIC_EVALUATION_API_BASE_URL || '';
+    this.baseUrl = process.env.NEXT_PUBLIC_EVALUATION_API_BASE_URL || '';
     console.log('[EvaluationService] Initialized with baseUrl:', this.baseUrl);
   }
 
