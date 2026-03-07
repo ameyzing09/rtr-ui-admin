@@ -102,15 +102,18 @@ export class Fetcher {
       requestHeaders['X-Tenant-ID'] = localTenantId;
     }
 
-    // Add CSRF token for state-changing requests (only in browser)
+    // Add CSRF token for state-changing requests (only in browser, same-origin only)
     const method = options.method?.toUpperCase() || 'GET';
     if (typeof window !== 'undefined' && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-      try {
-        const csrfToken = getOrCreateCsrfToken();
-        requestHeaders[CSRF_CONFIG.HEADER_NAME] = csrfToken;
-      } catch (error) {
-        console.warn('Failed to get CSRF token:', error);
-        // Continue without CSRF token rather than failing the request
+      const isSameOrigin = !url.startsWith('http') || url.startsWith(window.location.origin);
+      if (isSameOrigin) {
+        try {
+          const csrfToken = getOrCreateCsrfToken();
+          requestHeaders[CSRF_CONFIG.HEADER_NAME] = csrfToken;
+        } catch (error) {
+          console.warn('Failed to get CSRF token:', error);
+          // Continue without CSRF token rather than failing the request
+        }
       }
     }
 

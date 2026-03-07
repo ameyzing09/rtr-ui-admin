@@ -7,9 +7,9 @@ import { EvaluationForm } from '@/components/evaluation/EvaluationForm';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { evaluationService, EvaluationApiError } from '@/domain/evaluation/service';
 import { toast } from '@/components/ui/ToastProvider';
-import type { UserSession } from '@/lib/rbac/guard';
 import Card from '@/components/ui/Card';
 import type { EvaluationDetails, EvaluationResponse } from '@/domain/evaluation/schemas';
+import type { UserSession } from '@/lib/rbac/guard';
 
 interface EvaluationDetailClientProps {
   evaluation: EvaluationDetails;
@@ -66,7 +66,10 @@ export function EvaluationDetailClient({ evaluation, currentUserId, canCreateInt
   };
 
   const handleComplete = async () => {
-    if (!session) return;
+    if (!session) {
+      toast({ title: 'Not authenticated', description: 'Please log in again.', variant: 'error' });
+      return;
+    }
 
     setIsCompleting(true);
     try {
@@ -74,13 +77,14 @@ export function EvaluationDetailClient({ evaluation, currentUserId, canCreateInt
         userId: session.user.id,
         tenantId: session.user.tenantId,
         role: session.user.role,
-        permissions: session.user.permissions,
+        permissions: session.user.permissions ?? [],
         email: session.user.email,
         name: session.user.name,
         token: session.token,
       };
 
       await evaluationService.completeEvaluation(userSession, session.token, evaluation.id);
+
       toast({
         title: 'Evaluation completed',
         description: 'Signals have been aggregated successfully.',
