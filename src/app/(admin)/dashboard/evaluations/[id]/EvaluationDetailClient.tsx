@@ -1,15 +1,14 @@
-'use client';
-
+'use client';;
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle, Clock, Users, Loader2 } from 'lucide-react';
 import { EvaluationForm } from '@/components/evaluation/EvaluationForm';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { evaluationService, EvaluationApiError } from '@/domain/evaluation/service';
-import { toast } from '@/components/ui/ToastProvider';
-import Card from '@/components/ui/Card';
 import type { EvaluationDetails, EvaluationResponse } from '@/domain/evaluation/schemas';
 import type { UserSession } from '@/lib/rbac/guard';
+import { toast } from '@/components/ui/ToastProvider';
+import Card from '@/components/ui/Card';
 
 interface EvaluationDetailClientProps {
   evaluation: EvaluationDetails;
@@ -344,6 +343,43 @@ export function EvaluationDetailClient({ evaluation, currentUserId, canCreateInt
                 </div>
               </div>
             </Card>
+          )}
+
+          {/* Submitted Responses (HR/Admin only) */}
+          {responses.length > 0 && (
+            <div className="space-y-4" data-testid="submitted-responses">
+              <h2 className="text-lg font-semibold text-gray-900">Submitted Responses</h2>
+              {responses.map((response) => {
+                const participant = participantById[response.participantId];
+                return (
+                  <Card key={response.id} className="p-5" data-testid={`response-card-${response.id}`}>
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="font-medium text-gray-900">
+                        {participant?.userName ?? 'Unknown Participant'}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {new Date(response.submittedAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {evaluation.signals.map((signal) => {
+                        const value = response.responseData[signal.key];
+                        return (
+                          <div key={signal.key} className="flex items-start gap-3 py-1">
+                            <span className="text-sm font-medium text-gray-600 min-w-[140px]">
+                              {signal.label}
+                            </span>
+                            <span className="text-sm text-gray-900">
+                              {renderSignalValue(signal.type, value, signal.scale)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
           )}
 
           {/* Submitted Responses (HR/Admin only) */}
