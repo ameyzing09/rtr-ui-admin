@@ -2,7 +2,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { Search, Plus, MoreVertical, Edit, Trash2, FileText, Activity } from 'lucide-react';
+import { Search, Plus, MoreVertical, Edit, Trash2, FileText, Activity, Eye } from 'lucide-react';
 import type { Application, ApplicationListResponse } from '@/domain/applications/schemas';
 import type { JobListItem } from '@/domain/jobs/schemas';
 import { ApplicationStatusBadge } from '@/components/applications/ApplicationStatusBadge';
@@ -386,6 +386,16 @@ function ApplicationRow({
                       View Resume
                     </a>
                   )}
+
+                  <a
+                    data-testid={`app-list-view-details-${application.id}`}
+                    href={`/dashboard/applications/${application.id}`}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setShowMenu(false)}
+                  >
+                    <Eye className="h-4 w-4" />
+                    View Details
+                  </a>
 
                   <a
                     href={`/dashboard/applications/${application.id}/signals`}

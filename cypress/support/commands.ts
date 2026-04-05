@@ -188,6 +188,14 @@ declare global {
       cancelInterviewViaApi(interviewId: string): Chainable<{ id: string; status: string }>;
 
       /**
+       * Get application detail via the application-detail API
+       * Returns the full detail data for an application.
+       * @param applicationId - Application ID
+       * @example cy.getApplicationDetailViaApi('app-uuid').then((data) => { ... })
+       */
+      getApplicationDetailViaApi(applicationId: string): Chainable<Record<string, unknown>>;
+
+      /**
        * Fetch the current user's pending interviews via API (GET /my-pending)
        * Returns the data array from the response.
        * @example cy.getMyPendingInterviewsViaApi().then((interviews) => { ... })
@@ -572,6 +580,26 @@ Cypress.Commands.add('cancelInterviewViaApi', (interviewId: string) => {
     }).then((response) => {
       const data = response.body.data || response.body;
       return { id: data.id || data.ID, status: data.status || data.Status };
+    });
+  });
+});
+
+// ---- getApplicationDetailViaApi ----
+Cypress.Commands.add('getApplicationDetailViaApi', (applicationId: string) => {
+  const apiBaseUrl = Cypress.env('APPLICATION_DETAIL_API_BASE_URL');
+  const tenantId = Cypress.env('TENANT_ID');
+
+  return cy.getAuthToken().then((token) => {
+    return cy.request({
+      method: 'GET',
+      url: `${apiBaseUrl}/applications/${applicationId}`,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Tenant-ID': tenantId,
+      },
+    }).then((response) => {
+      const data = response.body.data || response.body;
+      return data;
     });
   });
 });
