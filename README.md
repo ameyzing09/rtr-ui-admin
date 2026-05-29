@@ -67,7 +67,7 @@ src/
 - **Navbar** - Glassmorphism top navigation
 - **DashboardShell** - Complete layout wrapper
 
-## 📚 Documentation
+## 📚 Documentation 
 
 Detailed documentation is available in the [`/docs`](./docs) folder:
 
