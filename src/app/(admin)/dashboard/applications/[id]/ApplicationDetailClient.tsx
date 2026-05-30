@@ -353,7 +353,11 @@ export function ApplicationDetailClient({ data }: ApplicationDetailClientProps) 
                       </div>
                       <div className="flex items-center gap-4 text-xs text-gray-500">
                         <span>
-                          {evaluation.stageName || (evaluation.isInterviewLevel ? 'Interview-level' : 'Stage')}
+                          {evaluation.stageName
+                            ? `${evaluation.isInterviewLevel ? 'Interview Feedback' : 'Stage Evaluation'} · ${evaluation.stageName}`
+                            : evaluation.isInterviewLevel
+                              ? 'Interview Feedback'
+                              : 'Stage Evaluation'}
                         </span>
                         <span>
                           {evaluation.submittedCount}/{evaluation.participantCount} submitted

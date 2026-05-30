@@ -9,7 +9,7 @@ export const userSchema = z.object({
   id: z.string(),
   tenant_id: z.string(),
   name: z.string(),
-  email: z.string().email().optional(), // Not returned in list response
+  email: z.string().email().nullable().optional(),
   role: z.string(),
   is_owner: z.boolean().optional(),
   is_active: z.boolean().optional(),

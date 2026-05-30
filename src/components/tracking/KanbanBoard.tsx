@@ -204,20 +204,15 @@ export function KanbanBoard({
         if (blockedEval) {
           toast({
             variant: 'warning',
-            title: 'Evaluations required',
-            description: `Evaluation required for: ${sourceResult.stage.stage.stageName}`,
+            title: 'Stage evaluation required',
+            description: `Complete the required stage evaluation for ${sourceResult.stage.stage.stageName} before advancing.`,
             duration: 8000,
-            action: onOpenInterviewsForApplication
+            action: blockedEval.instanceId && isUuid(blockedEval.instanceId)
               ? {
-                  label: 'Assign Interviewers',
-                  onClick: () => onOpenInterviewsForApplication(applicationId),
+                  label: 'Go to Evaluation',
+                  onClick: () => router.push(`/dashboard/evaluations/${blockedEval.instanceId}`),
                 }
-              : blockedEval.instanceId && isUuid(blockedEval.instanceId)
-                ? {
-                    label: 'Go to Evaluation',
-                    onClick: () => router.push(`/dashboard/evaluations/${blockedEval.instanceId}`),
-                  }
-                : undefined,
+              : undefined,
           });
           return;
         }

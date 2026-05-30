@@ -255,16 +255,16 @@ export function ActionModal({
                     <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-blue-800">
-                        Evaluation responses submitted
+                        Stage evaluation ready to complete
                       </p>
                       <div className="mt-2 space-y-1">
                         {inProgressEvaluations.map((e) => (
                           <div key={e.templateId} className="space-y-1">
                             <p className="text-xs text-blue-600">
-                              Evaluation responses submitted for: {e.templateName}
+                              All evaluators have submitted responses for the &ldquo;{e.templateName}&rdquo; stage evaluation.
                             </p>
                             <p className="text-xs text-blue-500">
-                              Complete the evaluation to unblock actions.
+                              Complete the stage evaluation to advance this candidate.
                             </p>
                             {e.instanceId && (
                               <Link
@@ -292,14 +292,16 @@ export function ActionModal({
                     <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-amber-800">
-                        Evaluation required for: {currentStageName}
+                        Stage evaluation required
                       </p>
                       <div className="mt-2 space-y-1">
                         {pendingEvaluations.map((e) => (
                           <div key={e.templateId} className="space-y-1">
-                            <p className="text-xs text-amber-600">Template: {e.templateName}</p>
+                            <p className="text-xs text-amber-600">
+                              Complete the required stage evaluation for {currentStageName} before advancing this candidate. Interview feedback does not satisfy this requirement.
+                            </p>
                             <div className="flex flex-wrap items-center gap-2">
-                              {e.instanceId && (
+                              {e.instanceId ? (
                                 <Link
                                   href={`/dashboard/evaluations/${e.instanceId}`}
                                   className="inline-flex items-center gap-1 text-sm text-amber-700 underline hover:text-amber-900"
@@ -308,15 +310,10 @@ export function ActionModal({
                                   Go to Evaluation
                                   <ExternalLink className="h-3 w-3" />
                                 </Link>
-                              )}
-                              {onCreateInterview && (
-                                <button
-                                  onClick={onCreateInterview}
-                                  className="inline-flex items-center gap-1 text-sm font-medium text-blue-700 underline hover:text-blue-900"
-                                  data-testid="evaluation-gate-go-interviews"
-                                >
-                                  Go to Interviews
-                                </button>
+                              ) : (
+                                <p className="text-xs text-amber-500" data-testid="evaluation-gate-not-created">
+                                  Stage evaluation is not created yet. Refresh or contact an administrator if this persists.
+                                </p>
                               )}
                             </div>
                           </div>
